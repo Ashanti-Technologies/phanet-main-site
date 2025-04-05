@@ -86,7 +86,7 @@ export default function GetInvolved() {
                         </div>
 
                         <p className="mt-6 text-sm text-gray-500">
-                            By joining, you'll receive regular prayer updates and resources
+                            By joining, you&apos;ll receive regular prayer updates and resources
                         </p>
                     </motion.div>
                 </div>
