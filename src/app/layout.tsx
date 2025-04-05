@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
+import Footer from './components/Footer';
 
-const inter = Inter({ subsets: ["latin"] });
+const dmSans = DM_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PHANET - Raising One Billion Intercessors Worldwide",
-  description: "Phanerosis Prayer Network International (PHANET) is a global intercessory Christian organization dedicated to raising one billion intercessors worldwide.",
+  title: "Phanet",
+  description: "Raising One Billion Intercessors Worldwide",
 };
 
 export default function RootLayout({
@@ -16,8 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {children}
+      <body className={`${dmSans.className} antialiased`}>
+        <main>{children}</main>
+        <Footer />
       </body>
     </html>
   );

@@ -11,7 +11,6 @@ export default function About() {
 
     return (
         <section className="py-20 bg-white relative overflow-hidden">
-            {/* Background pattern */}
             <div className="absolute inset-0 opacity-5">
                 <div className="absolute inset-0 bg-[url('/images/pattern.png')] bg-repeat" />
             </div>
@@ -35,7 +34,7 @@ export default function About() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         </div>
                         <motion.div
-                            className="absolute -bottom-6 -right-6 bg-blue-600 text-white p-6 rounded-xl shadow-xl"
+                            className="absolute -bottom-6 -right-6 bg-mikado-yellow text-white p-6 rounded-xl shadow-xl"
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
                             transition={{ duration: 0.8, delay: 0.6 }}
@@ -50,8 +49,8 @@ export default function About() {
                         animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
                         transition={{ duration: 0.8, delay: 0.4 }}
                     >
-                        <h2 className="text-3xl sm:text-4xl font-bold text-blue-900 mb-6">
-                            About PHANET
+                        <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-6">
+                            About Phanerosis Prayer Network
                         </h2>
                         <p className="text-lg text-gray-700 leading-relaxed mb-8">
                             Phanerosis Prayer Network International, known worldwide as PHANET, is a non-governmental, not-for-profit, non-partisan, non-denominational Christian organization. Among all other ministries, PHANET is uniquely identified as an intercessory ministry.

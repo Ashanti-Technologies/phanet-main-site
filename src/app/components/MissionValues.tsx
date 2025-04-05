@@ -1,108 +1,164 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useInView } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
 
-const coreValues = [
+const values = [
     {
-        title: "Intercession for the Lost",
-        icon: "/images/icons/prayer.svg",
-        description: "Dedicated to praying for those who have not yet found Christ"
+        id: 1,
+        title: 'Intercession for the Lost',
+        description: 'Dedicated to praying for those who have not yet found Christ',
+        color: 'bg-midnight-green',
+        href: '/values/intercession'
     },
     {
-        title: "Christ-Centred Teachings",
-        icon: "/images/icons/bible.svg",
-        description: "Rooted in biblical truth and the teachings of Jesus"
+        id: 2,
+        title: 'Christ-Centred Teachings',
+        description: 'Rooted in biblical truth and the teachings of Jesus',
+        color: 'bg-crayola',
+        href: '/values/teachings'
     },
     {
-        title: "Sacrifice for the Kingdom",
-        icon: "/images/icons/cross.svg",
-        description: "Committed to serving God's purpose above all else"
+        id: 3,
+        title: 'Sacrifice for the Kingdom',
+        description: 'Committed to serving God\'s purpose above all else',
+        color: 'bg-cerulean',
+        href: '/values/sacrifice'
     },
     {
-        title: "Love for God and the Brethren",
-        icon: "/images/icons/heart.svg",
-        description: "Building a community of love and support"
+        id: 4,
+        title: 'Love for God and the Brethren',
+        description: 'Building a community of love and support',
+        color: 'bg-black',
+        href: '/values/love'
     },
     {
-        title: "Unity of the Body of Christ",
-        icon: "/images/icons/hands.svg",
-        description: "Working together as one in Christ"
+        id: 5,
+        title: 'Unity of the Body of Christ',
+        description: 'Working together as one in Christ',
+        color: 'bg-mikado-yellow',
+        href: '/values/unity'
     }
 ];
 
 export default function MissionValues() {
     const ref = useRef(null);
-    const isInView = useInView(ref, { once: true, margin: "-100px" });
+    const videoRef = useRef(null);
+    const isInView = useInView(ref, { once: true });
+    const isVideoInView = useInView(videoRef, { once: true });
 
     return (
-        <section className="py-20 bg-blue-50 relative overflow-hidden">
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-5">
-                <div className="absolute inset-0 bg-[url('/images/pattern.png')] bg-repeat" />
-            </div>
-
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-                <motion.div
-                    ref={ref}
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-                    transition={{ duration: 0.8 }}
-                    className="max-w-4xl mx-auto"
-                >
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl sm:text-4xl font-bold text-blue-900 mb-6">
-                            Our Mission & Core Values
-                        </h2>
-                        <div className="w-24 h-1 bg-blue-600 mx-auto rounded-full" />
-                    </div>
-
+        <>
+            <section ref={ref} className="py-24 px-4 bg-antiflash-white">
+                <div className="max-w-7xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                        className="bg-white rounded-2xl p-8 shadow-lg mb-12 relative overflow-hidden"
+                        transition={{ duration: 0.8 }}
+                        className="text-center mb-16"
                     >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full opacity-20" />
-                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-100 rounded-full opacity-20" />
-                        <h3 className="text-2xl font-semibold text-blue-800 mb-4">Mission</h3>
-                        <p className="text-lg text-gray-700 leading-relaxed">
+                        <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                            Our Mission & Core Values
+                        </h2>
+                        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                             To reach the unreached, strengthen the weak, and support the strong through intercession, fellowship, study of the Word, and witnessing.
                         </p>
                     </motion.div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {coreValues.map((value, index) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {values.map((value, index) => (
                             <motion.div
-                                key={value.title}
+                                key={value.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                                transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-                                className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 relative overflow-hidden group"
+                                transition={{ duration: 0.5, delay: index * 0.1 }}
                             >
-                                <div className="absolute top-0 right-0 w-16 h-16 bg-blue-100 rounded-full opacity-20" />
-                                <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
-                                        <Image
-                                            src={value.icon}
-                                            alt={value.title}
-                                            width={24}
-                                            height={24}
-                                            className="text-blue-600 group-hover:text-white"
-                                        />
+                                <Link href={value.href}>
+                                    <div className={`${value.color} rounded-2xl p-8 h-[280px] relative overflow-hidden group transition-all duration-300 hover:scale-[1.02] cursor-pointer`}>
+                                        {/* Background Pattern */}
+                                        <div className="absolute inset-0 opacity-10">
+                                            <div className="absolute right-0 top-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                                        </div>
+
+                                        <div className="relative z-10 h-full flex flex-col justify-between">
+                                            <div>
+                                                <h4 className="text-3xl font-bold text-white leading-tight">
+                                                    {value.title}
+                                                </h4>
+                                                <p className="mt-4 text-white/90 text-lg">
+                                                    {value.description}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex items-center text-white group-hover:translate-x-2 transition-transform duration-300">
+                                                Learn more
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-blue-800 mb-2">{value.title}</h3>
-                                        <p className="text-gray-600">{value.description}</p>
-                                    </div>
-                                </div>
+                                </Link>
                             </motion.div>
                         ))}
                     </div>
-                </motion.div>
-            </div>
-        </section>
+                </div>
+            </section>
+
+            <section ref={videoRef} className="relative h-[600px] overflow-hidden">
+                {/* Background Video */}
+                <div className="absolute inset-0">
+                    <video
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="object-cover w-full h-full"
+                    >
+                        <source src="/videos/snippet.mp4" type="video/mp4" />
+                    </video>
+                    <div className="absolute inset-0 bg-black/50" />
+                </div>
+
+                {/* Content */}
+                <div className="relative z-10 h-full flex flex-col justify-center px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-7xl mx-auto w-full">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={isVideoInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                            transition={{ duration: 0.8 }}
+                            className="max-w-3xl"
+                        >
+                            <span className="text-xl text-white/90 font-medium mb-4 block">
+                                Worship Ministry
+                            </span>
+                            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                                Inspiring your faith and creating an atmosphere of worship to God.
+                            </h2>
+                            <Link
+                                href="/worship"
+                                className="inline-flex items-center text-white text-lg font-medium group"
+                            >
+                                Learn more
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform duration-300"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </Link>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+        </>
     );
 } 

@@ -27,7 +27,7 @@ export default function GetInvolved() {
                     >
                         <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl">
                             <Image
-                                src="/images/community.jpg"
+                                src="/images/hoe5.jpg"
                                 alt="PHANET Community"
                                 fill
                                 className="object-cover"
@@ -35,7 +35,7 @@ export default function GetInvolved() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         </div>
                         <motion.div
-                            className="absolute -bottom-6 -right-6 bg-blue-600 text-white p-6 rounded-xl shadow-xl"
+                            className="absolute -bottom-6 -right-6 bg-midnight-green text-white p-6 rounded-xl shadow-xl"
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
                             transition={{ duration: 0.8, delay: 0.6 }}
@@ -51,8 +51,8 @@ export default function GetInvolved() {
                         transition={{ duration: 0.8, delay: 0.4 }}
                         className="text-center lg:text-left"
                     >
-                        <h2 className="text-3xl sm:text-4xl font-bold text-blue-900 mb-6">
-                            Join Our Global Prayer Network
+                        <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-6">
+                            Join Our Global Network
                         </h2>
                         <p className="text-lg text-gray-700 mb-8">
                             Be part of something greater. Join our community of intercessors and make a difference in the world through prayer.
@@ -66,23 +66,23 @@ export default function GetInvolved() {
                             >
                                 <a
                                     href="/join"
-                                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300"
+                                    className="inline-block bg-crayola hover:bg-crayola/90 text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300"
                                 >
                                     Get Involved Today
                                 </a>
                             </motion.div>
-                            <motion.div
+                            {/* <motion.div
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 className="inline-block"
                             >
                                 <a
                                     href="/prayer-requests"
-                                    className="inline-block bg-transparent border-2 border-blue-600 text-blue-600 font-semibold px-8 py-4 rounded-lg transition-colors duration-300 hover:bg-blue-50"
+                                    className="inline-block bg-transparent border border-crayola text-crayola font-semibold px-8 py-4 rounded-lg transition-colors duration-300 hover:bg-blue-50"
                                 >
                                     Submit Prayer Request
                                 </a>
-                            </motion.div>
+                            </motion.div> */}
                         </div>
 
                         <p className="mt-6 text-sm text-gray-500">

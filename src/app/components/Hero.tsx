@@ -1,9 +1,74 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Navigation, Pagination, EffectFade, Keyboard } from 'swiper/modules';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRef } from 'react';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import 'swiper/css/effect-fade';
+
+// Custom styles for Swiper
+const swiperStyles = `
+    .swiper-button-next,
+    .swiper-button-prev {
+        color: white;
+        background: rgba(0, 0, 0, 0.3);
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+    }
+    
+    .swiper-button-next:hover,
+    .swiper-button-prev:hover {
+        background: rgba(0, 0, 0, 0.5);
+        transform: scale(1.1);
+    }
+    
+    .swiper-button-next:after,
+    .swiper-button-prev:after {
+        font-size: 20px;
+        font-weight: bold;
+    }
+    
+    .swiper-pagination {
+        bottom: 40px !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 16px;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(12px);
+        border-radius: 24px;
+        width: auto !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+    }
+    
+    .swiper-pagination-bullet {
+        width: 8px;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 1;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin: 0 !important;
+    }
+    
+    .swiper-pagination-bullet-active {
+        width: 32px;
+        height: 8px;
+        background: white;
+        transform: none;
+        border-radius: 4px;
+    }
+`;
 
 const slides = [
     {
@@ -12,14 +77,8 @@ const slides = [
         title: 'Global Prayer Movement',
         subtitle: 'Join millions in prayer for the nations',
         cta: {
-            primary: {
-                text: 'Get connected',
-                href: '/join',
-            },
-            secondary: {
-                text: 'Learn More',
-                href: '/about',
-            },
+            text: 'Connect with us',
+            href: '/join',
         },
     },
     {
@@ -28,14 +87,8 @@ const slides = [
         title: 'United in Christ',
         subtitle: 'Building a community of intercessors',
         cta: {
-            primary: {
-                text: 'Find a location',
-                href: '/groups',
-            },
-            secondary: {
-                text: 'Our Vision',
-                href: '/vision',
-            },
+            text: 'Connect with us',
+            href: '/join',
         },
     },
     {
@@ -44,148 +97,102 @@ const slides = [
         title: 'Transform Lives',
         subtitle: 'Through the power of prayer',
         cta: {
-            primary: {
-                text: 'Watch sermons',
-                href: '/sermons',
-            },
-            secondary: {
-                text: 'Resources',
-                href: '/resources',
-            },
+            text: 'Connect with us',
+            href: '/join',
         },
     },
 ];
 
 export default function Hero() {
-    const [currentSlide, setCurrentSlide] = useState(0);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % slides.length);
-        }, 10000);
-
-        return () => clearInterval(interval);
-    }, []);
+    const navigationPrevRef = useRef(null);
+    const navigationNextRef = useRef(null);
 
     return (
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-            <div className="relative w-full h-screen overflow-hidden">
-                <AnimatePresence mode="popLayout">
-                    <motion.div
-                        key={currentSlide}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 1.5, ease: "easeInOut" }}
-                        className="absolute inset-0"
-                    >
-                        <Image
-                            src={slides[currentSlide].image}
-                            alt={slides[currentSlide].title}
-                            fill
-                            className="object-cover"
-                            priority
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90" />
-                    </motion.div>
+            <style jsx global>{swiperStyles}</style>
+            <Swiper
+                modules={[Autoplay, Navigation, Pagination, EffectFade, Keyboard]}
+                effect="fade"
+                fadeEffect={{
+                    crossFade: true
+                }}
+                speed={5000}
+                spaceBetween={0}
+                slidesPerView={1}
+                autoplay={{
+                    // delay: 2000,
+                    disableOnInteraction: false,
+                }}
+                navigation={{
+                    prevEl: navigationPrevRef.current,
+                    nextEl: navigationNextRef.current,
+                }}
+                pagination={{
+                    clickable: true,
+                    renderBullet: function (index, className) {
+                        return `<span class="${className}"></span>`;
+                    },
+                }}
+                className="w-full h-screen"
+            >
+                <div ref={navigationPrevRef} className="swiper-button-prev"></div>
+                <div ref={navigationNextRef} className="swiper-button-next"></div>
+                {slides.map((slide) => (
+                    <SwiperSlide key={slide.id}>
+                        <div className="relative w-full h-screen">
+                            <Image
+                                src={slide.image}
+                                alt={slide.title}
+                                fill
+                                className="object-cover"
+                                priority
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90" />
 
-                    <motion.div
-                        key={`content-${currentSlide}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
-                        className="absolute inset-0 flex items-center justify-center"
-                    >
-                        <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8">
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-                                className="mb-12"
+                                className="absolute inset-0 flex items-center justify-center"
                             >
-                                <Image
-                                    src="/images/logo.png"
-                                    alt="PHANET Logo"
-                                    width={200}
-                                    height={200}
-                                    className="mx-auto mb-8"
-                                />
+                                <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8">
+                                    <motion.h1
+                                        className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 leading-tight"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                                    >
+                                        {slide.title}
+                                    </motion.h1>
+
+                                    <motion.p
+                                        className="text-xl sm:text-2xl text-blue-100 mb-12 max-w-2xl mx-auto"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 1, delay: 0.7, ease: "easeOut" }}
+                                    >
+                                        {slide.subtitle}
+                                    </motion.p>
+
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 1, delay: 0.9, ease: "easeOut" }}
+                                        className="flex justify-center"
+                                    >
+                                        <Link
+                                            href={slide.cta.href}
+                                            className="inline-block bg-crayola hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300 transform hover:scale-105"
+                                        >
+                                            {slide.cta.text}
+                                        </Link>
+                                    </motion.div>
+                                </div>
                             </motion.div>
-
-                            <motion.h1
-                                className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 leading-tight"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                            >
-                                {slides[currentSlide].title}
-                            </motion.h1>
-
-                            <motion.p
-                                className="text-xl sm:text-2xl text-blue-100 mb-12 max-w-2xl mx-auto"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 1, delay: 0.7, ease: "easeOut" }}
-                            >
-                                {slides[currentSlide].subtitle}
-                            </motion.p>
-
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 1, delay: 0.9, ease: "easeOut" }}
-                                className="flex flex-col sm:flex-row gap-4 justify-center"
-                            >
-                                <Link
-                                    href={slides[currentSlide].cta.primary.href}
-                                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300 transform hover:scale-105"
-                                >
-                                    {slides[currentSlide].cta.primary.text}
-                                </Link>
-                                <Link
-                                    href={slides[currentSlide].cta.secondary.href}
-                                    className="inline-block bg-transparent border-2 border-white text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300 transform hover:scale-105 hover:bg-white/10"
-                                >
-                                    {slides[currentSlide].cta.secondary.text}
-                                </Link>
-                            </motion.div>
-
                         </div>
-                    </motion.div>
-                </AnimatePresence>
-
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-2">
-                    {slides.map((_, index) => (
-                        <button
-                            key={index}
-                            onClick={() => setCurrentSlide(index)}
-                            className={`w-3 h-3 rounded-full transition-colors duration-300 ${currentSlide === index ? 'bg-white' : 'bg-white/50'
-                                }`}
-                            aria-label={`Go to slide ${index + 1}`}
-                        />
-                    ))}
-                </div>
-
-                <button
-                    onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition-colors duration-300"
-                    aria-label="Previous slide"
-                >
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <button
-                    onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition-colors duration-300"
-                    aria-label="Next slide"
-                >
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
-            </div>
+                    </SwiperSlide>
+                ))}
+            </Swiper>
         </section>
     );
 } 
