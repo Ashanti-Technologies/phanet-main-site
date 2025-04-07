@@ -2,12 +2,90 @@ import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import Footer from './components/Footer';
+import JsonLd from './components/JsonLd';
+import { APP_CONFIG } from "@/constants";
+import Script from 'next/script';
 
 const dmSans = DM_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Phanet",
+  metadataBase: new URL(APP_CONFIG.siteUrl),
+  title: {
+    default: "Phanet",
+    template: "%s | Phanet"
+  },
   description: "Raising One Billion Intercessors Worldwide",
+  keywords: ["prayer", "intercession", "faith", "spiritual", "community", "church", "phanerosis"],
+  authors: [{ name: "Phanet" }],
+  creator: "Phanet",
+  publisher: "Phanet",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: APP_CONFIG.siteUrl,
+    siteName: "Phanet",
+    title: "Phanet",
+    description: "Raising One Billion Intercessors Worldwide",
+    images: [
+      {
+        url: "/og-image.jpg", // Add your Open Graph image
+        width: 1200,
+        height: 630,
+        alt: "Phanet",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Phanet",
+    description: "Raising One Billion Intercessors Worldwide",
+    images: ["/twitter-image.jpg"], // Add your Twitter image
+    creator: "@phanet",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code', // Add your Google verification code
+  },
+};
+
+// Structured data for the website
+const jsonLdData = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Phanet",
+  "alternateName": "Phanerosis Prayer Network International",
+  "url": APP_CONFIG.siteUrl,
+  "logo": `${APP_CONFIG.siteUrl}/images/logo.png`,
+  "description": "Raising One Billion Intercessors Worldwide",
+  "sameAs": [
+    "https://facebook.com/phanet",
+    "https://twitter.com/phanet",
+    "https://instagram.com/phanet"
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "GH"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "customer service",
+    "email": APP_CONFIG.contactEmail
+  }
 };
 
 export default function RootLayout({
@@ -17,7 +95,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <Script id="google-tag-manager" strategy="afterInteractive">
+          {`
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','GTM-WNPLHGTG');
+          `}
+        </Script>
+        <JsonLd data={jsonLdData} />
+      </head>
       <body className={`${dmSans.className} antialiased`}>
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-WNPLHGTG"
+            height="0"
+            width="0"
+            style={{ display: 'none', visibility: 'hidden' }}
+          />
+        </noscript>
         <main>{children}</main>
         <Footer />
       </body>
