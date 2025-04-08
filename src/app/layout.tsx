@@ -11,14 +11,14 @@ const dmSans = DM_Sans({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL(APP_CONFIG.siteUrl),
   title: {
-    default: "Phanet",
-    template: "%s | Phanet"
+    default: "Phanerosis Network International",
+    template: "%s | Phanerosis Network International"
   },
   description: "Raising One Billion Intercessors Worldwide",
-  keywords: ["prayer", "intercession", "faith", "spiritual", "community", "church", "phanerosis"],
+  keywords: ["prayer", "intercession", "faith", "spiritual", "community", "church", "phanerosis", "phanet", "phanerosis prayer network"],
   authors: [{ name: "Phanet" }],
-  creator: "Phanet",
-  publisher: "Phanet",
+  creator: "Phanerosis Network International",
+  publisher: "Phanerosis Network International",
   formatDetection: {
     email: false,
     address: false,
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     description: "Raising One Billion Intercessors Worldwide",
     images: [
       {
-        url: "/og-image.jpg", // Add your Open Graph image
+        url: "/api/og",
         width: 1200,
         height: 630,
         alt: "Phanet",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Phanet",
     description: "Raising One Billion Intercessors Worldwide",
-    images: ["/twitter-image.jpg"], // Add your Twitter image
+    images: ["/api/og"],
     creator: "@phanet",
   },
   robots: {
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'your-google-verification-code', // Add your Google verification code
+    google: 'MoWnqIm8MthleETNIrHs6bgC0zjscBKFzf01ufh_JdA', // Add your Google verification code
   },
 };
 
@@ -73,9 +73,9 @@ const jsonLdData = {
   "logo": `${APP_CONFIG.siteUrl}/images/logo.png`,
   "description": "Raising One Billion Intercessors Worldwide",
   "sameAs": [
-    "https://facebook.com/phanet",
+    "https://web.facebook.com/Phanerosisprayernetworkint",
     "https://twitter.com/phanet",
-    "https://instagram.com/phanet"
+    "https://instagram.com/phanet_official"
   ],
   "address": {
     "@type": "PostalAddress",
@@ -106,6 +106,7 @@ export default function RootLayout({
           `}
         </Script>
         <JsonLd data={jsonLdData} />
+        <link rel="canonical" href={APP_CONFIG.siteUrl} />
       </head>
       <body className={`${dmSans.className} antialiased`}>
         <noscript>

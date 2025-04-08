@@ -53,7 +53,7 @@ export default function About() {
                             About Phanerosis Prayer Network
                         </h2>
                         <p className="text-lg text-gray-700 leading-relaxed mb-8">
-                            Phanerosis Prayer Network International, known worldwide as PHANET, is a non-governmental, not-for-profit, non-partisan, non-denominational Christian organization. Among all other ministries, PHANET is uniquely identified as an intercessory ministry.
+                            Phanerosis Prayer Network International - PHANET, known worldwide as PHANET, is a non-governmental, not-for-profit, non-partisan, non-denominational Christian organization. Among all other ministries, PHANET is uniquely identified as an intercessory ministry.
                         </p>
                         <p className="text-lg text-gray-700 leading-relaxed">
                             Since 2010, the Network has risen steadily, led by the Holy Spirit and God&apos;s Word, with a vision to raise one billion intercessors by 2050.

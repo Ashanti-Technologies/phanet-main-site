@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Swiper, SwiperSlide } from 'swiper/react';
+import { Swiper, SwiperRef, SwiperSlide } from 'swiper/react';
+import { Swiper as SwiperType } from "swiper";
 import { Autoplay, Navigation, Pagination, EffectFade, Keyboard } from 'swiper/modules';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -104,28 +105,28 @@ const slides = [
 ];
 
 export default function Hero() {
-    const navigationPrevRef = useRef(null);
-    const navigationNextRef = useRef(null);
+    const swiperRef = useRef<SwiperType | null>(null);
 
     return (
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
             <style jsx global>{swiperStyles}</style>
             <Swiper
+                onSwiper={(swiper: any) => (swiperRef.current = swiper)}
                 modules={[Autoplay, Navigation, Pagination, EffectFade, Keyboard]}
                 effect="fade"
                 fadeEffect={{
                     crossFade: true
                 }}
-                speed={5000}
+                speed={2000}
                 spaceBetween={0}
                 slidesPerView={1}
+                loop
                 autoplay={{
-                    // delay: 2000,
-                    disableOnInteraction: false,
+                    disableOnInteraction: true,
                 }}
                 navigation={{
-                    prevEl: navigationPrevRef.current,
-                    nextEl: navigationNextRef.current,
+                    prevEl: 'swiper-button-prev',
+                    nextEl: 'swiper-button-next',
                 }}
                 pagination={{
                     clickable: true,
@@ -135,8 +136,8 @@ export default function Hero() {
                 }}
                 className="w-full h-screen"
             >
-                <div ref={navigationPrevRef} className="swiper-button-prev"></div>
-                <div ref={navigationNextRef} className="swiper-button-next"></div>
+                <button onClick={() => swiperRef.current?.slidePrev()} className="swiper-button-prev"></button>
+                <button onClick={() => swiperRef.current?.slideNext()} className="swiper-button-next"></button>
                 {slides.map((slide) => (
                     <SwiperSlide key={slide.id}>
                         <div className="relative w-full h-screen">

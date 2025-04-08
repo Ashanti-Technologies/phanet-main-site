@@ -10,7 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 1,
         },
         {
-            url: `${APP_CONFIG.siteUrl}}about`,
+            url: `${APP_CONFIG.siteUrl}/about`,
             lastModified: new Date(),
             changeFrequency: 'monthly',
             priority: 0.8,
