@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Swiper, SwiperRef, SwiperSlide } from 'swiper/react';
+import { Swiper, SwiperSlide } from 'swiper/react';
 import { Swiper as SwiperType } from "swiper";
 import { Autoplay, Navigation, Pagination, EffectFade, Keyboard } from 'swiper/modules';
 import Link from 'next/link';
