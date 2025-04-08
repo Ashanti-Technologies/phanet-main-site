@@ -11,14 +11,14 @@ const dmSans = DM_Sans({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL(APP_CONFIG.siteUrl),
   title: {
-    default: "Phanerosis Network International",
-    template: "%s | Phanerosis Network International"
+    default: "Phanerosis Network International - PHANET",
+    template: "%s | Phanerosis Network International - PHANET"
   },
   description: "Raising One Billion Intercessors Worldwide",
   keywords: ["prayer", "intercession", "faith", "spiritual", "community", "church", "phanerosis", "phanet", "phanerosis prayer network"],
   authors: [{ name: "Phanet" }],
-  creator: "Phanerosis Network International",
-  publisher: "Phanerosis Network International",
+  creator: "Phanerosis Network International - PHANET",
+  publisher: "Phanerosis Network International - PHANET",
   formatDetection: {
     email: false,
     address: false,
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Phanet",
+    title: "Phanerosis Network International - PHANET",
     description: "Raising One Billion Intercessors Worldwide",
     images: ["/api/og"],
     creator: "@phanet",
