@@ -111,7 +111,7 @@ export default function Hero() {
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
             <style jsx global>{swiperStyles}</style>
             <Swiper
-                onSwiper={(swiper: any) => (swiperRef.current = swiper)}
+                onSwiper={(swiper) => (swiperRef.current = swiper)}
                 modules={[Autoplay, Navigation, Pagination, EffectFade, Keyboard]}
                 effect="fade"
                 fadeEffect={{
