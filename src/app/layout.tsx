@@ -5,6 +5,8 @@ import Footer from './components/Footer';
 import JsonLd from './components/JsonLd';
 import { APP_CONFIG } from "@/constants";
 import Script from 'next/script';
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const dmSans = DM_Sans({ subsets: ["latin"] });
 
@@ -118,6 +120,8 @@ export default function RootLayout({
           />
         </noscript>
         <main>{children}</main>
+        <Analytics />
+        <SpeedInsights />
         <Footer />
       </body>
     </html>
