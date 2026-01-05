@@ -4,6 +4,9 @@ import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef } from 'react';
 import Image from 'next/image';
+import { Button, buttonVariants } from '@/app/components/ui/button';
+import Link from 'next/link';
+import { ArrowRightIcon } from 'lucide-react';
 
 export default function About() {
     const ref = useRef(null);
@@ -58,6 +61,22 @@ export default function About() {
                         <p className="text-lg text-gray-700 leading-relaxed">
                             Since 2010, the Network has risen steadily, led by the Holy Spirit and God&apos;s Word, with a vision to raise one billion intercessors by 2050.
                         </p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
+                        transition={{ duration: 0.8, delay: 0.4 }}
+                    >
+                        <Link href="/about" className={buttonVariants({
+                            variant: "default",
+                            className: "w-full lg:w-fit px-8 py-4"
+                        })}>
+                            Learn More
+                            <span className="ml-2">
+                                <ArrowRightIcon className="w-4 h-4" />
+                            </span>
+                        </Link>
                     </motion.div>
                 </div>
             </div>

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
-import Footer from './components/Footer';
+import Footer from './components/layout/Footer';
 import JsonLd from './components/JsonLd';
 import { APP_CONFIG } from "@/constants";
 import Script from 'next/script';
 import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import Header from './components/layout/Header';
 
 const dmSans = DM_Sans({ subsets: ["latin"] });
 
@@ -119,7 +120,8 @@ export default function RootLayout({
             style={{ display: 'none', visibility: 'hidden' }}
           />
         </noscript>
-        <main>{children}</main>
+        <Header />
+        {children}
         <Analytics />
         <SpeedInsights />
         <Footer />
