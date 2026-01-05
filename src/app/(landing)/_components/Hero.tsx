@@ -81,31 +81,61 @@ const slides = [
   {
     id: 1,
     image: "/images/slider/giya1.jpg",
-    title: "Global Prayer Movement",
-    subtitle: "Join millions in prayer for the nations",
-    cta: {
-      text: "Connect with us",
-      href: "/join",
+    overlay: {
+      bottomLeft: (
+        <>
+          <h2 className="text-lg md:text-xl font-bold text-white">
+            Phanerosis Prayer Network International
+          </h2>
+          <p className="text-sm md:text-base text-white/80">
+            Raising 1 billion intercessors
+          </p>
+        </>
+      ),
+      buttons: [
+        { text: "Get connected", href: "/join", variant: "primary" as const },
+        { text: "Learn more", href: "/about", variant: "secondary" as const },
+      ],
     },
   },
   {
     id: 2,
     image: "/images/slider/hoe1.jpg",
-    title: "United in Christ",
-    subtitle: "Building a community of intercessors",
-    cta: {
-      text: "Connect with us",
-      href: "/join",
+    overlay: {
+      bottomLeft: (
+        <>
+          <h2 className="text-lg md:text-xl font-bold text-white">
+            United in Christ
+          </h2>
+          <p className="text-sm md:text-base text-white/80">
+            Building a community of intercessors
+          </p>
+        </>
+      ),
+      buttons: [
+        { text: "Get connected", href: "/join", variant: "primary" as const },
+        { text: "Learn more", href: "/about", variant: "secondary" as const },
+      ],
     },
   },
   {
     id: 3,
     image: "/images/slider/hoe2.jpg",
-    title: "Transform Lives",
-    subtitle: "Through the power of prayer",
-    cta: {
-      text: "Connect with us",
-      href: "/join",
+    overlay: {
+      bottomLeft: (
+        <>
+          <h2 className="text-lg md:text-xl font-bold text-white">
+            Transform Lives
+          </h2>
+          <p className="text-sm md:text-base text-white/80">
+            Through the power of prayer
+          </p>
+        </>
+      ),
+      buttons: [
+        { text: "Get connected", href: "/join", variant: "primary" as const },
+        { text: "Learn more", href: "/about", variant: "secondary" as const },
+      ],
     },
   },
 ];
@@ -114,7 +144,7 @@ export default function Hero() {
   const swiperRef = useRef<SwiperType | null>(null);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative h-[75vh] flex items-center justify-center overflow-hidden">
       <style jsx global>
         {swiperStyles}
       </style>
@@ -137,13 +167,13 @@ export default function Hero() {
         //     prevEl: 'swiper-button-prev',
         //     nextEl: 'swiper-button-next',
         // }}
-        // pagination={{
-        //     clickable: true,
-        //     renderBullet: function (index, className) {
-        //         return `<span class="${className}"></span>`;
-        //     },
-        // }}
-        className="w-full h-screen"
+        pagination={{
+          clickable: true,
+          renderBullet: function (_index, className) {
+            return `<span class="${className}"></span>`;
+          },
+        }}
+        className="w-full h-[75vh]"
       >
         {/* <button
           onClick={() => swiperRef.current?.slidePrev()}
@@ -155,56 +185,55 @@ export default function Hero() {
         ></button> */}
         {slides.map((slide) => (
           <SwiperSlide key={slide.id}>
-            <div className="relative w-full h-screen">
+            <div className="relative w-full h-full">
               <Image
                 src={slide.image}
-                alt={slide.title}
+                alt={`Slide ${slide.id}`}
                 fill
                 className="object-cover"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90" />
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-                className="absolute inset-0 flex items-center justify-center"
-              >
-                <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8">
-                  <motion.h1
-                    className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6 leading-tight"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                  >
-                    {slide.title}
-                  </motion.h1>
-
-                  <motion.p
-                    className="text-xl sm:text-2xl text-blue-100 mb-12 max-w-2xl mx-auto"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, delay: 0.7, ease: "easeOut" }}
-                  >
-                    {slide.subtitle}
-                  </motion.p>
-
+              {/* Bottom Overlay Bar */}
+              <div className="absolute bottom-0 left-0 right-0 z-20 px-6 md:px-12 py-20 bg-gradient-to-t from-black/80 to-transparent">
+                <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
+                  {/* Bottom Left Content */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, delay: 0.9, ease: "easeOut" }}
-                    className="flex justify-center"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+                    className="flex flex-col gap-1"
                   >
-                    <Link
-                      href={slide.cta.href}
-                      className="inline-block bg-crayola hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300 transform hover:scale-105"
-                    >
-                      {slide.cta.text}
-                    </Link>
+                    {slide.overlay.bottomLeft}
+                  </motion.div>
+
+                  {/* Bottom Right Buttons */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+                    className="flex gap-3"
+                  >
+                    {slide.overlay.buttons.map((button, index) => (
+                      <Link
+                        key={index}
+                        href={button.href}
+                        className={`
+                          px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-300 transform hover:scale-105
+                          ${
+                            button.variant === "primary"
+                              ? "bg-crayola hover:bg-blue-700 text-white"
+                              : "bg-white/10 hover:bg-white/20 text-white border border-white/30"
+                          }
+                        `}
+                      >
+                        {button.text}
+                      </Link>
+                    ))}
                   </motion.div>
                 </div>
-              </motion.div>
+              </div>
             </div>
           </SwiperSlide>
         ))}
