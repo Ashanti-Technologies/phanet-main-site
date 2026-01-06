@@ -26,7 +26,7 @@ const user = {
 
 export default function Header() {
   return (
-    <header className="w-full flex items-center justify-between px-12 py-3 fixed top-0 left-0 z-50 transition-colors duration-300 border-b border-b-black/40 bg-black/40 backdrop-blur-md">
+    <header className="w-full flex items-center justify-between px-12 py-3 fixed top-0 left-0 z-50 transition-colors duration-300 border-b border-b-black/40 bg-black/70 backdrop-blur-md">
       <div className="flex items-center">
         <Link href="/">
           <Image
