@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  output   = "../src/app/generated/prisma"
 }
 
 datasource db {
@@ -14,21 +14,22 @@ datasource db {
 }
 
 model User {
-  id                  String    @id
+  id                  String       @id
   name                String
   email               String
-  emailVerified       Boolean   @default(false)
+  emailVerified       Boolean      @default(false)
   image               String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
   phoneNumber         String?
   phoneNumberVerified Boolean?
   role                String?
-  banned              Boolean?  @default(false)
+  banned              Boolean?     @default(false)
   banReason           String?
   banExpires          DateTime?
   sessions            Session[]
   accounts            Account[]
+  commitments         Commitment[]
 
   @@unique([email])
   @@unique([phoneNumber])
@@ -82,4 +83,133 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// ============================================
+// FUNDRAISING DOMAIN MODELS
+// ============================================
+
+enum FundingMode {
+  SINGLE_SPONSOR
+  MULTI_CONTRIBUTOR
+}
+
+enum ProjectStatus {
+  ACTIVE
+  DISABLED
+  FULFILLED
+}
+
+enum CommitmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYSTACK
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Project {
+  id           String         @id @default(cuid())
+  title        String
+  description  String         @db.Text
+  targetAmount Decimal        @db.Decimal(12, 2)
+  fundingMode  FundingMode    @default(MULTI_CONTRIBUTOR)
+  status       ProjectStatus  @default(ACTIVE)
+  images       ProjectImage[]
+  commitments  Commitment[]
+  proofUploads ProofUpload[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@map("project")
+}
+
+model ProjectImage {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  publicId  String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@map("project_image")
+}
+
+model ChurchUnitOption {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("church_unit_option")
+}
+
+model Commitment {
+  id              String           @id @default(cuid())
+  projectId       String
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName        String
+  email           String
+  phone           String?
+  whatsapp        String?
+  address         String?          @db.Text
+  country         String
+  churchUnit      String?
+  amountCommitted Decimal          @db.Decimal(12, 2)
+  isAnonymous     Boolean          @default(false)
+  status          CommitmentStatus @default(PENDING)
+  paymentIntents  PaymentIntent[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("commitment")
+}
+
+model ProofUpload {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  publicId  String
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@map("proof_upload")
+}
+
+model PaymentIntent {
+  id           String          @id @default(cuid())
+  commitmentId String
+  commitment   Commitment      @relation(fields: [commitmentId], references: [id], onDelete: Cascade)
+  provider     PaymentProvider
+  reference    String          @unique
+  amount       Decimal         @db.Decimal(12, 2)
+  currency     String          @default("GHS")
+  status       PaymentStatus   @default(PENDING)
+  metadata     Json?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([commitmentId])
+  @@index([reference])
+  @@map("payment_intent")
 }

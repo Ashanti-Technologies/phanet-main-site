@@ -1,3 +1,6 @@
 onlyBuiltDependencies:
+  - '@prisma/engines'
   - '@vercel/speed-insights'
+  - esbuild
+  - prisma
   - sharp

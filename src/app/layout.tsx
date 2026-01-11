@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
-import Footer from './components/layout/Footer';
-import JsonLd from './components/JsonLd';
+import JsonLd from "./components/JsonLd";
 import { APP_CONFIG } from "@/constants";
-import Script from 'next/script';
-import { Analytics } from "@vercel/analytics/react"
+import Script from "next/script";
+import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import Header from './components/layout/Header';
 
 const dmSans = DM_Sans({ subsets: ["latin"] });
 
@@ -15,10 +13,20 @@ export const metadata: Metadata = {
   metadataBase: new URL(APP_CONFIG.siteUrl),
   title: {
     default: "Phanerosis Network International - PHANET",
-    template: "%s | Phanerosis Network International - PHANET"
+    template: "%s | Phanerosis Network International - PHANET",
   },
   description: "Raising One Billion Intercessors Worldwide",
-  keywords: ["prayer", "intercession", "faith", "spiritual", "community", "church", "phanerosis", "phanet", "phanerosis prayer network"],
+  keywords: [
+    "prayer",
+    "intercession",
+    "faith",
+    "spiritual",
+    "community",
+    "church",
+    "phanerosis",
+    "phanet",
+    "phanerosis prayer network",
+  ],
   authors: [{ name: "Phanet" }],
   creator: "Phanerosis Network International - PHANET",
   publisher: "Phanerosis Network International - PHANET",
@@ -56,13 +64,13 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
   verification: {
-    google: 'MoWnqIm8MthleETNIrHs6bgC0zjscBKFzf01ufh_JdA', // Add your Google verification code
+    google: "MoWnqIm8MthleETNIrHs6bgC0zjscBKFzf01ufh_JdA", // Add your Google verification code
   },
 };
 
@@ -70,25 +78,25 @@ export const metadata: Metadata = {
 const jsonLdData = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Phanet",
-  "alternateName": "Phanerosis Prayer Network International",
-  "url": APP_CONFIG.siteUrl,
-  "logo": `${APP_CONFIG.siteUrl}/images/logo.png`,
-  "description": "Raising One Billion Intercessors Worldwide",
-  "sameAs": [
+  name: "Phanet",
+  alternateName: "Phanerosis Prayer Network International",
+  url: APP_CONFIG.siteUrl,
+  logo: `${APP_CONFIG.siteUrl}/images/logo.png`,
+  description: "Raising One Billion Intercessors Worldwide",
+  sameAs: [
     "https://web.facebook.com/Phanerosisprayernetworkint",
     "https://twitter.com/phanet",
-    "https://instagram.com/phanet_official"
+    "https://instagram.com/phanet_official",
   ],
-  "address": {
+  address: {
     "@type": "PostalAddress",
-    "addressCountry": "GH"
+    addressCountry: "GH",
   },
-  "contactPoint": {
+  contactPoint: {
     "@type": "ContactPoint",
-    "contactType": "customer service",
-    "email": APP_CONFIG.contactEmail
-  }
+    contactType: "customer service",
+    email: APP_CONFIG.contactEmail,
+  },
 };
 
 export default function RootLayout({
@@ -117,14 +125,12 @@ export default function RootLayout({
             src="https://www.googletagmanager.com/ns.html?id=GTM-WNPLHGTG"
             height="0"
             width="0"
-            style={{ display: 'none', visibility: 'hidden' }}
+            style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        <Header />
         {children}
         <Analytics />
         <SpeedInsights />
-        <Footer />
       </body>
     </html>
   );
