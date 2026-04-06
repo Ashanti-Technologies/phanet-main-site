@@ -11,6 +11,8 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/app/components/ui/sheet";
 
+export const dynamic = "force-dynamic";
+
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Projects", href: "/admin/projects", icon: FolderKanban },

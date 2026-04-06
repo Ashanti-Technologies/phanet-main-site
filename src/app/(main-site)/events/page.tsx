@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getAllEvents } from "@/lib/events";
 import EventsClient from "./_components/EventsClient";
 
@@ -36,7 +37,9 @@ export default function EventsPage() {
       </section>
 
       {/* Events grid + filters */}
-      <EventsClient events={events} />
+      <Suspense fallback={<div className="py-20 text-center text-gray-500">Loading events...</div>}>
+        <EventsClient events={events} />
+      </Suspense>
     </main>
   );
 }
