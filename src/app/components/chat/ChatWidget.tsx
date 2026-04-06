@@ -9,6 +9,19 @@ type Message = {
   content: string;
 };
 
+// Topics that are clearly unrelated to PHANET / Christianity — blocked client-side
+const OFF_TOPIC_PATTERNS = [
+  /\b(code|coding|program|algorithm|function|variable|class|array|loop|recursion|linked list|binary tree|sql|database query|python|javascript|typescript|java|c\+\+|html|css)\b/i,
+  /\b(recipe|cook|ingredient|calories|nutrition)\b/i,
+  /\b(stock|crypto|bitcoin|investment|trading|forex)\b/i,
+  /\b(movie|series|netflix|game|gaming|sports|score)\b/i,
+  /\b(pretend|act as|ignore (your|all) instructions?|jailbreak|dan mode|no restrictions?|unrestricted)\b/i,
+];
+
+function isOffTopic(text: string): boolean {
+  return OFF_TOPIC_PATTERNS.some((pattern) => pattern.test(text));
+}
+
 const PRAYER_KEYWORDS = [
   "pray for me",
   "prayer request",
@@ -123,9 +136,22 @@ export default function ChatWidget() {
     if (!text || isLoading) return;
 
     const userMessage: Message = { role: "user", content: text };
-    const nextMessages = [...messages, userMessage];
-    setMessages(nextMessages);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
+
+    if (isOffTopic(text)) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            "I'm Elim, PHANET's assistant — I'm only here to help with questions about our ministry, programmes, or the Christian faith. Is there something along those lines I can help you with? 🙏",
+        },
+      ]);
+      return;
+    }
+
+    const nextMessages = [...messages, userMessage];
     setIsLoading(true);
 
     if (isPrayerRequest(text)) {
