@@ -6,6 +6,7 @@ import { APP_CONFIG } from "@/constants";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import ReactQueryProvider from "./components/providers/ReactQueryProvider";
 
 const dmSans = DM_Sans({ subsets: ["latin"] });
 
@@ -128,7 +129,7 @@ export default function RootLayout({
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        {children}
+        <ReactQueryProvider>{children}</ReactQueryProvider>
         <Analytics />
         <SpeedInsights />
       </body>
