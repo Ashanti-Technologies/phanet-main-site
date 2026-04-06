@@ -213,3 +213,16 @@ model PaymentIntent {
   @@index([reference])
   @@map("payment_intent")
 }
+
+// ============================================
+// PRAYER REQUESTS
+// ============================================
+
+model PrayerRequest {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  name      String?
+  createdAt DateTime @default(now())
+
+  @@map("prayer_request")
+}
