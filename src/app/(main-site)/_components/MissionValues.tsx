@@ -131,10 +131,10 @@ export default function MissionValues() {
                             className="max-w-3xl"
                         >
                             <span className="text-xl text-white/90 font-medium mb-4 block">
-                                Worship Ministry
+                                Kingdom Mandate
                             </span>
                             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                                Inspiring your faith and creating an atmosphere of worship to God.
+                                Raising and deploying Kingdom emissaries to transform every sphere of society.
                             </h2>
                             <Link
                                 href="/worship"

@@ -10,9 +10,9 @@ import Link from "next/link";
 const cards = {
   featured: {
     label: "THIS WEEK",
-    title: "Prayer & Fasting",
+    title: "Elim Hour",
     description:
-      "Join us every Wednesday for our weekly prayer and fasting program. Experience spiritual growth together.",
+      "Join us every Sunday evening @7PM for our weekly online service. Experience spiritual growth together.",
     buttons: [
       { text: "Join Now", href: "/join", variant: "dark" as const },
       { text: "Learn More", href: "/programs", variant: "outline" as const },
@@ -20,7 +20,7 @@ const cards = {
     bgColor: "bg-crayola",
   },
   highlight: {
-    image: "/images/prayer-wall.jpg",
+    image: "/images/landing/happy2.webp",
     alt: "Prayer requests on a wall",
   },
   community: {
@@ -29,14 +29,14 @@ const cards = {
     description:
       "You are welcome at PHANET! Find a community of intercessors, get connected, and join our family.",
     button: { text: "Get Connected", href: "/join" },
-    image: "/images/community.jpg",
+    image: "/images/landing/happy.webp",
   },
   leader: {
-    image: "/images/leader.jpg",
-    label: "HI! I'M THE FOUNDER",
-    name: "Apostle John Doe",
-    message: "I would love to get to know you and your family!",
-    button: { text: "Email Me", href: "mailto:contact@phanet.org" },
+    image: "/images/landing/founder.webp",
+    label: "HI! I'M THE CHAIRMAN",
+    name: "Dr. Godfred Bonnah Nkansah",
+    message: "I would love to get to know you!",
+    button: { text: "Email Me", href: "mailto:contact@phanerosisnetwork.com" },
   },
 };
 
@@ -174,7 +174,7 @@ export default function NewHere() {
                 <span className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
                   {cards.leader.label}
                 </span>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">
+                <h3 className="text-xl font-bold text-gray-900 mt-1">
                   {cards.leader.name}
                 </h3>
                 <p className="text-gray-600 text-sm mt-2">
