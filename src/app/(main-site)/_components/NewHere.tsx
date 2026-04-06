@@ -33,9 +33,9 @@ const cards = {
   },
   leader: {
     image: "/images/landing/founder.webp",
-    label: "HI! I'M THE CHAIRMAN",
+    label: "Meet the Chairman",
     name: "Dr. Godfred Bonnah Nkansah",
-    message: "I would love to get to know you!",
+    message: "Feel free to reach out to me.",
     button: { text: "Email Me", href: "mailto:contact@phanerosisnetwork.com" },
   },
 };
