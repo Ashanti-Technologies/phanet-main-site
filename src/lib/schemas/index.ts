@@ -6,3 +6,4 @@ export * from "./cms.schema";
 export * from "./admin.schema";
 export * from "./member.schema";
 export * from "./message.schema";
+export * from "./attendance.schema";

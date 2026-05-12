@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/database";
 import { requireAdmin } from "@/lib/auth-guard";
 import { getBirthdays } from "@/actions/members";
+import { getDropoffMembers } from "@/actions/attendance";
 import {
   Card,
   CardContent,
@@ -22,6 +23,7 @@ import {
   FolderKanban,
   HandCoins,
   HeartHandshake,
+  AlertTriangle,
   Users,
 } from "lucide-react";
 import { KpiCard } from "./_components/kpi-card";
@@ -347,9 +349,10 @@ export default async function AdminDashboardPage({
 }) {
   const params = await searchParams;
   const range = parseRange(params.from, params.to);
-  const [data, birthdays] = await Promise.all([
+  const [data, birthdays, dropoffs] = await Promise.all([
     getDashboardData(range),
     getBirthdays(7).catch(() => []),
+    getDropoffMembers(4, 12).catch(() => []),
   ]);
 
   return (
@@ -623,6 +626,71 @@ export default async function AdminDashboardPage({
                         month: "long",
                         day: "numeric",
                       })}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Drop-off alerts */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                Drop-off alerts
+              </CardTitle>
+              <CardDescription>
+                Members who haven&apos;t attended in 4+ weeks.
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link
+                href="/admin/services"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Services <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {dropoffs.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No drop-offs detected. (Run a service and check members in first.)
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {dropoffs.map((d) => (
+                <Link
+                  key={d.id}
+                  href={`/admin/members/${d.id}`}
+                  className="flex items-center gap-3 rounded-md border p-2.5 hover:bg-muted/40"
+                >
+                  <Avatar className="h-8 w-8">
+                    {d.photoUrl ? (
+                      <AvatarImage src={d.photoUrl} alt={d.fullName} />
+                    ) : null}
+                    <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                      {initials(d.preferredName ?? d.fullName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">
+                      {d.preferredName ?? d.fullName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Last seen{" "}
+                      {d.last_attended
+                        ? new Date(d.last_attended).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric" },
+                          )
+                        : "—"}
                     </p>
                   </div>
                 </Link>

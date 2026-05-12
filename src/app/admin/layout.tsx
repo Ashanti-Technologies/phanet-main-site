@@ -63,6 +63,7 @@ const navigation: NavGroup[] = [
         href: "/admin/members/households",
         icon: "households",
       },
+      { name: "Services", href: "/admin/services", icon: "services" },
       { name: "Import", href: "/admin/members/import", icon: "import" },
     ],
   },
