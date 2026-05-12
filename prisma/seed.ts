@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/database";
-import { PrismaClient, Prisma } from "../src/app/generated/prisma/client";
+import { Prisma } from "../src/app/generated/prisma/client";
+import { getSeedEvents } from "@/lib/events";
+import { plainTextToHtml } from "@/lib/rich-text";
 
 async function main() {
   console.log("🌱 Seeding database...");
@@ -56,6 +58,92 @@ async function main() {
     });
   }
   console.log(`✅ Created ${churchUnits.length} church unit options`);
+
+  console.log("Creating CMS events...");
+  const events = getSeedEvents();
+  for (const event of events) {
+    await prisma.event.upsert({
+      where: { slug: event.slug },
+      update: {
+        title: event.title,
+        category: event.category,
+        date: new Date(event.date),
+        endDate: event.endDate ? new Date(event.endDate) : null,
+        time: event.time,
+        location: event.location,
+        address: event.address ?? null,
+        description: event.description,
+        bodyHtml: plainTextToHtml(event.body),
+        isFeatured: !!event.isFeatured,
+        registrationUrl: event.registrationUrl ?? null,
+        status: "PUBLISHED",
+      },
+      create: {
+        slug: event.slug,
+        title: event.title,
+        category: event.category,
+        date: new Date(event.date),
+        endDate: event.endDate ? new Date(event.endDate) : null,
+        time: event.time,
+        location: event.location,
+        address: event.address ?? null,
+        description: event.description,
+        bodyHtml: plainTextToHtml(event.body),
+        isFeatured: !!event.isFeatured,
+        registrationUrl: event.registrationUrl ?? null,
+        status: "PUBLISHED",
+      },
+    });
+  }
+  console.log(`✅ Created ${events.length} CMS events`);
+
+  console.log("Creating homepage CMS defaults...");
+  const homepageDefaults = [
+    {
+      key: "hero",
+      eyebrow: "Phanerosis Prayer Network",
+      title: "Raising one billion intercessors worldwide",
+      body: "PHANET exists to awaken prayer, disciple intercessors, and mobilize believers for kingdom impact across nations.",
+      ctaLabel: "Join the movement",
+      ctaHref: "/events",
+      order: 0,
+    },
+    {
+      key: "mission",
+      eyebrow: "Our Mandate",
+      title: "Prayer, transformation, and generational impact",
+      body: "We gather, train, and send believers into their communities with a life of prayer and practical kingdom responsibility.",
+      ctaLabel: "Learn more",
+      ctaHref: "/#about",
+      order: 1,
+    },
+  ];
+
+  for (const section of homepageDefaults) {
+    await prisma.homepageSection.upsert({
+      where: { key: section.key },
+      update: {
+        eyebrow: section.eyebrow,
+        title: section.title,
+        bodyHtml: plainTextToHtml(section.body),
+        ctaLabel: section.ctaLabel,
+        ctaHref: section.ctaHref,
+        order: section.order,
+        status: "PUBLISHED",
+      },
+      create: {
+        key: section.key,
+        eyebrow: section.eyebrow,
+        title: section.title,
+        bodyHtml: plainTextToHtml(section.body),
+        ctaLabel: section.ctaLabel,
+        ctaHref: section.ctaHref,
+        order: section.order,
+        status: "PUBLISHED",
+      },
+    });
+  }
+  console.log(`✅ Created ${homepageDefaults.length} homepage sections`);
 
   // Create sample projects
   console.log("Creating sample projects...");

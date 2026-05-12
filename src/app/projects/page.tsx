@@ -12,6 +12,8 @@ import {
 import { Users, Target, ArrowRight } from "lucide-react";
 import Image from "next/image";
 
+export const dynamic = "force-dynamic";
+
 const fundingModeLabels = {
   SINGLE_SPONSOR: "Looking for Sponsor",
   MULTI_CONTRIBUTOR: "Open for Contributions",

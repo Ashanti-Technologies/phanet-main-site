@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getAllEvents } from "@/lib/events";
+import { getAllEvents } from "@/lib/events-data";
 import EventsClient from "./_components/EventsClient";
 
 export const metadata = {
@@ -8,8 +8,10 @@ export const metadata = {
     "Find upcoming national, regional, university, and diaspora events from the Phanerosis Prayer Network.",
 };
 
-export default function EventsPage() {
-  const events = getAllEvents();
+export const dynamic = "force-dynamic";
+
+export default async function EventsPage() {
+  const events = await getAllEvents();
   return (
     <main>
       {/* Hero */}

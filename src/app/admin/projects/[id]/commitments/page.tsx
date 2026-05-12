@@ -1,5 +1,6 @@
 import { getProjectById } from "@/actions/projects";
 import { getCommitmentsByProject } from "@/actions/commitments";
+import { requireAdmin } from "@/lib/auth-guard";
 import { notFound } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -18,10 +19,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ExportButton } from "./_components/export-button";
-import { CommitmentStatusSelect } from "./_components/commitment-status-select";
+import { CommitmentFinanceForm } from "./_components/commitment-finance-form";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,6 +35,7 @@ const statusColors = {
 };
 
 export default async function CommitmentsPage({ params }: Props) {
+  await requireAdmin();
   const { id } = await params;
   const project = await getProjectById(id);
 
@@ -81,6 +83,7 @@ export default async function CommitmentsPage({ params }: Props) {
                     <TableHead>Church Unit</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Finance</TableHead>
                     <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -103,10 +106,12 @@ export default async function CommitmentsPage({ params }: Props) {
                         {Number(commitment.amountCommitted).toLocaleString()}
                       </TableCell>
                       <TableCell>
-                        <CommitmentStatusSelect
-                          commitmentId={commitment.id}
-                          currentStatus={commitment.status}
-                        />
+                        <Badge className={statusColors[commitment.status]}>
+                          {commitment.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <CommitmentFinanceForm commitment={commitment} />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(commitment.createdAt).toLocaleDateString()}

@@ -6,9 +6,11 @@ import {
   commitmentCreateSchema,
   commitmentStatusUpdateSchema,
   commitmentFiltersSchema,
+  manualFinanceUpdateSchema,
   type CommitmentCreateInput,
   type CommitmentStatusUpdateInput,
   type CommitmentFiltersInput,
+  type ManualFinanceUpdateInput,
 } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/app/generated/prisma/client";
@@ -240,6 +242,40 @@ export async function getCommitmentsForExport(projectId: string) {
     Amount: Number(c.amountCommitted),
     Anonymous: c.isAnonymous ? "Yes" : "No",
     Status: c.status,
+    "Confirmed Amount": c.confirmedAmount ? Number(c.confirmedAmount) : "",
+    "Confirmed Date": c.confirmedAt ? c.confirmedAt.toISOString() : "",
+    "Payment Note": c.paymentNote || "",
+    "Internal Note": c.internalNote || "",
     Date: c.createdAt.toISOString(),
   }));
+}
+
+/**
+ * Update manual finance/admin fields for a commitment (Admin only)
+ */
+export async function updateCommitmentFinance(data: ManualFinanceUpdateInput) {
+  await requireAdmin();
+
+  const validated = manualFinanceUpdateSchema.parse(data);
+
+  const commitment = await prisma.commitment.update({
+    where: { id: validated.id },
+    data: {
+      status: validated.status,
+      confirmedAmount:
+        validated.confirmedAmount === undefined || validated.confirmedAmount === null
+          ? null
+          : new Prisma.Decimal(validated.confirmedAmount),
+      confirmedAt: validated.confirmedAt ?? null,
+      paymentNote: validated.paymentNote || null,
+      internalNote: validated.internalNote || null,
+    },
+    include: { project: true },
+  });
+
+  revalidatePath(`/projects/${commitment.projectId}`);
+  revalidatePath(`/admin/projects/${commitment.projectId}/commitments`);
+  revalidatePath("/admin");
+
+  return { success: true, commitment };
 }

@@ -1,9 +1,8 @@
 import Hero from "./_components/Hero";
 import NewHere from "./_components/NewHere";
-import About from "./_components/About";
 import MissionValues from "./_components/MissionValues";
 import LatestMessage from "./_components/LatestMessage";
-import GetInvolved from "./_components/GetInvolved";
+import Testimonials from "./_components/Testimonials";
 
 export default function Home() {
   return (
@@ -12,8 +11,7 @@ export default function Home() {
       <NewHere />
       <MissionValues />
       <LatestMessage />
-      {/* <About />
-      <GetInvolved /> */}
+      <Testimonials />
     </main>
   );
 }

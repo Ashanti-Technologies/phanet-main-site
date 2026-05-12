@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/database";
+import { requireAdmin } from "@/lib/auth-guard";
 import {
   Card,
   CardContent,
@@ -8,29 +9,34 @@ import {
 import { FolderKanban, Users, DollarSign, CheckCircle } from "lucide-react";
 
 async function getDashboardStats() {
+  await requireAdmin();
+
   const [
     totalProjects,
     activeProjects,
     totalCommitments,
     confirmedCommitments,
+    confirmedRows,
   ] = await Promise.all([
     prisma.project.count(),
     prisma.project.count({ where: { status: "ACTIVE" } }),
     prisma.commitment.count(),
     prisma.commitment.count({ where: { status: "CONFIRMED" } }),
+    prisma.commitment.findMany({
+      where: { status: "CONFIRMED" },
+      select: { amountCommitted: true, confirmedAmount: true },
+    }),
   ]);
-
-  const totalRaised = await prisma.commitment.aggregate({
-    where: { status: "CONFIRMED" },
-    _sum: { amountCommitted: true },
-  });
 
   return {
     totalProjects,
     activeProjects,
     totalCommitments,
     confirmedCommitments,
-    totalRaised: Number(totalRaised._sum.amountCommitted || 0),
+    totalRaised: confirmedRows.reduce(
+      (sum, row) => sum + Number(row.confirmedAmount ?? row.amountCommitted),
+      0
+    ),
   };
 }
 

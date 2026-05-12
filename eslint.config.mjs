@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    'src/app/generated/**',
+    'src/app/components/animate-ui/**',
   ]),
 ])
  

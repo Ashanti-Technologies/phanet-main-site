@@ -119,6 +119,18 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum PrayerRequestStatus {
+  NEW
+  IN_PRAYER
+  PRAYED
+  ARCHIVED
+}
+
 model Project {
   id           String         @id @default(cuid())
   title        String
@@ -174,6 +186,10 @@ model Commitment {
   amountCommitted Decimal          @db.Decimal(12, 2)
   isAnonymous     Boolean          @default(false)
   status          CommitmentStatus @default(PENDING)
+  paymentNote      String?          @db.Text
+  confirmedAmount  Decimal?         @db.Decimal(12, 2)
+  confirmedAt      DateTime?
+  internalNote     String?          @db.Text
   paymentIntents  PaymentIntent[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -215,14 +231,125 @@ model PaymentIntent {
 }
 
 // ============================================
+// CMS MODELS
+// ============================================
+
+model Event {
+  id              String        @id @default(cuid())
+  slug            String        @unique
+  title           String
+  category        String
+  date            DateTime
+  endDate         DateTime?
+  time            String
+  location        String
+  address         String?
+  description     String        @db.Text
+  bodyJson        Json?
+  bodyHtml        String        @db.Text
+  isFeatured      Boolean       @default(false)
+  registrationUrl String?
+  imageUrl        String?
+  imagePublicId   String?
+  imageAlt        String?
+  status          PublishStatus @default(DRAFT)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status, date])
+  @@index([category])
+  @@map("event")
+}
+
+model ContentPage {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  title          String
+  summary        String?       @db.Text
+  bodyJson       Json?
+  bodyHtml       String        @db.Text
+  seoTitle       String?
+  seoDescription String?       @db.Text
+  imageUrl       String?
+  imagePublicId  String?
+  imageAlt       String?
+  status         PublishStatus @default(DRAFT)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status])
+  @@map("content_page")
+}
+
+model HomepageSection {
+  id            String        @id @default(cuid())
+  key           String        @unique
+  eyebrow       String?
+  title         String
+  bodyJson      Json?
+  bodyHtml      String        @db.Text
+  ctaLabel      String?
+  ctaHref       String?
+  imageUrl      String?
+  imagePublicId String?
+  imageAlt      String?
+  order         Int           @default(0)
+  status        PublishStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status, order])
+  @@map("homepage_section")
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  url       String
+  publicId  String   @unique
+  altText   String
+  caption   String?
+  ownerType String?
+  ownerId   String?
+  createdAt DateTime @default(now())
+
+  @@index([ownerType, ownerId])
+  @@map("media_asset")
+}
+
+model SermonFeature {
+  id           String        @id @default(cuid())
+  videoId      String
+  title        String
+  description  String?       @db.Text
+  thumbnailUrl String?
+  videoUrl     String
+  publishedAt  DateTime?
+  isFeatured   Boolean       @default(false)
+  order        Int           @default(0)
+  status       PublishStatus @default(DRAFT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([status, order])
+  @@index([videoId])
+  @@map("sermon_feature")
+}
+
+// ============================================
 // PRAYER REQUESTS
 // ============================================
 
 model PrayerRequest {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  name      String?
-  createdAt DateTime @default(now())
+  id          String              @id @default(cuid())
+  content     String              @db.Text
+  name        String?
+  status      PrayerRequestStatus @default(NEW)
+  adminNote   String?             @db.Text
+  prayedAt    DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
+  @@index([status, createdAt])
   @@map("prayer_request")
 }

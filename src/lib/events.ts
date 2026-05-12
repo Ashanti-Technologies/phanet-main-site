@@ -4,6 +4,13 @@ export type EventCategory =
   | "university-chapter"
   | "diaspora";
 
+export type Recurrence = {
+  frequency: "WEEKLY";
+  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday
+  timeUTC: string; // "HH:mm"
+  durationMinutes: number;
+};
+
 export type Event = {
   id: string;
   slug: string;
@@ -16,8 +23,11 @@ export type Event = {
   address?: string;
   description: string;
   body: string;
+  bodyHtml?: string;
   isFeatured?: boolean;
   registrationUrl?: string;
+  status?: "DRAFT" | "PUBLISHED";
+  recurrence?: Recurrence;
 };
 
 export const CATEGORY_LABELS: Record<EventCategory, string> = {
@@ -41,7 +51,7 @@ export const CATEGORY_GRADIENTS: Record<EventCategory, string> = {
   diaspora: "from-midnight-green/80 to-midnight-green/40",
 };
 
-const events: Event[] = [
+export const seedEvents: Event[] = [
   {
     id: "1",
     slug: "phanet-annual-prayer-conference-2026",
@@ -269,16 +279,8 @@ A live stream will be available for members unable to travel to Toronto.`,
   },
 ];
 
-export function getAllEvents(): Event[] {
-  return events;
-}
-
-export function getEventBySlug(slug: string): Event | undefined {
-  return events.find((e) => e.slug === slug);
-}
-
-export function getFeaturedEvent(): Event | undefined {
-  return events.find((e) => e.isFeatured);
+export function getSeedEvents(): Event[] {
+  return seedEvents;
 }
 
 export function formatEventDate(date: string, endDate?: string): string {
@@ -303,4 +305,95 @@ export function formatEventDateShort(date: string): { month: string; day: string
     month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
     day: String(d.getDate()),
   };
+}
+
+// ============================================
+// RECURRING EVENTS (Elim Hour, etc.)
+// ============================================
+
+export const ELIM_HOUR: Event = {
+  id: "elim-hour",
+  slug: "elim-hour",
+  title: "Elim Hour",
+  category: "national",
+  date: "2026-01-04", // anchor — actual occurrences computed from recurrence
+  time: "Sundays · 7:00 PM GMT",
+  location: "Online",
+  description:
+    "Our weekly online gathering for worship, the Word, and intercession together — every Sunday evening.",
+  body: "",
+  isFeatured: true,
+  recurrence: {
+    frequency: "WEEKLY",
+    dayOfWeek: 0,
+    timeUTC: "19:00",
+    durationMinutes: 90,
+  },
+};
+
+export function getNextOccurrence(
+  recurrence: Recurrence,
+  now: Date = new Date(),
+): Date {
+  const [hh, mm] = recurrence.timeUTC.split(":").map(Number);
+  const next = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      hh,
+      mm,
+      0,
+      0,
+    ),
+  );
+  const daysUntil = (recurrence.dayOfWeek - next.getUTCDay() + 7) % 7;
+  if (daysUntil === 0 && next.getTime() <= now.getTime()) {
+    next.setUTCDate(next.getUTCDate() + 7);
+  } else {
+    next.setUTCDate(next.getUTCDate() + daysUntil);
+  }
+  return next;
+}
+
+export function getNextElimHour(now?: Date): { date: Date; event: Event } {
+  return {
+    date: getNextOccurrence(ELIM_HOUR.recurrence!, now),
+    event: ELIM_HOUR,
+  };
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function toIcsDateUTC(d: Date): string {
+  return (
+    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}` +
+    `T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
+  );
+}
+
+export function buildIcsForEvent(event: Event, occurrence: Date): string {
+  const duration = event.recurrence?.durationMinutes ?? 60;
+  const end = new Date(occurrence.getTime() + duration * 60_000);
+  const uid = `${event.id}-${occurrence.toISOString()}@phanerosisnetwork.com`;
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//PHANET//Elim Hour//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${toIcsDateUTC(new Date())}`,
+    `DTSTART:${toIcsDateUTC(occurrence)}`,
+    `DTEND:${toIcsDateUTC(end)}`,
+    `SUMMARY:${event.title}`,
+    `DESCRIPTION:${event.description.replace(/\n/g, "\\n")}`,
+    `LOCATION:${event.location}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ];
+  return lines.join("\r\n");
 }

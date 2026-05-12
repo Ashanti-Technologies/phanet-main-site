@@ -2,6 +2,8 @@ import { getThankYouWallData } from "@/actions/commitments";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Heart, MapPin, Building } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function ThankYouWallPage() {
   const supporters = await getThankYouWallData();
 

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function GetInvolved() {
     const ref = useRef(null);
@@ -64,12 +65,12 @@ export default function GetInvolved() {
                                 whileTap={{ scale: 0.98 }}
                                 className="inline-block"
                             >
-                                <a
+                                <Link
                                     href="/join"
                                     className="inline-block bg-crayola hover:bg-crayola/90 text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300"
                                 >
                                     Get Involved Today
-                                </a>
+                                </Link>
                             </motion.div>
                             {/* <motion.div
                                 whileHover={{ scale: 1.02 }}

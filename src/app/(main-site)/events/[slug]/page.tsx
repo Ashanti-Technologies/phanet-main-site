@@ -8,17 +8,14 @@ import {
   ExternalLink,
 } from "lucide-react";
 import {
-  getAllEvents,
-  getEventBySlug,
   formatEventDate,
   CATEGORY_LABELS,
   CATEGORY_COLORS,
   CATEGORY_GRADIENTS,
 } from "@/lib/events";
+import { getEventBySlug } from "@/lib/events-data";
 
-export async function generateStaticParams() {
-  return getAllEvents().map((e) => ({ slug: e.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -26,7 +23,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
   if (!event) return {};
   return {
     title: `${event.title} | Phanerosis Prayer Network`,
@@ -40,10 +37,8 @@ export default async function EventDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
   if (!event) notFound();
-
-  const bodyParagraphs = event.body.split("\n\n").filter(Boolean);
 
   return (
     <main>
@@ -116,13 +111,12 @@ export default async function EventDetailPage({
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 About This Event
               </h2>
-              <div className="space-y-4">
-                {bodyParagraphs.map((para, i) => (
-                  <p key={i} className="text-gray-600 text-base sm:text-lg leading-relaxed">
-                    {para}
-                  </p>
-                ))}
-              </div>
+              <div
+                className="prose prose-lg max-w-none text-gray-600"
+                dangerouslySetInnerHTML={{
+                  __html: event.bodyHtml || event.body,
+                }}
+              />
             </div>
 
             {/* Details sidebar */}

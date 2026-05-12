@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
 } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Loader2 } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -25,13 +25,10 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      const email = formData.get("email") as string;
-      const password = formData.get("password") as string;
+      const email = String(formData.get("email"));
+      const password = String(formData.get("password"));
 
-      const result = await authClient.signIn.email({
-        email,
-        password,
-      });
+      const result = await authClient.signIn.email({ email, password });
 
       if (result.error) {
         setError(result.error.message || "Invalid credentials");
@@ -39,7 +36,6 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Check if user is admin
       const session = await authClient.getSession();
       const user = session?.data?.user as { role?: string } | undefined;
       if (user?.role !== "admin") {
@@ -50,7 +46,7 @@ export default function AdminLoginPage() {
       }
 
       router.push("/admin");
-    } catch (err) {
+    } catch {
       setError("Login failed. Please try again.");
       setIsLoading(false);
     }
@@ -75,29 +71,28 @@ export default function AdminLoginPage() {
                 {error}
               </div>
             )}
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
+                autoComplete="email"
                 placeholder="admin@phanerosisnetwork.com"
                 required
+                spellCheck={false}
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                placeholder="••••••••"
+                autoComplete="current-password"
                 required
               />
             </div>
-
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In

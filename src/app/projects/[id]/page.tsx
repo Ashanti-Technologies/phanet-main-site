@@ -33,6 +33,8 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 const fundingModeLabels = {
   SINGLE_SPONSOR: "Looking for Sponsor",
   MULTI_CONTRIBUTOR: "Open for Contributions",

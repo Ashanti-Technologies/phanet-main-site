@@ -31,15 +31,6 @@ function LoginContent() {
       </CardHeader>
       <CardContent className="space-y-4">
         <GoogleLoginButton callbackUrl={callbackUrl} className="w-full h-12" />
-
-        <div className="text-center">
-          <Button variant="link" asChild>
-            <Link href="/projects">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Projects
-            </Link>
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );

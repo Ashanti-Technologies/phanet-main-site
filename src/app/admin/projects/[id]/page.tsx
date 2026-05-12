@@ -1,7 +1,9 @@
 import { getProjectById } from "@/actions/projects";
+import { requireAdmin } from "@/lib/auth-guard";
 import { notFound } from "next/navigation";
 import { ProjectEditForm } from "./_components/project-edit-form";
 import { ProjectImages } from "./_components/project-images";
+import { ProjectProofUploads } from "./_components/project-proof-uploads";
 import { Button } from "@/app/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +19,7 @@ interface Props {
 }
 
 export default async function EditProjectPage({ params }: Props) {
+  await requireAdmin();
   const { id } = await params;
   const project = await getProjectById(id);
 
@@ -42,6 +45,7 @@ export default async function EditProjectPage({ params }: Props) {
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="images">Images</TabsTrigger>
+          <TabsTrigger value="progress">Progress Updates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details">
@@ -50,6 +54,13 @@ export default async function EditProjectPage({ params }: Props) {
 
         <TabsContent value="images">
           <ProjectImages project={project} />
+        </TabsContent>
+
+        <TabsContent value="progress">
+          <ProjectProofUploads
+            projectId={project.id}
+            proofs={project.proofUploads}
+          />
         </TabsContent>
       </Tabs>
     </div>

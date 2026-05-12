@@ -22,6 +22,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/worship",
+        destination: "/join",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,4 +1,5 @@
 import { getProjects } from "@/actions/projects";
+import { requireAdmin } from "@/lib/auth-guard";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -24,6 +25,7 @@ const fundingModeLabels = {
 };
 
 export default async function AdminProjectsPage() {
+  await requireAdmin();
   const projects = await getProjects({ includeCommitments: true });
 
   return (

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "auth:bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },

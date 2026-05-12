@@ -53,7 +53,7 @@ export async function getProjects(options?: {
     ...project,
     amountRaised: project.commitments
       ? project.commitments.reduce(
-          (sum, c) => sum + Number(c.amountCommitted),
+          (sum, c) => sum + Number(c.confirmedAmount ?? c.amountCommitted),
           0
         )
       : 0,
@@ -84,7 +84,7 @@ export async function getProjectById(id: string) {
   return {
     ...project,
     amountRaised: project.commitments.reduce(
-      (sum, c) => sum + Number(c.amountCommitted),
+      (sum, c) => sum + Number(c.confirmedAmount ?? c.amountCommitted),
       0
     ),
   };
