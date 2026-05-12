@@ -223,7 +223,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  You'll sign in with Google to complete your commitment
+                  You&apos;ll sign in with Google to complete your commitment
                 </p>
               </CardContent>
             </Card>

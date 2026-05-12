@@ -121,7 +121,7 @@ export default function CommitmentPage(props: Props) {
             <CheckCircle className="h-16 w-16 mx-auto text-green-500" />
             <h2 className="mt-6 text-2xl font-bold">Thank You!</h2>
             <p className="mt-3 text-muted-foreground">
-              Your commitment has been received. We'll be in touch with payment
+              Your commitment has been received. We&apos;ll be in touch with payment
               details shortly.
             </p>
             <div className="mt-8 flex flex-col gap-3">
@@ -297,7 +297,7 @@ export default function CommitmentPage(props: Props) {
                   Keep my contribution anonymous
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Your name won't appear on the public thank-you wall
+                  Your name won&apos;t appear on the public thank-you wall
                 </p>
               </div>
             </div>
