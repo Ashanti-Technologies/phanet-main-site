@@ -33,6 +33,8 @@ model User {
   commitments         Commitment[]
   unitRoles           UserUnitRole[]
   auditLogs           AuditLog[]   @relation("AuditActor")
+  member              Member?
+  importJobs          ImportJob[]
 
   @@unique([email])
   @@unique([phoneNumber])
@@ -71,6 +73,235 @@ model AuditLog {
   @@index([subject, subjectId])
   @@index([createdAt])
   @@map("audit_log")
+}
+
+// ============================================
+// MEMBER DIRECTORY
+// ============================================
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  WIDOWED
+  DIVORCED
+}
+
+enum MemberStatus {
+  VISITOR
+  PENDING_APPROVAL
+  REGULAR
+  MEMBER
+  INACTIVE
+  TRANSFERRED
+  DECEASED
+}
+
+model Member {
+  id                 String         @id @default(cuid())
+  userId             String?        @unique
+  user               User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fullName           String
+  preferredName      String?
+  dob                DateTime?
+  gender             Gender?
+  maritalStatus      MaritalStatus?
+  email              String?
+  phone              String?
+  whatsapp           String?
+  addressLine        String?
+  city               String?
+  region             String?
+  country            String?        @default("Ghana")
+  occupation         String?
+  photoUrl           String?
+  photoPublicId      String?
+  salvationDate      DateTime?
+  baptismDate        DateTime?
+  weddingAnniversary DateTime?
+  joinDate           DateTime?
+  status             MemberStatus   @default(VISITOR)
+  notes              String?        @db.Text
+  notifyByEmail      Boolean        @default(true)
+  notifyBySms        Boolean        @default(true)
+  householdId        String?
+  household          Household?     @relation(fields: [householdId], references: [id], onDelete: SetNull)
+  units              MemberUnit[]
+  tags               MemberTag[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @default(now()) @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@index([dob])
+  @@index([householdId])
+  @@map("member")
+}
+
+model MemberUnit {
+  memberId String
+  unitId   String
+  role     UnitRole  @default(MEMBER)
+  since    DateTime?
+  member   Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  unit     ChurchUnitOption  @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, unitId])
+  @@index([unitId])
+  @@map("member_unit")
+}
+
+model Household {
+  id          String   @id @default(cuid())
+  name        String
+  addressLine String?
+  city        String?
+  region      String?
+  notes       String?  @db.Text
+  members     Member[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@map("household")
+}
+
+model Tag {
+  id      String     @id @default(cuid())
+  label   String     @unique
+  color   String?
+  members MemberTag[]
+  createdAt DateTime @default(now())
+
+  @@map("tag")
+}
+
+model MemberTag {
+  memberId String
+  tagId    String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, tagId])
+  @@index([tagId])
+  @@map("member_tag")
+}
+
+// ============================================
+// MESSAGING (email / SMS)
+// ============================================
+
+enum MessageChannel {
+  EMAIL
+  SMS
+}
+
+enum BatchStatus {
+  QUEUED
+  SENDING
+  SENT
+  PARTIAL
+  FAILED
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
+}
+
+model MessageTemplate {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  channel   MessageChannel
+  subject   String?
+  body      String         @db.Text
+  variables String[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @default(now()) @updatedAt
+  batches   MessageBatch[]
+
+  @@map("message_template")
+}
+
+model MessageBatch {
+  id           String         @id @default(cuid())
+  templateId   String?
+  template     MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  name         String
+  channel      MessageChannel
+  subject      String?
+  body         String         @db.Text
+  segmentJson  Json
+  status       BatchStatus    @default(QUEUED)
+  recipients   Int            @default(0)
+  successes    Int            @default(0)
+  failures     Int            @default(0)
+  createdById  String
+  createdAt    DateTime       @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  logs         MessageLog[]
+
+  @@index([createdById])
+  @@index([status])
+  @@map("message_batch")
+}
+
+model MessageLog {
+  id          String         @id @default(cuid())
+  batchId     String
+  batch       MessageBatch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  memberId    String?
+  channel     MessageChannel
+  recipient   String
+  status      DeliveryStatus @default(QUEUED)
+  providerRef String?
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([batchId])
+  @@index([memberId])
+  @@map("message_log")
+}
+
+// ============================================
+// IMPORT JOBS (CSV import wizard)
+// ============================================
+
+enum ImportJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model ImportJob {
+  id           String          @id @default(cuid())
+  type         String                              // "member"
+  status       ImportJobStatus @default(PENDING)
+  total        Int             @default(0)
+  processed    Int             @default(0)
+  created      Int             @default(0)
+  skipped      Int             @default(0)
+  failed       Int             @default(0)
+  errors       Json?
+  createdById  String
+  createdBy    User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime        @default(now())
+
+  @@index([createdById])
+  @@index([status])
+  @@map("import_job")
 }
 
 model Session {
@@ -198,12 +429,13 @@ model ProjectImage {
 }
 
 model ChurchUnitOption {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  isActive  Boolean  @default(true)
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+  id        String         @id @default(cuid())
+  name      String         @unique
+  isActive  Boolean        @default(true)
+  order     Int            @default(0)
+  createdAt DateTime       @default(now())
   userRoles UserUnitRole[]
+  members   MemberUnit[]
 
   @@map("church_unit_option")
 }

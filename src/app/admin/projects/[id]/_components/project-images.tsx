@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CldUploadWidget } from "next-cloudinary";
+import dynamic from "next/dynamic";
+import type { CldUploadWidgetProps } from "next-cloudinary";
 import { addProjectImage, deleteProjectImage } from "@/actions/images";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -13,6 +14,14 @@ import {
 } from "@/app/components/ui/card";
 import { Plus, Trash2, Loader2, ImageIcon } from "lucide-react";
 import Image from "next/image";
+
+const CldUploadWidget = dynamic<CldUploadWidgetProps>(
+  () => import("next-cloudinary").then((mod) => mod.CldUploadWidget),
+  { ssr: false },
+);
+
+const CLOUDINARY_UPLOAD_PRESET =
+  process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
 
 interface ProjectImagesProps {
   project: {
@@ -100,32 +109,44 @@ export function ProjectImages({ project }: ProjectImagesProps) {
             </div>
           ))}
 
-          <CldUploadWidget
-            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-            onSuccess={(result) =>
-              handleUploadSuccess(
-                result as { info: { secure_url: string; public_id: string } }
-              )
-            }
-          >
-            {({ open }) => (
-              <button
-                type="button"
-                onClick={() => open()}
-                disabled={isUploading}
-                className="flex aspect-video items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50 transition-colors hover:border-muted-foreground/50 hover:bg-muted"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <Plus className="h-8 w-8" />
-                    <span className="text-sm">Add Image</span>
-                  </div>
-                )}
-              </button>
-            )}
-          </CldUploadWidget>
+          {CLOUDINARY_UPLOAD_PRESET ? (
+            <CldUploadWidget
+              uploadPreset={CLOUDINARY_UPLOAD_PRESET}
+              onSuccess={(result) =>
+                handleUploadSuccess(
+                  result as { info: { secure_url: string; public_id: string } },
+                )
+              }
+            >
+              {({ open }) => (
+                <button
+                  type="button"
+                  onClick={() => open()}
+                  disabled={isUploading}
+                  className="flex aspect-video items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50 transition-colors hover:border-muted-foreground/50 hover:bg-muted"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Plus className="h-8 w-8" />
+                      <span className="text-sm">Add Image</span>
+                    </div>
+                  )}
+                </button>
+              )}
+            </CldUploadWidget>
+          ) : (
+            <div className="flex aspect-video items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/30 p-4 text-center">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <ImageIcon className="h-8 w-8" />
+                <span className="text-sm font-medium">Uploads unavailable</span>
+                <span className="text-xs">
+                  Set NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {images.length === 0 && (

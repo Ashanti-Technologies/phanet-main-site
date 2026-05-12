@@ -12,6 +12,13 @@ import {
   MessageSquare,
   Settings,
   Users,
+  UsersRound,
+  Tag as TagIcon,
+  Upload,
+  HomeIcon,
+  Send,
+  FileType,
+  Inbox,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,7 +32,14 @@ export type NavIconName =
   | "projects"
   | "prayerRequests"
   | "users"
-  | "churchUnits";
+  | "churchUnits"
+  | "members"
+  | "households"
+  | "tags"
+  | "import"
+  | "messages"
+  | "templates"
+  | "batches";
 
 const icons: Record<NavIconName, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -37,6 +51,13 @@ const icons: Record<NavIconName, LucideIcon> = {
   prayerRequests: HeartHandshake,
   users: Users,
   churchUnits: Settings,
+  members: UsersRound,
+  households: HomeIcon,
+  tags: TagIcon,
+  import: Upload,
+  messages: Send,
+  templates: FileType,
+  batches: Inbox,
 };
 
 type Props = {

@@ -1,13 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
-import { CldUploadWidget } from "next-cloudinary";
+import type { CldUploadWidgetProps } from "next-cloudinary";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { createProofUpload, deleteProofUpload } from "@/actions/proof-uploads";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Textarea } from "@/app/components/ui/textarea";
+
+const CldUploadWidget = dynamic<CldUploadWidgetProps>(
+  () => import("next-cloudinary").then((mod) => mod.CldUploadWidget),
+  { ssr: false },
+);
+
+const CLOUDINARY_UPLOAD_PRESET =
+  process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
 
 type ProofUpload = {
   id: string;
@@ -69,9 +78,9 @@ export function ProjectProofUploads({
                 className="object-cover"
               />
             </div>
-          ) : (
+          ) : CLOUDINARY_UPLOAD_PRESET ? (
             <CldUploadWidget
-              uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+              uploadPreset={CLOUDINARY_UPLOAD_PRESET}
               onSuccess={(result) => {
                 const info = (result as {
                   info: { secure_url: string; public_id: string };
@@ -93,6 +102,17 @@ export function ProjectProofUploads({
                 </Button>
               )}
             </CldUploadWidget>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Button type="button" variant="outline" disabled>
+                <ImagePlus className="mr-2 h-4 w-4" />
+                Upload unavailable
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Set NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET to enable progress
+                image uploads.
+              </p>
+            </div>
           )}
           <Textarea name="note" rows={3} placeholder="Progress note" />
           <Button type="submit" disabled={!pendingUpload || isSaving}>

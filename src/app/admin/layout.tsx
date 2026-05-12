@@ -55,6 +55,30 @@ const navigation: NavGroup[] = [
     ],
   },
   {
+    label: "Members",
+    items: [
+      { name: "Directory", href: "/admin/members", icon: "members", exact: true },
+      {
+        name: "Households",
+        href: "/admin/members/households",
+        icon: "households",
+      },
+      { name: "Import", href: "/admin/members/import", icon: "import" },
+    ],
+  },
+  {
+    label: "Messages",
+    items: [
+      { name: "Compose", href: "/admin/messages/compose", icon: "messages" },
+      {
+        name: "Templates",
+        href: "/admin/messages/templates",
+        icon: "templates",
+      },
+      { name: "Batches", href: "/admin/messages/batches", icon: "batches" },
+    ],
+  },
+  {
     label: "Fundraising",
     items: [{ name: "Projects", href: "/admin/projects", icon: "projects" }],
   },
@@ -66,12 +90,18 @@ const navigation: NavGroup[] = [
         href: "/admin/prayer-requests",
         icon: "prayerRequests",
       },
-      { name: "Users", href: "/admin/users", icon: "users" },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [
+      { name: "Admin access", href: "/admin/users", icon: "users" },
       {
         name: "Church Units",
         href: "/admin/settings/church-units",
         icon: "churchUnits",
       },
+      { name: "Tags", href: "/admin/settings/tags", icon: "tags" },
     ],
   },
 ];

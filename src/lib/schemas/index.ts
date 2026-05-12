@@ -4,3 +4,5 @@ export * from "./church-unit.schema";
 export * from "./proof-upload.schema";
 export * from "./cms.schema";
 export * from "./admin.schema";
+export * from "./member.schema";
+export * from "./message.schema";

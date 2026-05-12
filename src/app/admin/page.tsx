@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/database";
 import { requireAdmin } from "@/lib/auth-guard";
+import { getBirthdays } from "@/actions/members";
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import {
 } from "@/app/components/ui/avatar";
 import {
   ArrowUpRight,
+  Cake,
   FolderKanban,
   HandCoins,
   HeartHandshake,
@@ -345,7 +347,10 @@ export default async function AdminDashboardPage({
 }) {
   const params = await searchParams;
   const range = parseRange(params.from, params.to);
-  const data = await getDashboardData(range);
+  const [data, birthdays] = await Promise.all([
+    getDashboardData(range),
+    getBirthdays(7).catch(() => []),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -564,6 +569,68 @@ export default async function AdminDashboardPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Birthdays */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Cake className="h-4 w-4" />
+                Upcoming birthdays
+              </CardTitle>
+              <CardDescription>
+                Members celebrating in the next 7 days.
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link
+                href="/admin/members"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Directory <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {birthdays.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No birthdays in the next week.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {birthdays.map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/admin/members/${b.id}`}
+                  className="flex items-center gap-3 rounded-md border p-2.5 hover:bg-muted/40"
+                >
+                  <Avatar className="h-8 w-8">
+                    {b.photoUrl ? (
+                      <AvatarImage src={b.photoUrl} alt={b.fullName} />
+                    ) : null}
+                    <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                      {initials(b.preferredName ?? b.fullName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">
+                      {b.preferredName ?? b.fullName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(b.dob).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Footer stats strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
