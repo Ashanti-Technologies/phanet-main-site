@@ -6,3 +6,7 @@ export * from "./cms";
 export * from "./admin-users";
 export * from "./prayer-requests";
 export * from "./images";
+export * from "./pastoral";
+export * from "./member-invites";
+export * from "./member-applications";
+export * from "./member-portal";

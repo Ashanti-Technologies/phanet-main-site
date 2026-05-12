@@ -50,11 +50,6 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
     return build();
   }
 
-  // Everyone signed in can access the member portal (gated separately by role).
-  if (ctx.userId) {
-    can("access", "MemberPortal");
-  }
-
   if (roles.has(ROLES.PASTOR)) {
     can("access", "AdminPanel");
     can("manage", [
@@ -114,6 +109,7 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
   }
 
   if (roles.has(ROLES.MEMBER)) {
+    can("access", "MemberPortal");
     // Self-service: read/update only the member row linked to this user.
     can(["read", "update"], "Member", ({ userId: ctx.userId }));
     can("read", ["Event", "Service"]);

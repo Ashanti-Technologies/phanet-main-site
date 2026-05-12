@@ -3,9 +3,11 @@ import { prisma } from "@/lib/database";
 
 export async function POST(req: Request) {
   try {
-    const { content, name } = (await req.json()) as {
+    const { content, name, email, phone } = (await req.json()) as {
       content: string;
       name?: string;
+      email?: string;
+      phone?: string;
     };
 
     if (!content || typeof content !== "string" || content.trim().length === 0) {
@@ -16,6 +18,8 @@ export async function POST(req: Request) {
       data: {
         content: content.trim().slice(0, 2000),
         name: name?.trim() || null,
+        email: email?.trim().toLowerCase() || null,
+        phone: phone?.trim() || null,
       },
     });
 

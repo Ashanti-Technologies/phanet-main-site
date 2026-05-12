@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Sheet, SheetTrigger, SheetContent } from "../ui/sheet";
 import { LiquidButton } from "../animate-ui/components/buttons/liquid";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+import { authClient } from "@/lib/auth-client";
+import { hasAnyAdminRole, parseRoles } from "@/lib/rbac/roles";
 
 const navItems = [
   { label: "New Here?", href: "/new-here" },
@@ -16,15 +18,35 @@ const navItems = [
   { label: "Give", href: "/give" },
 ];
 
-// TODO: Replace with actual auth state from your authentication provider
-const isLoggedIn = false;
-const user = {
-  name: "John Doe",
-  avatar: "/images/avatar-placeholder.png",
-  initials: "JD",
-};
+function initialsFor(name: string | null | undefined) {
+  if (!name) return "?";
+  return (
+    name
+      .split(/\s+/)
+      .map((p) => p[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
 
 export default function Header() {
+  const { data: session, isPending } = authClient.useSession();
+  const sessionUser = session?.user as
+    | ({ role?: string } & NonNullable<typeof session>["user"])
+    | undefined;
+  const isLoggedIn = !!sessionUser && !isPending;
+  const homeHref = sessionUser
+    ? hasAnyAdminRole(parseRoles(sessionUser.role))
+      ? "/admin"
+      : "/me"
+    : "/auth/login";
+  const user = {
+    name: sessionUser?.name ?? "",
+    avatar: sessionUser?.image ?? undefined,
+    initials: initialsFor(sessionUser?.name),
+  };
   return (
     <header className="w-full flex items-center justify-between px-12 py-3 fixed top-0 left-0 z-50 transition-colors duration-300 border-b border-b-black/40 bg-black/70 backdrop-blur-md">
       <div className="flex items-center">
@@ -54,16 +76,18 @@ export default function Header() {
 
         {/* Login Button or Avatar */}
         {isLoggedIn ? (
-          <Link href="/profile">
+          <Link href={homeHref} aria-label="Open dashboard">
             <Avatar className="cursor-pointer hover:ring-2 hover:ring-white/50 transition-all">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              {user.avatar ? (
+                <AvatarImage src={user.avatar} alt={user.name} />
+              ) : null}
               <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
                 {user.initials}
               </AvatarFallback>
             </Avatar>
           </Link>
         ) : (
-          <Link href="/login">
+          <Link href="/auth/login">
             <LiquidButton variant="default" size="default">
               Login
             </LiquidButton>
@@ -130,11 +154,13 @@ export default function Header() {
             <div className="p-4 border-t border-white/10">
               {isLoggedIn ? (
                 <Link
-                  href="/profile"
+                  href={homeHref}
                   className="flex items-center gap-3 text-white/80 hover:text-white hover:bg-white/10 transition-colors duration-200 py-3 px-4 rounded-lg"
                 >
                   <Avatar className="size-10">
-                    <AvatarImage src={user.avatar} alt={user.name} />
+                    {user.avatar ? (
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                    ) : null}
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
                       {user.initials}
                     </AvatarFallback>
@@ -142,7 +168,7 @@ export default function Header() {
                   <span className="font-medium">{user.name}</span>
                 </Link>
               ) : (
-                <Link href="/login" className="block">
+                <Link href="/auth/login" className="block">
                   <LiquidButton variant="ghost" size="lg" className="w-full">
                     Login
                   </LiquidButton>

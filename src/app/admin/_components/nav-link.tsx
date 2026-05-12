@@ -20,6 +20,8 @@ import {
   FileType,
   Inbox,
   CalendarCheck,
+  ClipboardList,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,7 +43,9 @@ export type NavIconName =
   | "messages"
   | "templates"
   | "batches"
-  | "services";
+  | "services"
+  | "tasks"
+  | "reports";
 
 const icons: Record<NavIconName, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -61,6 +65,8 @@ const icons: Record<NavIconName, LucideIcon> = {
   templates: FileType,
   batches: Inbox,
   services: CalendarCheck,
+  tasks: ClipboardList,
+  reports: BarChart3,
 };
 
 type Props = {

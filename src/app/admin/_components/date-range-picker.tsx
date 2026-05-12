@@ -9,7 +9,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/animate-ui/components/radix/popover";
+} from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
 import { cn } from "@/lib/utils";
 

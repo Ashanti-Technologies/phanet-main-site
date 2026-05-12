@@ -87,10 +87,32 @@ const navigation: NavGroup[] = [
     label: "Ministry",
     items: [
       {
+        name: "My tasks",
+        href: "/admin/tasks",
+        icon: "tasks",
+      },
+      {
         name: "Prayer Requests",
         href: "/admin/prayer-requests",
         icon: "prayerRequests",
       },
+    ],
+  },
+  {
+    label: "Reports",
+    items: [
+      { name: "Growth", href: "/admin/reports/growth", icon: "reports" },
+      {
+        name: "Demographics",
+        href: "/admin/reports/demographics",
+        icon: "reports",
+      },
+      {
+        name: "Engagement",
+        href: "/admin/reports/engagement",
+        icon: "reports",
+      },
+      { name: "Giving", href: "/admin/reports/giving", icon: "reports" },
     ],
   },
   {

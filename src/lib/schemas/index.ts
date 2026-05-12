@@ -7,3 +7,5 @@ export * from "./admin.schema";
 export * from "./member.schema";
 export * from "./message.schema";
 export * from "./attendance.schema";
+export * from "./pastoral.schema";
+export * from "./self-service.schema";

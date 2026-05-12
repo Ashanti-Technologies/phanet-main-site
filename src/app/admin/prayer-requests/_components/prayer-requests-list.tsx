@@ -19,6 +19,8 @@ type PrayerRequest = {
   id: string;
   content: string;
   name: string | null;
+  email: string | null;
+  phone: string | null;
   status: "NEW" | "IN_PRAYER" | "PRAYED" | "ARCHIVED";
   adminNote: string | null;
   createdAt: Date | string;
@@ -64,6 +66,12 @@ export function PrayerRequestsList({
               <p className="font-medium">{prayer.name || "Anonymous"}</p>
               <p className="text-xs text-muted-foreground">
                 {new Date(prayer.createdAt).toLocaleString()}
+                {[prayer.email, prayer.phone].filter(Boolean).length > 0 && (
+                  <>
+                    {" "}
+                    · {[prayer.email, prayer.phone].filter(Boolean).join(" · ")}
+                  </>
+                )}
               </p>
             </div>
             <StatusBadge status={prayer.status} />

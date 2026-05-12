@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { hasAnyAdminRole, parseRoles } from "@/lib/rbac/roles";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -32,7 +33,7 @@ export default function AdminLoginPage() {
 
       const session = await authClient.getSession();
       const user = session?.data?.user as { role?: string } | undefined;
-      if (user?.role !== "admin") {
+      if (!hasAnyAdminRole(parseRoles(user?.role))) {
         await authClient.signOut();
         setError("Access denied. Admin privileges required.");
         setIsLoading(false);

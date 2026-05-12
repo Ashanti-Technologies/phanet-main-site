@@ -14,27 +14,32 @@ datasource db {
 }
 
 model User {
-  id                  String       @id
+  id                  String         @id
   name                String
   email               String
-  emailVerified       Boolean      @default(false)
+  emailVerified       Boolean        @default(false)
   image               String?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
   phoneNumber         String?
   phoneNumberVerified Boolean?
   // Comma-separated list of role keys (e.g. "super_admin,pastor"). See src/lib/rbac/roles.ts.
   role                String?
-  banned              Boolean?     @default(false)
+  banned              Boolean?       @default(false)
   banReason           String?
   banExpires          DateTime?
   sessions            Session[]
   accounts            Account[]
   commitments         Commitment[]
   unitRoles           UserUnitRole[]
-  auditLogs           AuditLog[]   @relation("AuditActor")
+  auditLogs           AuditLog[]     @relation("AuditActor")
   member              Member?
   importJobs          ImportJob[]
+  visitations         Visitation[]   @relation("VisitedBy")
+  assignedTasks       FollowUpTask[] @relation("TaskAssignee")
+  createdTasks        FollowUpTask[] @relation("TaskCreator")
+  memberNotes         MemberNote[]   @relation("NoteAuthor")
+  createdInvites      MemberInvite[] @relation("InviteCreator")
 
   @@unique([email])
   @@unique([phoneNumber])
@@ -50,7 +55,7 @@ enum UnitRole {
 model UserUnitRole {
   userId String
   unitId String
-  role   UnitRole @default(LEADER)
+  role   UnitRole         @default(LEADER)
   user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   unit   ChurchUnitOption @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
@@ -101,6 +106,22 @@ enum MemberStatus {
   DECEASED
 }
 
+enum NoteVisibility {
+  PASTORAL
+  GENERAL
+}
+
+enum FollowUpTaskStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
+enum EventRsvpStatus {
+  GOING
+  CANCELLED
+}
+
 model Member {
   id                 String         @id @default(cuid())
   userId             String?        @unique
@@ -133,6 +154,11 @@ model Member {
   units              MemberUnit[]
   tags               MemberTag[]
   attendance         Attendance[]
+  visitations        Visitation[]
+  followUpTasks      FollowUpTask[]
+  notesList          MemberNote[]
+  invites            MemberInvite[]
+  eventRsvps         EventRsvp[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @default(now()) @updatedAt
 
@@ -147,10 +173,10 @@ model Member {
 model MemberUnit {
   memberId String
   unitId   String
-  role     UnitRole  @default(MEMBER)
+  role     UnitRole         @default(MEMBER)
   since    DateTime?
-  member   Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  unit     ChurchUnitOption  @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  member   Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  unit     ChurchUnitOption @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   @@id([memberId, unitId])
   @@index([unitId])
@@ -172,11 +198,11 @@ model Household {
 }
 
 model Tag {
-  id      String     @id @default(cuid())
-  label   String     @unique
-  color   String?
-  members MemberTag[]
-  createdAt DateTime @default(now())
+  id        String      @id @default(cuid())
+  label     String      @unique
+  color     String?
+  members   MemberTag[]
+  createdAt DateTime    @default(now())
 
   @@map("tag")
 }
@@ -190,6 +216,81 @@ model MemberTag {
   @@id([memberId, tagId])
   @@index([tagId])
   @@map("member_tag")
+}
+
+// ============================================
+// PASTORAL CARE
+// ============================================
+
+model Visitation {
+  id          String   @id @default(cuid())
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  visitedById String
+  visitedBy   User     @relation("VisitedBy", fields: [visitedById], references: [id], onDelete: Cascade)
+  visitedAt   DateTime
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([memberId, visitedAt])
+  @@index([visitedById])
+  @@map("visitation")
+}
+
+model FollowUpTask {
+  id           String             @id @default(cuid())
+  memberId     String
+  member       Member             @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assignedToId String
+  assignedTo   User               @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    User               @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  title        String
+  notes        String?            @db.Text
+  dueAt        DateTime?
+  status       FollowUpTaskStatus @default(OPEN)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
+
+  @@index([memberId])
+  @@index([assignedToId, status, dueAt])
+  @@index([createdById])
+  @@map("follow_up_task")
+}
+
+model MemberNote {
+  id         String         @id @default(cuid())
+  memberId   String
+  member     Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User           @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  body       String         @db.Text
+  visibility NoteVisibility @default(GENERAL)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @default(now()) @updatedAt
+
+  @@index([memberId, visibility])
+  @@index([authorId])
+  @@map("member_note")
+}
+
+model MemberInvite {
+  id          String    @id @default(cuid())
+  memberId    String    @unique
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  email       String
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdById String?
+  createdBy   User?     @relation("InviteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("member_invite")
 }
 
 // ============================================
@@ -217,15 +318,15 @@ model Service {
 }
 
 model Attendance {
-  id          String           @id @default(cuid())
-  memberId    String
-  member      Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  serviceId   String
-  service     Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  checkedInAt DateTime         @default(now())
-  method      AttendanceMethod @default(MANUAL)
+  id            String           @id @default(cuid())
+  memberId      String
+  member        Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  checkedInAt   DateTime         @default(now())
+  method        AttendanceMethod @default(MANUAL)
   checkedInById String?
-  createdAt   DateTime         @default(now())
+  createdAt     DateTime         @default(now())
 
   @@unique([memberId, serviceId])
   @@index([serviceId])
@@ -273,23 +374,23 @@ model MessageTemplate {
 }
 
 model MessageBatch {
-  id           String         @id @default(cuid())
-  templateId   String?
-  template     MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  name         String
-  channel      MessageChannel
-  subject      String?
-  body         String         @db.Text
-  segmentJson  Json
-  status       BatchStatus    @default(QUEUED)
-  recipients   Int            @default(0)
-  successes    Int            @default(0)
-  failures     Int            @default(0)
-  createdById  String
-  createdAt    DateTime       @default(now())
-  startedAt    DateTime?
-  finishedAt   DateTime?
-  logs         MessageLog[]
+  id          String           @id @default(cuid())
+  templateId  String?
+  template    MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  name        String
+  channel     MessageChannel
+  subject     String?
+  body        String           @db.Text
+  segmentJson Json
+  status      BatchStatus      @default(QUEUED)
+  recipients  Int              @default(0)
+  successes   Int              @default(0)
+  failures    Int              @default(0)
+  createdById String
+  createdAt   DateTime         @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  logs        MessageLog[]
 
   @@index([createdById])
   @@index([status])
@@ -326,20 +427,20 @@ enum ImportJobStatus {
 }
 
 model ImportJob {
-  id           String          @id @default(cuid())
-  type         String                              // "member"
-  status       ImportJobStatus @default(PENDING)
-  total        Int             @default(0)
-  processed    Int             @default(0)
-  created      Int             @default(0)
-  skipped      Int             @default(0)
-  failed       Int             @default(0)
-  errors       Json?
-  createdById  String
-  createdBy    User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  startedAt    DateTime?
-  finishedAt   DateTime?
-  createdAt    DateTime        @default(now())
+  id          String          @id @default(cuid())
+  type        String // "member"
+  status      ImportJobStatus @default(PENDING)
+  total       Int             @default(0)
+  processed   Int             @default(0)
+  created     Int             @default(0)
+  skipped     Int             @default(0)
+  failed      Int             @default(0)
+  errors      Json?
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime        @default(now())
 
   @@index([createdById])
   @@index([status])
@@ -498,10 +599,10 @@ model Commitment {
   amountCommitted Decimal          @db.Decimal(12, 2)
   isAnonymous     Boolean          @default(false)
   status          CommitmentStatus @default(PENDING)
-  paymentNote      String?          @db.Text
-  confirmedAmount  Decimal?         @db.Decimal(12, 2)
-  confirmedAt      DateTime?
-  internalNote     String?          @db.Text
+  paymentNote     String?          @db.Text
+  confirmedAmount Decimal?         @db.Decimal(12, 2)
+  confirmedAt     DateTime?
+  internalNote    String?          @db.Text
   paymentIntents  PaymentIntent[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -565,12 +666,29 @@ model Event {
   imagePublicId   String?
   imageAlt        String?
   status          PublishStatus @default(DRAFT)
+  rsvps           EventRsvp[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@index([status, date])
   @@index([category])
   @@map("event")
+}
+
+model EventRsvp {
+  id        String          @id @default(cuid())
+  memberId  String
+  member    Member          @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  status    EventRsvpStatus @default(GOING)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now()) @updatedAt
+
+  @@unique([memberId, eventId])
+  @@index([eventId, status])
+  @@index([memberId, status])
+  @@map("event_rsvp")
 }
 
 model ContentPage {
@@ -652,16 +770,20 @@ model SermonFeature {
 // ============================================
 
 model PrayerRequest {
-  id          String              @id @default(cuid())
-  content     String              @db.Text
-  name        String?
-  status      PrayerRequestStatus @default(NEW)
-  adminNote   String?             @db.Text
-  prayedAt    DateTime?
-  archivedAt  DateTime?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @default(now()) @updatedAt
+  id         String              @id @default(cuid())
+  content    String              @db.Text
+  name       String?
+  email      String?
+  phone      String?
+  status     PrayerRequestStatus @default(NEW)
+  adminNote  String?             @db.Text
+  prayedAt   DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @default(now()) @updatedAt
 
   @@index([status, createdAt])
+  @@index([email])
+  @@index([phone])
   @@map("prayer_request")
 }

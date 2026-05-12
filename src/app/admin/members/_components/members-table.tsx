@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import type { MemberWithRelations } from "@/actions/members";
+import { MemberRowActions } from "./member-row-actions";
 
 function initials(name: string) {
   return (
@@ -59,13 +60,14 @@ export function MembersTable({ items }: { items: MemberWithRelations[] }) {
             <TableHead>Units</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Joined</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={6}
                 className="h-24 text-center text-sm text-muted-foreground"
               >
                 No members match your filters.
@@ -151,6 +153,14 @@ export function MembersTable({ items }: { items: MemberWithRelations[] }) {
                         year: "numeric",
                       })
                     : "—"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <MemberRowActions
+                    memberId={m.id}
+                    status={m.status}
+                    email={m.email}
+                    userId={m.userId}
+                  />
                 </TableCell>
               </TableRow>
             ))

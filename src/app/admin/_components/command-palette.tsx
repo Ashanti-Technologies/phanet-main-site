@@ -21,6 +21,8 @@ import {
   Settings,
   Sun,
   Users,
+  ClipboardList,
+  BarChart3,
 } from "lucide-react";
 
 type Item = {
@@ -102,10 +104,40 @@ export function CommandPalette() {
           onSelect: go("/admin/projects"),
         },
         {
+          label: "My tasks",
+          icon: <ClipboardList className="h-4 w-4" />,
+          onSelect: go("/admin/tasks"),
+          keywords: ["follow up", "pastoral"],
+        },
+        {
           label: "Prayer Requests",
           icon: <HeartHandshake className="h-4 w-4" />,
           onSelect: go("/admin/prayer-requests"),
           keywords: ["prayers", "requests"],
+        },
+        {
+          label: "Growth report",
+          icon: <BarChart3 className="h-4 w-4" />,
+          onSelect: go("/admin/reports/growth"),
+          keywords: ["reports", "members"],
+        },
+        {
+          label: "Demographics report",
+          icon: <BarChart3 className="h-4 w-4" />,
+          onSelect: go("/admin/reports/demographics"),
+          keywords: ["reports", "age", "gender", "units"],
+        },
+        {
+          label: "Engagement report",
+          icon: <BarChart3 className="h-4 w-4" />,
+          onSelect: go("/admin/reports/engagement"),
+          keywords: ["reports", "attendance"],
+        },
+        {
+          label: "Giving report",
+          icon: <BarChart3 className="h-4 w-4" />,
+          onSelect: go("/admin/reports/giving"),
+          keywords: ["reports", "finance"],
         },
         {
           label: "Users",

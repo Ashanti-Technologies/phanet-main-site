@@ -2,8 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit, Mail, Phone, MapPin } from "lucide-react";
 import { getMemberById } from "@/actions/members";
-import { can } from "@/lib/auth-guard";
+import {
+  getMemberPastoralCare,
+  listTaskAssignableUsers,
+} from "@/actions/pastoral";
 import { prisma } from "@/lib/database";
+import { normalizedPhoneVariants } from "@/lib/member-portal";
 import {
   Avatar,
   AvatarFallback,
@@ -23,6 +27,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/ui/tabs";
+import { MemberActions } from "./_components/member-actions";
+import { PastoralCareTabs } from "./_components/pastoral-care-tabs";
 
 function initials(name: string) {
   return (
@@ -54,11 +60,10 @@ export default async function MemberDetailPage({
   const member = await getMemberById(id);
   if (!member) notFound();
 
-  const canSeeNotes = await can("read", "Note", { visibility: "PASTORAL" });
-
   // Giving: best-effort match by email (no migration link yet — see plan Phase 5).
-  const commitments = member.email
-    ? await prisma.commitment.findMany({
+  const [commitments, pastoral, users, invite, prayerMatches] = await Promise.all([
+    member.email
+      ? prisma.commitment.findMany({
         where: { email: member.email },
         orderBy: { createdAt: "desc" },
         take: 25,
@@ -72,7 +77,49 @@ export default async function MemberDetailPage({
           createdAt: true,
         },
       })
-    : [];
+      : [],
+    getMemberPastoralCare(member.id),
+    listTaskAssignableUsers().catch(() => []),
+    prisma.memberInvite.findUnique({
+      where: { memberId: member.id },
+      select: { email: true, expiresAt: true, consumedAt: true },
+    }),
+    getPrayerMatchesForMember(member),
+  ]);
+
+  const pastoralProps = {
+    memberId: member.id,
+    users: users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    })),
+    visitations: pastoral.visitations.map((visit) => ({
+      id: visit.id,
+      visitedAt: visit.visitedAt.toISOString(),
+      notes: visit.notes,
+      visitedById: visit.visitedById,
+      visitedBy: visit.visitedBy,
+    })),
+    tasks: pastoral.tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      notes: task.notes,
+      dueAt: task.dueAt?.toISOString() ?? null,
+      status: task.status,
+      assignedToId: task.assignedToId,
+      assignedTo: task.assignedTo,
+    })),
+    notes: pastoral.notes.map((note) => ({
+      id: note.id,
+      body: note.body,
+      visibility: note.visibility,
+      createdAt: note.createdAt.toISOString(),
+      author: note.author,
+    })),
+    prayers: prayerMatches,
+    permissions: pastoral.permissions,
+  };
 
   return (
     <div className="space-y-6">
@@ -106,18 +153,38 @@ export default async function MemberDetailPage({
             ))}
           </div>
         </div>
-        <Button asChild size="sm">
-          <Link href={`/admin/members/${member.id}/edit`}>
-            <Edit className="h-4 w-4 mr-1.5" /> Edit
-          </Link>
-        </Button>
+        <div className="flex flex-col items-end gap-2">
+          <Button asChild size="sm">
+            <Link href={`/admin/members/${member.id}/edit`}>
+              <Edit className="h-4 w-4 mr-1.5" /> Edit
+            </Link>
+          </Button>
+          <MemberActions
+            memberId={member.id}
+            status={member.status}
+            email={member.email}
+            userId={member.userId}
+            invite={
+              invite
+                ? {
+                    email: invite.email,
+                    expiresAt: invite.expiresAt.toISOString(),
+                    consumedAt: invite.consumedAt?.toISOString() ?? null,
+                  }
+                : null
+            }
+          />
+        </div>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="household">Household</TabsTrigger>
-          {canSeeNotes && <TabsTrigger value="notes">Notes</TabsTrigger>}
+          <TabsTrigger value="visitations">Visitations</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="prayers">Prayer</TabsTrigger>
           <TabsTrigger value="giving">Giving</TabsTrigger>
         </TabsList>
 
@@ -185,24 +252,21 @@ export default async function MemberDetailPage({
           </Card>
         </TabsContent>
 
-        {canSeeNotes && (
-          <TabsContent value="notes">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Pastoral note</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {member.notes ? (
-                  <p className="text-sm whitespace-pre-wrap">{member.notes}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No notes recorded.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
+        <TabsContent value="visitations">
+          <PastoralCareTabs section="visitations" {...pastoralProps} />
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <PastoralCareTabs section="tasks" {...pastoralProps} />
+        </TabsContent>
+
+        <TabsContent value="notes">
+          <PastoralCareTabs section="notes" {...pastoralProps} />
+        </TabsContent>
+
+        <TabsContent value="prayers">
+          <PastoralCareTabs section="prayers" {...pastoralProps} />
+        </TabsContent>
 
         <TabsContent value="giving">
           <Card>
@@ -247,6 +311,60 @@ export default async function MemberDetailPage({
       </Tabs>
     </div>
   );
+}
+
+async function getPrayerMatchesForMember(member: NonNullable<Awaited<ReturnType<typeof getMemberById>>>) {
+  const emails = member.email ? [member.email.toLowerCase()] : [];
+  const phones = normalizedPhoneVariants(member.phone);
+  const contactFilters = [
+    ...emails.map((email) => ({ email })),
+    ...phones.map((phone) => ({ phone })),
+  ];
+
+  const nameFilters = [member.fullName, member.preferredName]
+    .filter(Boolean)
+    .map((name) => ({
+      email: null,
+      phone: null,
+      name: { equals: name as string, mode: "insensitive" as const },
+    }));
+
+  const [contactMatches, nameMatches] = await Promise.all([
+    contactFilters.length
+      ? prisma.prayerRequest.findMany({
+          where: { OR: contactFilters },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        })
+      : [],
+    nameFilters.length
+      ? prisma.prayerRequest.findMany({
+          where: { OR: nameFilters },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        })
+      : [],
+  ]);
+
+  const seen = new Set<string>();
+  return [...contactMatches, ...nameMatches]
+    .filter((prayer) => {
+      if (seen.has(prayer.id)) return false;
+      seen.add(prayer.id);
+      return true;
+    })
+    .map((prayer) => ({
+      id: prayer.id,
+      content: prayer.content,
+      name: prayer.name,
+      email: prayer.email,
+      phone: prayer.phone,
+      status: prayer.status,
+      createdAt: prayer.createdAt.toISOString(),
+      matchType: contactMatches.some((match) => match.id === prayer.id)
+        ? ("contact" as const)
+        : ("name" as const),
+    }));
 }
 
 function Row({
