@@ -83,7 +83,7 @@ export async function requirePermission<S extends Subject>(
   const session = await requireAuth("/admin/login");
   const ability = await getAbility();
   const allowed = instance
-    ? ability.can(action, casl_subject(subjectName, instance) as never)
+    ? ability.can(action, casl_subject(subjectName, { ...instance }) as never)
     : ability.can(action, subjectName);
   if (!allowed) redirect("/unauthorized");
   return session;
@@ -110,7 +110,7 @@ export async function can<S extends Subject>(
 ): Promise<boolean> {
   const ability = await getAbility();
   return instance
-    ? ability.can(action, casl_subject(subjectName, instance) as never)
+    ? ability.can(action, casl_subject(subjectName, { ...instance }) as never)
     : ability.can(action, subjectName);
 }
 

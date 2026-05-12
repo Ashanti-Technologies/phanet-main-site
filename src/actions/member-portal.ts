@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/database";
 import { requirePermission } from "@/lib/auth-guard";
 import { logAudit } from "@/lib/audit";
+import { getCurrentMemberForPortal } from "@/lib/member-portal";
 import {
   eventRsvpSchema,
   memberNotificationsUpdateSchema,
@@ -14,12 +15,10 @@ import {
 } from "@/lib/schemas/self-service.schema";
 
 async function requireLinkedMember() {
-  const session = await requirePermission("access", "MemberPortal");
-  const member = await prisma.member.findUnique({
-    where: { userId: session.user.id },
-    select: { id: true, userId: true },
-  });
-  if (!member) throw new Error("No member profile is linked to this account");
+  const { session, member } = await getCurrentMemberForPortal();
+  if (!member) {
+    throw new Error("No member profile is linked to this account");
+  }
   return { session, member };
 }
 

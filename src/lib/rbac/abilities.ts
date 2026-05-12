@@ -4,7 +4,7 @@ import {
   type MongoAbility,
   type MongoQuery,
 } from "@casl/ability";
-import { ROLES, type RoleKey } from "./roles";
+import { hasAnyAdminRole, ROLES, type RoleKey } from "./roles";
 import type { Action, Subject } from "./permissions";
 
 export type AppAbility = MongoAbility<[Action, Subject], MongoQuery>;
@@ -44,6 +44,14 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
   const can = builder.can as unknown as LooseCan;
   const { build } = builder;
   const roles = new Set(ctx.roles);
+  const hasMemberPortalRole = roles.has(ROLES.MEMBER) || hasAnyAdminRole(ctx.roles);
+
+  if (hasMemberPortalRole) {
+    can("access", "MemberPortal");
+    can(["read", "update"], "Member", { userId: ctx.userId });
+    can("read", ["Event", "Service"]);
+    can("read", ["Commitment", "PaymentIntent"], { userId: ctx.userId });
+  }
 
   if (roles.has(ROLES.SUPER_ADMIN)) {
     can("manage", "all");
@@ -109,12 +117,8 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
   }
 
   if (roles.has(ROLES.MEMBER)) {
-    can("access", "MemberPortal");
-    // Self-service: read/update only the member row linked to this user.
-    can(["read", "update"], "Member", ({ userId: ctx.userId }));
-    can("read", ["Event", "Service"]);
-    // Commitments and PaymentIntents are matched by user id (see Phase 5).
-    can("read", ["Commitment", "PaymentIntent"], ({ userId: ctx.userId }));
+    // Member portal permissions are granted above so admin roles can use the
+    // same self-service surface when they also have member records.
   }
 
   return build();
