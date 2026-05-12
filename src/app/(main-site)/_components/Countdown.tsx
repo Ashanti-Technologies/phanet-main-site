@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 
 type Props = {
   targetIso: string;
@@ -31,11 +31,28 @@ function subscribe(callback: () => void): () => void {
   return () => clearInterval(id);
 }
 
+function getServerSnapshot(): Parts | null {
+  return null;
+}
+
 export default function Countdown({ targetIso }: Props) {
+  // Cache the snapshot per-instance, keyed by (targetIso, current second).
+  // useSyncExternalStore demands that getSnapshot return the same reference
+  // between subscribe notifications, so we memoise here.
+  const cacheRef = useRef<{ key: string; parts: Parts } | null>(null);
+
+  const getSnapshot = (): Parts | null => {
+    const key = `${targetIso}|${Math.floor(Date.now() / 1000)}`;
+    if (cacheRef.current?.key !== key) {
+      cacheRef.current = { key, parts: computeParts(targetIso) };
+    }
+    return cacheRef.current.parts;
+  };
+
   const parts = useSyncExternalStore<Parts | null>(
     subscribe,
-    () => computeParts(targetIso),
-    () => null,
+    getSnapshot,
+    getServerSnapshot,
   );
 
   if (!parts) {

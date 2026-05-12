@@ -15,6 +15,7 @@ export async function getAdminUsers() {
       name: true,
       email: true,
       role: true,
+      image: true,
       emailVerified: true,
       createdAt: true,
     },
