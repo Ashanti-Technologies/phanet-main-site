@@ -12,6 +12,8 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@casl/ability": "^6.8.1",
+    "@casl/prisma": "^1.6.2",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/react-avatar": "^1.1.11",

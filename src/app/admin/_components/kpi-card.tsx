@@ -19,6 +19,8 @@ type Props = {
   positiveColor?: string; // CSS var or color
 };
 
+const SPARKLINE_INITIAL_DIMENSION = { width: 240, height: 48 } as const;
+
 function formatDelta(delta: number): string {
   if (!Number.isFinite(delta)) return "—";
   const sign = delta > 0 ? "+" : "";
@@ -68,8 +70,14 @@ export function KpiCard({
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{deltaLabel}</p>
       </CardContent>
-      <div className="h-12 -mt-1">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-12 min-w-0 w-full -mt-1">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          minHeight={48}
+          initialDimension={SPARKLINE_INITIAL_DIMENSION}
+        >
           <AreaChart
             data={series}
             margin={{ top: 4, right: 0, left: 0, bottom: 0 }}

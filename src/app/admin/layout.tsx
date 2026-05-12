@@ -1,8 +1,13 @@
 import { requireAdmin } from "@/lib/auth-guard";
 import Link from "next/link";
 import { Menu } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/app/components/ui/sheet";
+import { buttonVariants } from "@/app/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/app/components/ui/sheet";
 import { AdminThemeProvider } from "./_components/theme-provider";
 import { ThemeToggle } from "./_components/theme-toggle";
 import { UserMenu } from "./_components/user-menu";
@@ -134,31 +139,33 @@ export default async function AdminLayout({
 
   return (
     <AdminThemeProvider>
-      <div className="flex min-h-screen bg-background">
+      <div className="min-h-screen bg-background">
         {/* Desktop sidebar */}
-        <aside className="hidden w-60 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex">
+        <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex">
           <SidebarBody />
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="min-w-0 lg:pl-60">
           {/* Top bar */}
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 backdrop-blur px-4 sm:px-6">
             {/* Mobile menu trigger */}
             <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="lg:hidden -ml-2 h-9 w-9"
-                  aria-label="Open navigation"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
+              <SheetTrigger
+                type="button"
+                className={buttonVariants({
+                  variant: "ghost",
+                  size: "icon",
+                  className: "lg:hidden -ml-2 h-9 w-9",
+                })}
+                aria-label="Open navigation"
+              >
+                <Menu className="h-5 w-5" />
               </SheetTrigger>
               <SheetContent
                 side="left"
                 className="w-64 p-0 bg-sidebar text-sidebar-foreground border-sidebar-border"
               >
+                <SheetTitle className="sr-only">Admin navigation</SheetTitle>
                 <SidebarBody />
               </SheetContent>
             </Sheet>

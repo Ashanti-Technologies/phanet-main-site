@@ -20,6 +20,8 @@ type Props = {
   data: Point[];
 };
 
+const ACTIVITY_INITIAL_DIMENSION = { width: 720, height: 256 } as const;
+
 function fmt(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -27,8 +29,14 @@ function fmt(iso: string) {
 
 export function ActivityChart({ data }: Props) {
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-64 min-h-64 min-w-0 w-full">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        minHeight={256}
+        initialDimension={ACTIVITY_INITIAL_DIMENSION}
+      >
         <AreaChart
           data={data}
           margin={{ top: 8, right: 8, left: -16, bottom: 0 }}

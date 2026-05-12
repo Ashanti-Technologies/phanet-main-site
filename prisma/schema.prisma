@@ -23,6 +23,7 @@ model User {
   updatedAt           DateTime     @updatedAt
   phoneNumber         String?
   phoneNumberVerified Boolean?
+  // Comma-separated list of role keys (e.g. "super_admin,pastor"). See src/lib/rbac/roles.ts.
   role                String?
   banned              Boolean?     @default(false)
   banReason           String?
@@ -30,10 +31,46 @@ model User {
   sessions            Session[]
   accounts            Account[]
   commitments         Commitment[]
+  unitRoles           UserUnitRole[]
+  auditLogs           AuditLog[]   @relation("AuditActor")
 
   @@unique([email])
   @@unique([phoneNumber])
   @@map("user")
+}
+
+enum UnitRole {
+  MEMBER
+  LEADER
+  ASSISTANT
+}
+
+model UserUnitRole {
+  userId String
+  unitId String
+  role   UnitRole @default(LEADER)
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit   ChurchUnitOption @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@id([userId, unitId])
+  @@index([unitId])
+  @@map("user_unit_role")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation("AuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+  action    String
+  subject   String
+  subjectId String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([subject, subjectId])
+  @@index([createdAt])
+  @@map("audit_log")
 }
 
 model Session {
@@ -166,6 +203,7 @@ model ChurchUnitOption {
   isActive  Boolean  @default(true)
   order     Int      @default(0)
   createdAt DateTime @default(now())
+  userRoles UserUnitRole[]
 
   @@map("church_unit_option")
 }
@@ -348,7 +386,7 @@ model PrayerRequest {
   prayedAt    DateTime?
   archivedAt  DateTime?
   createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  updatedAt   DateTime            @default(now()) @updatedAt
 
   @@index([status, createdAt])
   @@map("prayer_request")
