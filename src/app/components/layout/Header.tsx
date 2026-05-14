@@ -37,11 +37,7 @@ export default function Header() {
     | ({ role?: string } & NonNullable<typeof session>["user"])
     | undefined;
   const isLoggedIn = !!sessionUser && !isPending;
-  const homeHref = sessionUser
-    ? hasAnyAdminRole(parseRoles(sessionUser.role))
-      ? "/admin"
-      : "/me"
-    : "/auth/login";
+  const homeHref = sessionUser ? "/me" : "/auth/login";
   const user = {
     name: sessionUser?.name ?? "",
     avatar: sessionUser?.image ?? undefined,
