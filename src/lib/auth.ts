@@ -1,12 +1,19 @@
 import { headers } from "next/headers";
 import { betterAuth } from "better-auth";
-import { admin, magicLink, phoneNumber } from "better-auth/plugins";
+import {
+  admin,
+  lastLoginMethod,
+  magicLink,
+  phoneNumber,
+  twoFactor,
+} from "better-auth/plugins";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./database";
 import { nextCookies } from "better-auth/next-js";
 import { getMessagingService } from "./messaging";
 import { renderEmail } from "./email-templates/render";
 import { MagicLinkSignInEmail } from "./email-templates/MagicLinkSignInEmail";
+import { hasAnyAdminRole, parseRoles } from "./rbac/roles";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
@@ -15,6 +22,48 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 12,
+  },
+  // Brute-force protection: 30 requests / 60s per IP per path. Sign-in /
+  // sign-up paths get tighter limits (Better Auth's defaults for those).
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 30,
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          // Audit admin sign-ins. Failures are swallowed inside logAudit.
+          try {
+            const user = await prisma.user.findUnique({
+              where: { id: session.userId },
+              select: { id: true, email: true, role: true },
+            });
+            if (!user) return;
+            const roles = parseRoles(user.role);
+            if (!hasAnyAdminRole(roles)) return;
+            await prisma.auditLog.create({
+              data: {
+                actorId: user.id,
+                action: "admin.sign_in",
+                subject: "Session",
+                subjectId: session.id,
+                meta: {
+                  email: user.email,
+                  ipAddress: session.ipAddress ?? null,
+                  userAgent: session.userAgent ?? null,
+                  roles,
+                },
+              },
+            });
+          } catch (err) {
+            console.error("[auth] admin sign-in audit failed:", err);
+          }
+        },
+      },
+    },
   },
   plugins: [
     phoneNumber({
@@ -23,6 +72,14 @@ export const auth = betterAuth({
       },
     }),
     admin({}),
+    twoFactor({
+      issuer: "PHANET",
+    }),
+    // Track which method (credential / google / magic-link) was used for the
+    // most recent sign-in. We use this to decide whether to enforce 2FA.
+    lastLoginMethod({
+      storeInDatabase: true,
+    }),
     magicLink({
       disableSignUp: true,
       expiresIn: 60 * 15,
@@ -34,7 +91,7 @@ export const auth = betterAuth({
         const service = getMessagingService("EMAIL");
         const result = await service.send({
           to: email,
-          subject: "Your PHANET sign-in link",
+          subject: "Your PHANET Member Portal sign-in link",
           body: html,
           text,
         });

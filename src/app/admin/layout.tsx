@@ -120,6 +120,11 @@ const navigation: NavGroup[] = [
     items: [
       { name: "Admin access", href: "/admin/users", icon: "users" },
       {
+        name: "Two-factor",
+        href: "/auth/two-factor-setup",
+        icon: "users",
+      },
+      {
         name: "Church Units",
         href: "/admin/settings/church-units",
         icon: "churchUnits",

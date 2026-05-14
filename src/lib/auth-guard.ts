@@ -89,14 +89,54 @@ export async function requirePermission<S extends Subject>(
   return session;
 }
 
+const ADMIN_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+// Sign-in methods that REQUIRE 2FA enrolment. Google has its own MFA and
+// magic links require email-account access, so neither needs an extra factor.
+// Anything else (currently only "credential" / email+password) is forced.
+const TWO_FACTOR_EXEMPT_METHODS = new Set(["google", "magic-link"]);
+
 /**
  * Require any admin-side role (used to gate the entire /admin tree).
- * Kept as a thin wrapper for legacy call sites.
+ * Enforces:
+ *  1. The user is signed in.
+ *  2. The user has at least one admin role.
+ *  3. The session is no older than 12 hours — admins re-authenticate daily.
+ *  4. (Unless `requireTwoFactor: false`) admins who signed in via email +
+ *     password must have 2FA enabled. Admins who signed in via Google or
+ *     magic link bypass this — those methods already imply a strong factor.
  */
-export async function requireAdmin() {
+export async function requireAdmin(
+  options: { requireTwoFactor?: boolean } = {},
+) {
   const session = await requireAuth("/admin/login");
   const ctx = await getAbilityContext();
   if (!hasAnyAdminRole(ctx.roles)) redirect("/unauthorized");
+
+  // Force admin re-auth if the session is older than 12h.
+  const sessionStart = session.session?.createdAt
+    ? new Date(session.session.createdAt).getTime()
+    : null;
+  if (
+    sessionStart &&
+    Date.now() - sessionStart > ADMIN_SESSION_MAX_AGE_MS
+  ) {
+    redirect("/admin/login?expired=1");
+  }
+
+  // Enforce 2FA only for credential sign-ins.
+  if (options.requireTwoFactor !== false) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { twoFactorEnabled: true, lastLoginMethod: true },
+    });
+    const method = user?.lastLoginMethod ?? null;
+    const exempt = method !== null && TWO_FACTOR_EXEMPT_METHODS.has(method);
+    if (!exempt && !user?.twoFactorEnabled) {
+      redirect("/auth/two-factor-setup");
+    }
+  }
+
   return session;
 }
 

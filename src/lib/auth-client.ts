@@ -1,10 +1,21 @@
 import { createAuthClient } from "better-auth/react";
-import { magicLinkClient } from "better-auth/client/plugins";
+import {
+  magicLinkClient,
+  twoFactorClient,
+} from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
   /** The base URL of the server (optional if you're using the same domain) */
   // baseURL: "http://localhost:3000"
-  plugins: [magicLinkClient()],
+  plugins: [
+    magicLinkClient(),
+    twoFactorClient({
+      onTwoFactorRedirect: () => {
+        // Send the user to the 2FA challenge page after sign-in.
+        window.location.href = "/auth/two-factor";
+      },
+    }),
+  ],
 });
 
 export const getClientAuthSession = async () => {
@@ -12,15 +23,3 @@ export const getClientAuthSession = async () => {
 
   return session;
 };
-
-const signUpAdminByEmail = async (email: string, password: string) => {
-  const session = await authClient.signUp.email({
-    email,
-    password,
-    name: "Administrator",
-  });
-
-  return session;
-};
-
-// signUpAdminByEmail("nernuer@gmail.com", "Pass123$1");
