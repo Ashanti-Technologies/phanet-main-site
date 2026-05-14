@@ -287,12 +287,52 @@ export async function consumeClaimToken(token: string) {
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
-    select: { id: true },
+    select: { id: true, role: true },
   });
   if (existingUser) {
-    // An account with this email already exists. Tell the user to sign in
-    // with that account instead — we won't silently merge.
-    throw new Error("An account already exists for this email — please sign in.");
+    // An account already exists for this email — usually because the user
+    // signed up via Google earlier, or a previous claim half-completed.
+    // The click itself proves email ownership, so it's safe to:
+    //   - link the member to that user,
+    //   - grant the MEMBER role if they don't already have one,
+    //   - consume the invite so the link can't be replayed.
+    // We then bounce them to login with the email pre-filled. They sign in
+    // via magic link or Google and land on /me with full member access.
+    const currentRoles = existingUser.role
+      ? existingUser.role.split(",").map((r) => r.trim()).filter(Boolean)
+      : [];
+    const nextRoles = currentRoles.includes(ROLES.MEMBER)
+      ? currentRoles
+      : [...currentRoles, ROLES.MEMBER];
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: existingUser.id },
+        data: { role: nextRoles.join(",") },
+      }),
+      prisma.member.update({
+        where: { id: invite.memberId },
+        data: {
+          userId: existingUser.id,
+          status:
+            invite.member.status === "VISITOR" ? "REGULAR" : invite.member.status,
+        },
+      }),
+      prisma.memberInvite.update({
+        where: { id: invite.id },
+        data: { consumedAt: new Date() },
+      }),
+    ]);
+
+    await logAudit({
+      action: "member_claim.consume_existing_user",
+      subject: "MemberInvite",
+      subjectId: invite.id,
+      actorId: existingUser.id,
+      meta: { memberId: invite.memberId, channel: invite.channel },
+    });
+
+    return { kind: "existing-account" as const, email };
   }
 
   // Random password the user never sees; they will sign in via magic link or
@@ -340,5 +380,5 @@ export async function consumeClaimToken(token: string) {
     },
   });
 
-  return { ok: true as const };
+  return { kind: "signed-in" as const };
 }

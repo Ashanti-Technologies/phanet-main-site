@@ -8,7 +8,13 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { GoogleLoginButton } from "@/app/components/auth";
 
-export function MemberLoginForm({ callbackUrl }: { callbackUrl: string }) {
+export function MemberLoginForm({
+  callbackUrl,
+  prefilledEmail = "",
+}: {
+  callbackUrl: string;
+  prefilledEmail?: string;
+}) {
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +57,7 @@ export function MemberLoginForm({ callbackUrl }: { callbackUrl: string }) {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
+            defaultValue={prefilledEmail}
             required
           />
         </div>

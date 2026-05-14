@@ -9,6 +9,15 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+const NOTICES: Record<string, string> = {
+  "existing-account":
+    "We found an existing account for this email. Sign in below to continue claiming your member record.",
+  "already-claimed":
+    "This claim link has already been used. Please sign in to your account.",
+  "already-linked":
+    "This member is already linked to an account. Please sign in.",
+};
+
 export default async function MemberLoginPage({
   searchParams,
 }: {
@@ -16,6 +25,9 @@ export default async function MemberLoginPage({
 }) {
   const sp = await searchParams;
   const callbackUrl = first(sp.callbackUrl) || "/me";
+  const prefilledEmail = first(sp.email) || "";
+  const noticeKey = first(sp.notice) || "";
+  const noticeMessage = noticeKey ? NOTICES[noticeKey] : null;
 
   return (
     <main className="min-h-svh grid lg:grid-cols-2 bg-background">
@@ -93,7 +105,16 @@ export default async function MemberLoginPage({
             </p>
           </div>
 
-          <MemberLoginForm callbackUrl={callbackUrl} />
+          {noticeMessage ? (
+            <div className="rounded-md border border-mikado-yellow/40 bg-mikado-yellow/10 p-3 text-sm text-foreground">
+              {noticeMessage}
+            </div>
+          ) : null}
+
+          <MemberLoginForm
+            callbackUrl={callbackUrl}
+            prefilledEmail={prefilledEmail}
+          />
 
           <p className="text-center text-sm text-muted-foreground">
             New to PHANET?{" "}
