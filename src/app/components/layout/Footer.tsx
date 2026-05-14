@@ -112,6 +112,14 @@ export default function Footer() {
                   Volunteer
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/claim"
+                  className="text-gray-300 hover:text-white transition-colors"
+                >
+                  Claim your member record
+                </Link>
+              </li>
             </ul>
           </div>
 

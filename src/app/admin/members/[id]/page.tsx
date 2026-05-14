@@ -51,6 +51,14 @@ function fmtDate(d: Date | null) {
   });
 }
 
+function fmtEnum(v: string | null | undefined) {
+  if (!v) return "—";
+  return v
+    .split("_")
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export default async function MemberDetailPage({
   params,
 }: {
@@ -204,7 +212,12 @@ export default async function MemberDetailPage({
                 {member.whatsapp || "—"}
               </Row>
               <Row icon={<MapPin className="h-4 w-4" />} label="Address">
-                {[member.addressLine, member.city, member.region, member.country]
+                {[
+                  member.addressLine,
+                  member.city,
+                  member.regionRef?.name ?? member.region,
+                  member.countryRef?.name ?? member.country,
+                ]
                   .filter(Boolean)
                   .join(", ") || "—"}
               </Row>
@@ -228,6 +241,84 @@ export default async function MemberDetailPage({
               <Row label="Joined">{fmtDate(member.joinDate)}</Row>
             </CardContent>
           </Card>
+
+          {member.phanetProfile ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">PHANET profile</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                <Row label="Submitted">
+                  {fmtDate(member.phanetProfile.formSubmittedAt)}
+                </Row>
+                <Row label="Life stage">
+                  {fmtEnum(member.phanetProfile.lifeStage)}
+                </Row>
+                <Row label="Professional track">
+                  {fmtEnum(member.phanetProfile.professionalTrack)}
+                </Row>
+                <Row label="PHANET chapter">
+                  {fmtEnum(member.phanetProfile.regionalChapter)}
+                </Row>
+                <Row label="Organization">
+                  {member.phanetProfile.organizationName || "—"}
+                </Row>
+                <Row label="Emergency contact">
+                  {[
+                    member.phanetProfile.emergencyContactName,
+                    member.phanetProfile.emergencyContactPhone,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </Row>
+                <Row label="Tertiary institution">
+                  {member.phanetProfile.tertiaryInstitution || "—"}
+                </Row>
+                <Row label="Tertiary programme">
+                  {member.phanetProfile.tertiaryProgramme || "—"}
+                </Row>
+                <Row label="Tertiary year">
+                  {member.phanetProfile.tertiaryYear || "—"}
+                </Row>
+                <Row label="Tertiary residence">
+                  {member.phanetProfile.tertiaryResidence || "—"}
+                </Row>
+                <Row label="Tertiary role">
+                  {fmtEnum(member.phanetProfile.tertiaryChapterRole)}
+                </Row>
+                <Row label="Tertiary executive role">
+                  {member.phanetProfile.tertiaryExecutiveRole || "—"}
+                </Row>
+                <Row label="SHS">
+                  {member.phanetProfile.shsName || "—"}
+                </Row>
+                <Row label="SHS programme">
+                  {member.phanetProfile.shsProgramme || "—"}
+                </Row>
+                <Row label="SHS year">
+                  {member.phanetProfile.shsYear || "—"}
+                </Row>
+                <Row label="SHS role">
+                  {fmtEnum(member.phanetProfile.shsChapterRole)}
+                </Row>
+                <Row label="SHS executive role">
+                  {member.phanetProfile.shsExecutiveRole || "—"}
+                </Row>
+                <Row label="Department">
+                  {member.phanetProfile.departmentText || "—"}
+                </Row>
+                <Row label="National role">
+                  {member.phanetProfile.nationalRole || "—"}
+                </Row>
+                <Row label="Overseas programme">
+                  {member.phanetProfile.overseasProgramme || "—"}
+                </Row>
+                <Row label="Campus ministry">
+                  {member.phanetProfile.campusMinistryInvolvement || "—"}
+                </Row>
+              </CardContent>
+            </Card>
+          ) : null}
         </TabsContent>
 
         <TabsContent value="household">

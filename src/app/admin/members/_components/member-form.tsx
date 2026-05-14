@@ -45,13 +45,13 @@ export type MemberFormValues = {
   weddingAnniversary: string;
   joinDate: string;
   status:
-    | "VISITOR"
-    | "PENDING_APPROVAL"
-    | "REGULAR"
-    | "MEMBER"
-    | "INACTIVE"
-    | "TRANSFERRED"
-    | "DECEASED";
+  | "VISITOR"
+  | "PENDING_APPROVAL"
+  | "REGULAR"
+  | "MEMBER"
+  | "INACTIVE"
+  | "TRANSFERRED"
+  | "DECEASED";
   notes: string;
   notifyByEmail: boolean;
   notifyBySms: boolean;
@@ -199,7 +199,7 @@ export function MemberForm({
                 set("gender", v === "__none__" ? "" : (v as "MALE" | "FEMALE"))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="—" />
               </SelectTrigger>
               <SelectContent>
@@ -221,7 +221,7 @@ export function MemberForm({
                 )
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="—" />
               </SelectTrigger>
               <SelectContent>
@@ -332,7 +332,7 @@ export function MemberForm({
                 set("status", v as MemberFormValues["status"])
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -355,7 +355,7 @@ export function MemberForm({
                 set("householdId", v === NO_HOUSEHOLD ? "" : v)
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="—" />
               </SelectTrigger>
               <SelectContent>

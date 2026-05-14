@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "auth:bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
+    "import:phanet-members-2024": "tsx scripts/import-phanet-members-2024.ts",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },

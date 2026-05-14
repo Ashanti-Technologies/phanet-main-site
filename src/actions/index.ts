@@ -10,3 +10,4 @@ export * from "./pastoral";
 export * from "./member-invites";
 export * from "./member-applications";
 export * from "./member-portal";
+export * from "./member-claim";

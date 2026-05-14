@@ -59,7 +59,7 @@ export function CloudinaryImageField({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="imageAlt">Image alt text</Label>
         <Input
           id="imageAlt"
@@ -67,7 +67,7 @@ export function CloudinaryImageField({
           onChange={(event) => onChange({ ...value, alt: event.target.value })}
           placeholder="Describe this image"
         />
-      </div>
+      </div> */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         {value.url ? (
           <div className="relative h-32 w-full overflow-hidden rounded-md border bg-muted sm:w-56">

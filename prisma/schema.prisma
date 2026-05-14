@@ -122,6 +122,68 @@ enum EventRsvpStatus {
   CANCELLED
 }
 
+enum PhanetLifeStage {
+  WORKING_PROFESSIONAL
+  TERTIARY_STUDENT
+  SHS_STUDENT
+}
+
+enum PhanetProfessionalTrack {
+  EMPLOYED
+  SELF_EMPLOYED
+  STUDYING_OVERSEAS
+}
+
+enum PhanetRegionalChapter {
+  GREATER_ACCRA
+  ASHANTI
+  DIASPORA
+  NORTHERN
+  CENTRAL_NORTH
+  CENTRAL_SOUTH
+  NORTH_EAST
+  BONO
+  EASTERN
+  WESTERN
+}
+
+enum PhanetChapterRole {
+  EXECUTIVE_MEMBER
+  NON_EXECUTIVE_MEMBER
+}
+
+model Country {
+  id           String   @id
+  code         String   @unique
+  name         String
+  dialCode     String?
+  currency     String?
+  translations Json?
+  isActive     Boolean  @default(true)
+  regions      Region[]
+  members      Member[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([name])
+  @@map("country")
+}
+
+model Region {
+  id        String   @id
+  countryId String
+  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  name      String
+  isActive  Boolean  @default(true)
+  members   Member[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([countryId])
+  @@index([name])
+  @@map("region")
+}
+
 model Member {
   id                 String         @id @default(cuid())
   userId             String?        @unique
@@ -136,6 +198,10 @@ model Member {
   whatsapp           String?
   addressLine        String?
   city               String?
+  countryId          String?
+  countryRef         Country?       @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  regionId           String?
+  regionRef          Region?        @relation(fields: [regionId], references: [id], onDelete: SetNull)
   region             String?
   country            String?        @default("Ghana")
   occupation         String?
@@ -159,6 +225,7 @@ model Member {
   notesList          MemberNote[]
   invites            MemberInvite[]
   eventRsvps         EventRsvp[]
+  phanetProfile      MemberPhanetProfile?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @default(now()) @updatedAt
 
@@ -166,8 +233,45 @@ model Member {
   @@index([phone])
   @@index([status])
   @@index([dob])
+  @@index([countryId])
+  @@index([regionId])
   @@index([householdId])
   @@map("member")
+}
+
+model MemberPhanetProfile {
+  id                         String                  @id @default(cuid())
+  memberId                   String                  @unique
+  member                     Member                  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  formSubmittedAt            DateTime?
+  emergencyContactName       String?
+  emergencyContactPhone      String?
+  lifeStage                  PhanetLifeStage?
+  professionalTrack          PhanetProfessionalTrack?
+  organizationName           String?
+  regionalChapter            PhanetRegionalChapter?
+  tertiaryInstitution        String?
+  tertiaryProgramme          String?
+  tertiaryYear               String?
+  tertiaryResidence          String?
+  tertiaryChapterRole        PhanetChapterRole?
+  tertiaryExecutiveRole      String?
+  campusMinistryInvolvement  String?                 @db.Text
+  shsName                    String?
+  shsYear                    String?
+  shsProgramme               String?
+  shsChapterRole             PhanetChapterRole?
+  shsExecutiveRole           String?
+  departmentText             String?                 @db.Text
+  nationalRole               String?
+  overseasProgramme          String?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+
+  @@index([lifeStage])
+  @@index([professionalTrack])
+  @@index([regionalChapter])
+  @@map("member_phanet_profile")
 }
 
 model MemberUnit {
@@ -275,20 +379,31 @@ model MemberNote {
   @@map("member_note")
 }
 
+enum MemberInviteChannel {
+  EMAIL
+  PHONE
+}
+
 model MemberInvite {
-  id          String    @id @default(cuid())
-  memberId    String    @unique
-  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  tokenHash   String    @unique
+  id          String              @id @default(cuid())
+  memberId    String              @unique
+  member      Member              @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  tokenHash   String              @unique
   email       String
+  channel     MemberInviteChannel @default(EMAIL)
+  phone       String?
+  codeHash    String?
+  attempts    Int                 @default(0)
+  lastSentAt  DateTime?
   expiresAt   DateTime
   consumedAt  DateTime?
   createdById String?
-  createdBy   User?     @relation("InviteCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt
+  createdBy   User?               @relation("InviteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
 
   @@index([email])
+  @@index([phone])
   @@index([expiresAt])
   @@map("member_invite")
 }

@@ -22,6 +22,9 @@ const memberInclude = {
   tags: { include: { tag: { select: { id: true, label: true, color: true } } } },
   household: { select: { id: true, name: true } },
   user: { select: { id: true, email: true } },
+  countryRef: { select: { id: true, name: true, code: true } },
+  regionRef: { select: { id: true, name: true } },
+  phanetProfile: true,
 } as const;
 
 export type MemberWithRelations = Prisma.MemberGetPayload<{
