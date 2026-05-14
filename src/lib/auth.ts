@@ -17,6 +17,16 @@ import { hasAnyAdminRole, parseRoles } from "./rbac/roles";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
+  // Accept callbacks from every host the site is reachable on. The apex domain
+  // is canonical, but `www.` and the `projects.` subdomain (proxied to the
+  // fundraising routes) both live on the same Next app and need to be trusted.
+  trustedOrigins: [
+    "https://phanerosisnetwork.com",
+    "https://www.phanerosisnetwork.com",
+    "https://projects.phanerosisnetwork.com",
+    "http://localhost:3000",
+    "http://projects.localhost:3000",
+  ],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
