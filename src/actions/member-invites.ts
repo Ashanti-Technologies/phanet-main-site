@@ -7,6 +7,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/database";
 import { requirePermission } from "@/lib/auth-guard";
 import { getMessagingService } from "@/lib/messaging";
+import { renderEmail } from "@/lib/email-templates/render";
+import { MemberInviteEmail } from "@/lib/email-templates/MemberInviteEmail";
 import { logAudit } from "@/lib/audit";
 import { ROLES, serializeRoles } from "@/lib/rbac/roles";
 import {
@@ -94,17 +96,19 @@ export async function sendMemberInvite(input: MemberInviteSendInput) {
   });
 
   const url = `${await getBaseUrl()}/auth/accept-invite/${token}`;
+  const { html, text } = await renderEmail(
+    MemberInviteEmail({
+      memberName: member.fullName,
+      url,
+      expiresInDays: INVITE_TTL_DAYS,
+    }),
+  );
   const service = getMessagingService("EMAIL");
   const result = await service.send({
     to: email,
     subject: "Set up your PHANET member portal",
-    body: `
-      <p>Hello ${member.fullName},</p>
-      <p>You have been invited to set up your PHANET member portal.</p>
-      <p><a href="${url}">Accept your invite</a></p>
-      <p>This link expires in ${INVITE_TTL_DAYS} days.</p>
-    `,
-    text: `Hello ${member.fullName},\n\nSet up your PHANET member portal: ${url}\n\nThis link expires in ${INVITE_TTL_DAYS} days.`,
+    body: html,
+    text,
   });
   if (!result.ok) throw new Error(result.error ?? "Failed to send invite");
 

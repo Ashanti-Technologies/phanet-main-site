@@ -3,6 +3,8 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import { getMessagingService } from "@/lib/messaging";
 import { renderTemplate } from "@/lib/messaging/utils";
+import { renderEmail } from "@/lib/email-templates/render";
+import { BrandedTextEmail } from "@/lib/email-templates/BrandedTextEmail";
 
 const BIRTHDAY_TEMPLATE_NAME = "birthday_default";
 
@@ -125,11 +127,23 @@ export async function GET(req: Request) {
       preferredName: m.preferredName ?? m.fullName,
       unitName: m.unit_name ?? "",
     };
-    const body = renderTemplate(template.body, vars);
+    const renderedBody = renderTemplate(template.body, vars);
     const subject = template.subject
       ? renderTemplate(template.subject, vars)
       : undefined;
-    const res = await service.send({ to, subject, body });
+    const sendInput =
+      template.channel === "EMAIL"
+        ? await (async () => {
+            const { html, text } = await renderEmail(
+              BrandedTextEmail({
+                preview: subject ?? "A note from PHANET",
+                htmlBody: renderedBody,
+              }),
+            );
+            return { to, subject, body: html, text };
+          })()
+        : { to, subject, body: renderedBody };
+    const res = await service.send(sendInput);
     await prisma.messageLog.create({
       data: {
         batchId: batch.id,

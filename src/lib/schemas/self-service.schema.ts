@@ -33,15 +33,64 @@ export const memberInviteAcceptSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+const optionalDate = z
+  .union([z.string(), z.date()])
+  .optional()
+  .nullable()
+  .transform((v) => {
+    if (!v) return null;
+    const d = v instanceof Date ? v : new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d;
+  });
+
 export const memberProfileUpdateSchema = z.object({
+  // About you
   preferredName: optionalString,
+  occupation: optionalString,
+  dob: optionalDate,
+  gender: z.enum(["MALE", "FEMALE"]).optional().nullable(),
+  maritalStatus: z
+    .enum(["SINGLE", "MARRIED", "WIDOWED", "DIVORCED"])
+    .optional()
+    .nullable(),
+
+  // Contact & address
   phone: optionalString,
   whatsapp: optionalString,
   addressLine: optionalString,
   city: optionalString,
+  countryId: optionalString,
+  regionId: optionalString,
   region: optionalString,
   country: z.string().trim().default("Ghana").optional().nullable(),
-  occupation: optionalString,
+
+  // PHANET profile
+  emergencyContactName: optionalString,
+  emergencyContactPhone: optionalString,
+  lifeStage: z
+    .enum(["WORKING_PROFESSIONAL", "TERTIARY_STUDENT", "SHS_STUDENT"])
+    .optional()
+    .nullable(),
+  regionalChapter: z
+    .enum([
+      "GREATER_ACCRA",
+      "ASHANTI",
+      "DIASPORA",
+      "NORTHERN",
+      "CENTRAL_NORTH",
+      "CENTRAL_SOUTH",
+      "NORTH_EAST",
+      "BONO",
+      "EASTERN",
+      "WESTERN",
+    ])
+    .optional()
+    .nullable(),
+  professionalTrack: z
+    .enum(["EMPLOYED", "SELF_EMPLOYED", "STUDYING_OVERSEAS"])
+    .optional()
+    .nullable(),
+  organizationName: optionalString,
 });
 
 export const memberNotificationsUpdateSchema = z.object({

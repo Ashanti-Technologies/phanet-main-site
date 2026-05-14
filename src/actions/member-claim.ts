@@ -5,6 +5,8 @@ import { randomBytes } from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/database";
 import { getMessagingService } from "@/lib/messaging";
+import { renderEmail } from "@/lib/email-templates/render";
+import { ClaimMagicLinkEmail } from "@/lib/email-templates/ClaimMagicLinkEmail";
 import { logAudit } from "@/lib/audit";
 import { ROLES, serializeRoles } from "@/lib/rbac/roles";
 import {
@@ -98,19 +100,20 @@ export async function startClaimByEmail(input: StartClaimByEmailInput) {
   });
 
   const url = `${await getBaseUrl()}/claim/${token}`;
+  const { html, text } = await renderEmail(
+    ClaimMagicLinkEmail({
+      memberName: member.fullName,
+      url,
+      expiresInMinutes: EMAIL_TOKEN_TTL_MIN,
+    }),
+  );
   const service = getMessagingService("EMAIL");
-  const sentStatus = await service.send({
+  await service.send({
     to: data.email,
     subject: "Claim your PHANET member record",
-    body: `
-      <p>Hello ${member.fullName},</p>
-      <p>Click the secure link below to review and complete your PHANET member details:</p>
-      <p><a href="${url}">Claim your record</a></p>
-      <p>This link expires in ${EMAIL_TOKEN_TTL_MIN} minutes. If you did not request this, you can safely ignore the email.</p>
-    `,
-    text: `Hello ${member.fullName},\n\nClaim your PHANET member record: ${url}\n\nThis link expires in ${EMAIL_TOKEN_TTL_MIN} minutes. If you did not request this, you can ignore this email.`,
+    body: html,
+    text,
   });
-  console.log("🚀 ~ startClaimByEmail ~ sentStatus:", sentStatus)
 
   return NEUTRAL_OK;
 }

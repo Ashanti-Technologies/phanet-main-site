@@ -7,6 +7,9 @@ const memberPortalInclude = {
   units: { include: { unit: { select: { id: true, name: true } } } },
   tags: { include: { tag: { select: { id: true, label: true } } } },
   eventRsvps: { include: { event: true } },
+  countryRef: { select: { id: true, name: true, code: true } },
+  regionRef: { select: { id: true, name: true } },
+  phanetProfile: true,
 } satisfies Prisma.MemberInclude;
 
 export async function getCurrentMemberForPortal() {
