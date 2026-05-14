@@ -9,6 +9,7 @@ const memberPortalInclude = {
   eventRsvps: { include: { event: true } },
   countryRef: { select: { id: true, name: true, code: true } },
   regionRef: { select: { id: true, name: true } },
+  household: { select: { id: true, name: true } },
   phanetProfile: true,
 } satisfies Prisma.MemberInclude;
 
@@ -56,6 +57,61 @@ export async function getCurrentMemberOrRedirect() {
 
   if (!member) redirect("/membership/apply");
   return { session, member };
+}
+
+type CompletenessMember = {
+  preferredName: string | null;
+  occupation: string | null;
+  dob: Date | null;
+  gender: string | null;
+  maritalStatus: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  addressLine: string | null;
+  city: string | null;
+  country: string | null;
+  region: string | null;
+  photoUrl: string | null;
+  phanetProfile?: {
+    emergencyContactName: string | null;
+    emergencyContactPhone: string | null;
+    lifeStage: string | null;
+    regionalChapter: string | null;
+  } | null;
+};
+
+const has = (v: unknown) =>
+  v !== null && v !== undefined && (typeof v !== "string" || v.trim() !== "");
+
+export function computeProfileCompleteness(member: CompletenessMember) {
+  const memberFields = [
+    member.preferredName,
+    member.occupation,
+    member.dob,
+    member.gender,
+    member.maritalStatus,
+    member.phone,
+    member.whatsapp,
+    member.addressLine,
+    member.city,
+    member.country,
+    member.region,
+    member.photoUrl,
+  ];
+  const phanetFields = [
+    member.phanetProfile?.emergencyContactName ?? null,
+    member.phanetProfile?.emergencyContactPhone ?? null,
+    member.phanetProfile?.lifeStage ?? null,
+    member.phanetProfile?.regionalChapter ?? null,
+  ];
+  const all = [...memberFields, ...phanetFields];
+  const filled = all.filter(has).length;
+  const total = all.length;
+  return {
+    filled,
+    total,
+    percent: Math.round((filled / total) * 100),
+  };
 }
 
 export function normalizedPhoneVariants(phone: string | null | undefined) {

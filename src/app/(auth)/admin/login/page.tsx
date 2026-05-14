@@ -1,33 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Chrome, KeyRound, Loader2, Mail } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { hasAnyAdminRole, parseRoles } from "@/lib/rbac/roles";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { GoogleLoginButton } from "@/app/components/auth";
+import {
+  Tabs,
+  TabsContent,
+  TabsContents,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/animate-ui/components/animate/tabs";
+
+type Mode = "password" | "magic" | "google";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<Mode>("password");
+  const [isPending, startTransition] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(formData: FormData) {
-    setIsLoading(true);
+  function handlePasswordSignIn(formData: FormData) {
+    setMessage(null);
     setError(null);
-
-    try {
-      const email = String(formData.get("email"));
-      const password = String(formData.get("password"));
+    startTransition(async () => {
+      const email = String(formData.get("email") || "").trim();
+      const password = String(formData.get("password") || "");
 
       const result = await authClient.signIn.email({ email, password });
-
       if (result.error) {
         setError(result.error.message || "Invalid credentials");
-        setIsLoading(false);
         return;
       }
 
@@ -36,15 +45,39 @@ export default function AdminLoginPage() {
       if (!hasAnyAdminRole(parseRoles(user?.role))) {
         await authClient.signOut();
         setError("Access denied. Admin privileges required.");
-        setIsLoading(false);
         return;
       }
 
       router.push("/admin");
-    } catch {
-      setError("Login failed. Please try again.");
-      setIsLoading(false);
-    }
+      router.refresh();
+    });
+  }
+
+  function handleMagicLink(formData: FormData) {
+    setMessage(null);
+    setError(null);
+    startTransition(async () => {
+      const email = String(formData.get("email") || "").trim();
+      if (!email) {
+        setError("Please enter your email.");
+        return;
+      }
+      const result = await authClient.signIn.magicLink({
+        email,
+        callbackURL: "/admin",
+        errorCallbackURL: "/admin/login",
+      });
+      if (result.error) {
+        setError(
+          result.error.message ||
+            "We couldn't send the link. Please try again.",
+        );
+        return;
+      }
+      setMessage(
+        "Check your email — we just sent you a secure sign-in link. Admin access is verified after sign-in.",
+      );
+    });
   }
 
   return (
@@ -87,8 +120,8 @@ export default function AdminLoginPage() {
       </section>
 
       <main className="flex min-h-svh items-center justify-center p-6 lg:p-10">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 text-center lg:text-left">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="text-center lg:text-left">
             <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-md bg-mikado-yellow text-lg font-bold text-black lg:mx-0">
               PN
             </div>
@@ -100,43 +133,120 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          <form
-            action={handleSubmit}
-            className="space-y-4"
-            aria-busy={isLoading}
-          >
+          <div className="space-y-4" aria-busy={isPending}>
+            <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
+              <TabsList className="grid w-full grid-cols-3 rounded-md border bg-muted/30 p-1">
+                <TabsTrigger value="password" className="gap-1.5">
+                  <KeyRound className="h-3.5 w-3.5" />
+                  Password
+                </TabsTrigger>
+                <TabsTrigger value="magic" className="gap-1.5">
+                  <Mail className="h-3.5 w-3.5" />
+                  Magic link
+                </TabsTrigger>
+                <TabsTrigger value="google" className="gap-1.5">
+                  <Chrome className="h-3.5 w-3.5" />
+                  Google
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContents className="mt-5">
+                <TabsContent value="password">
+                  <form action={handlePasswordSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="admin@phanerosisnetwork.com"
+                        required
+                        spellCheck={false}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        autoComplete="current-password"
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isPending}
+                    >
+                      {isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Sign in
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="magic">
+                  <form action={handleMagicLink} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="magic-email">Admin email</Label>
+                      <Input
+                        id="magic-email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="admin@phanerosisnetwork.com"
+                        required
+                        spellCheck={false}
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isPending}
+                    >
+                      {isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Mail className="mr-2 h-4 w-4" />
+                      )}
+                      Email me a sign-in link
+                    </Button>
+                    <p className="text-center text-xs text-muted-foreground">
+                      Admin access is verified after you click the link.
+                    </p>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="google">
+                  <div className="space-y-4 py-2">
+                    <GoogleLoginButton
+                      callbackUrl="/admin"
+                      className="h-11 w-full"
+                    />
+                    <p className="text-center text-xs text-muted-foreground">
+                      Continue with your Google account. Admin access is
+                      verified after sign-in.
+                    </p>
+                  </div>
+                </TabsContent>
+              </TabsContents>
+            </Tabs>
+
+            {message && (
+              <div className="flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{message}</span>
+              </div>
+            )}
             {error && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="admin@phanerosisnetwork.com"
-                required
-                spellCheck={false}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Sign In
-            </Button>
-          </form>
+          </div>
         </div>
       </main>
     </div>

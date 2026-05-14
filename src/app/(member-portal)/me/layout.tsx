@@ -1,52 +1,77 @@
+import Image from "next/image";
 import Link from "next/link";
+import { LifeBuoy } from "lucide-react";
+import { APP_CONFIG } from "@/constants";
 import { getCurrentMemberOrRedirect } from "@/lib/member-portal";
-
-const nav = [
-  { href: "/me", label: "Overview" },
-  { href: "/me/profile", label: "Profile" },
-  { href: "/me/giving", label: "Giving" },
-  { href: "/me/events", label: "Events" },
-  { href: "/me/notifications", label: "Notifications" },
-];
+import { PortalDesktopNav, PortalMobileNav } from "./_components/portal-nav";
+import { PortalUserMenu } from "./_components/portal-user-menu";
 
 export default async function MemberPortalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { member } = await getCurrentMemberOrRedirect();
+  const { session, member } = await getCurrentMemberOrRedirect();
+  const displayName =
+    member.preferredName || member.fullName || session.user.name || "Member";
+  const email = member.email || session.user.email || "";
 
   return (
     <div className="min-h-svh bg-background text-foreground">
-      <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
-          <Link href="/me" className="flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-md bg-mikado-yellow font-bold text-black">
-              PN
-            </span>
-            <span>
-              <span className="block text-sm font-semibold">PHANET Portal</span>
-              <span className="block text-xs text-muted-foreground">
-                {member.preferredName || member.fullName}
+      <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Link
+            href="/me"
+            className="flex items-center gap-3"
+            aria-label="PHANET portal home"
+          >
+            <Image
+              src="/images/logo.png"
+              alt="PHANET"
+              width={36}
+              height={36}
+              className="h-9 w-9 object-contain"
+              priority
+            />
+            <span className="hidden sm:flex sm:flex-col sm:leading-tight">
+              <span className="text-sm font-semibold tracking-tight text-midnight-green">
+                PHANET Portal
+              </span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Member space
               </span>
             </span>
           </Link>
-          <nav className="flex flex-wrap gap-1">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+
+          <PortalDesktopNav />
+
+          <PortalUserMenu
+            name={displayName}
+            email={email}
+            image={member.photoUrl}
+          />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+
+      <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 md:pb-12">
         {children}
+
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-6 text-xs text-muted-foreground">
+          <p className="flex items-center gap-2">
+            <LifeBuoy className="h-3.5 w-3.5" />
+            Need help? Reach us at{" "}
+            <a
+              href={`mailto:${APP_CONFIG.contactEmail}`}
+              className="font-medium text-midnight-green underline-offset-2 hover:underline"
+            >
+              {APP_CONFIG.contactEmail}
+            </a>
+          </p>
+          <p>© {new Date().getFullYear()} PHANET</p>
+        </div>
       </main>
+
+      <PortalMobileNav />
     </div>
   );
 }

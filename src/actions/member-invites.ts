@@ -1,6 +1,6 @@
 "use server";
 
-import { createHash, randomBytes } from "crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
@@ -140,11 +140,14 @@ export async function acceptMemberInvite(input: MemberInviteAcceptInput) {
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) throw new Error("A user account already exists for this email");
 
+  // Password is generated server-side and never shown — members sign in via
+  // magic link or Google after acceptance.
+  const randomPassword = randomBytes(48).toString("base64url");
   const result = await auth.api.signUpEmail({
     headers: await headers(),
     body: {
       email,
-      password: data.password,
+      password: randomPassword,
       name: invite.member.fullName,
       rememberMe: true,
     },

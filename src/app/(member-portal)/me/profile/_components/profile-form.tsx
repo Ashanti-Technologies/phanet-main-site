@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
@@ -23,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { DateField } from "../../_components/date-field";
 
 type Gender = "MALE" | "FEMALE";
 type MaritalStatus = "SINGLE" | "MARRIED" | "WIDOWED" | "DIVORCED";
@@ -225,11 +227,14 @@ export function ProfileForm({
               value={state.occupation}
               onChange={(v) => update("occupation", v)}
             />
-            <FieldDate
-              label="Date of birth"
-              value={state.dob}
-              onChange={(v) => update("dob", v)}
-            />
+            <div className="space-y-2">
+              <Label>Date of birth</Label>
+              <DateField
+                value={state.dob}
+                onChange={(v) => update("dob", v)}
+                placeholder="Pick your date of birth"
+              />
+            </div>
             <FieldSelect
               label="Gender"
               value={state.gender}
@@ -379,14 +384,17 @@ export function ProfileForm({
 
       {/* Action bar */}
       {needsConfirmation ? (
-        <Card className="border-midnight-green/30">
+        <Card className="border-midnight-green/30 bg-midnight-green/[0.03]">
           <CardContent className="space-y-4 pt-6">
-            <label className="flex items-start gap-3 text-sm">
-              <input
-                type="checkbox"
+            <label
+              htmlFor="confirm-details"
+              className="flex items-start gap-3 text-sm"
+            >
+              <Checkbox
+                id="confirm-details"
                 checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-midnight-green/40 text-midnight-green focus:ring-midnight-green"
+                onCheckedChange={(v) => setConfirmed(v === true)}
+                className="mt-0.5 border-midnight-green/40 data-[state=checked]:bg-midnight-green data-[state=checked]:text-mikado-yellow"
               />
               <span className="text-foreground">
                 I confirm that the information above is accurate and up to date.
@@ -397,7 +405,7 @@ export function ProfileForm({
                 type="button"
                 onClick={handleConfirm}
                 disabled={isPending}
-                className="bg-midnight-green text-white hover:bg-midnight-green/90"
+                className="bg-midnight-green text-mikado-yellow hover:bg-midnight-green/90"
               >
                 {isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -418,7 +426,7 @@ export function ProfileForm({
           </CardContent>
         </Card>
       ) : (
-        <div>
+        <div className="sticky bottom-20 z-20 flex justify-end rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur md:bottom-4">
           <Button type="button" onClick={handleSave} disabled={isPending}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save profile
@@ -442,27 +450,6 @@ function FieldText({
     <div className="space-y-2">
       <Label>{label}</Label>
       <Input
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value === "" ? null : e.target.value)}
-      />
-    </div>
-  );
-}
-
-function FieldDate({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string | null;
-  onChange: (value: string | null) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <Input
-        type="date"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value === "" ? null : e.target.value)}
       />

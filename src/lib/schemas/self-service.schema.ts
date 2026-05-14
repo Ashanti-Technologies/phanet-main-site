@@ -30,7 +30,6 @@ export const memberInviteSendSchema = z.object({
 
 export const memberInviteAcceptSchema = z.object({
   token: z.string().min(16),
-  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 const optionalDate = z

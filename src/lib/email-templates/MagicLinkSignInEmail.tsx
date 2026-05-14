@@ -17,8 +17,8 @@ export function MagicLinkSignInEmail({
   expiresInMinutes,
 }: MagicLinkSignInEmailProps) {
   return (
-    <EmailLayout preview="Your secure PHANET sign-in link.">
-      <EmailHeading>Sign in to PHANET</EmailHeading>
+    <EmailLayout preview="Your secure PHANET Member Portal sign-in link.">
+      <EmailHeading>Sign in to PHANET Member Portal</EmailHeading>
       <EmailParagraph>
         Use the secure button below to sign in to your member portal. No
         password needed.

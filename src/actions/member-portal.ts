@@ -129,6 +129,34 @@ export async function confirmMyProfile(input: MemberProfileUpdateInput) {
   return { success: true, data: updated };
 }
 
+export async function updateMyPhoto(input: {
+  photoUrl: string | null;
+  photoPublicId: string | null;
+}) {
+  const { session, member } = await requireLinkedMember();
+  await requirePermission("update", "Member", { userId: session.user.id });
+
+  const updated = await prisma.member.update({
+    where: { id: member.id },
+    data: {
+      photoUrl: input.photoUrl,
+      photoPublicId: input.photoPublicId,
+    },
+    select: { id: true, photoUrl: true, photoPublicId: true },
+  });
+
+  await logAudit({
+    action: "member_portal.photo_update",
+    subject: "Member",
+    subjectId: member.id,
+    actorId: session.user.id,
+  });
+
+  revalidatePath("/me");
+  revalidatePath("/me/profile");
+  return { success: true, data: updated };
+}
+
 export async function updateMyNotifications(
   input: MemberNotificationsUpdateInput,
 ) {

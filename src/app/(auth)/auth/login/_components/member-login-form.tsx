@@ -1,132 +1,87 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2, KeyRound, Mail, Chrome } from "lucide-react";
+import { CheckCircle2, Loader2, Mail } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { GoogleLoginButton } from "@/app/components/auth";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-  TabsContents,
-} from "@/app/components/animate-ui/components/animate/tabs";
-
-type Mode = "password" | "magic" | "google";
 
 export function MemberLoginForm({ callbackUrl }: { callbackUrl: string }) {
-  const router = useRouter();
-  const [mode, setMode] = useState<Mode>("password");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function signIn(formData: FormData) {
+  function sendMagicLink(formData: FormData) {
     setMessage(null);
     setError(null);
     startTransition(async () => {
-      const email = String(formData.get("email") || "");
-
-      if (mode === "magic") {
-        const result = await authClient.signIn.magicLink({
-          email,
-          callbackURL: callbackUrl,
-          errorCallbackURL: "/auth/login",
-        });
-        if (result.error) {
-          setError(result.error.message || "Unable to send sign-in link");
-          return;
-        }
-        setMessage("Check your email for a secure sign-in link.");
+      const email = String(formData.get("email") || "").trim();
+      if (!email) {
+        setError("Please enter your email.");
         return;
       }
-
-      const result = await authClient.signIn.email({
+      const result = await authClient.signIn.magicLink({
         email,
-        password: String(formData.get("password") || ""),
+        callbackURL: callbackUrl,
+        errorCallbackURL: "/auth/login",
       });
       if (result.error) {
-        setError(result.error.message || "Invalid credentials");
+        setError(
+          result.error.message ||
+            "We couldn't send the link. Please check your email and try again.",
+        );
         return;
       }
-      router.push(callbackUrl);
-      router.refresh();
+      setMessage(
+        "Check your email — we just sent you a secure sign-in link.",
+      );
     });
   }
 
   return (
-    <div className="space-y-4" aria-busy={isPending}>
-      <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
-        <TabsList className="grid grid-cols-3 rounded-md border bg-muted/30 p-1 w-full">
-          <TabsTrigger value="password" className="gap-1.5">
-            <KeyRound className="h-3.5 w-3.5" />
-            Password
-          </TabsTrigger>
-          <TabsTrigger value="magic" className="gap-1.5">
-            <Mail className="h-3.5 w-3.5" />
-            Magic link
-          </TabsTrigger>
-          <TabsTrigger value="google" className="gap-1.5">
-            <Chrome className="h-3.5 w-3.5" />
-            Google
-          </TabsTrigger>
-        </TabsList>
+    <div className="space-y-5" aria-busy={isPending}>
+      <form action={sendMagicLink} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={isPending}>
+          {isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Mail className="mr-2 h-4 w-4" />
+          )}
+          Email me a sign-in link
+        </Button>
+        <p className="text-center text-xs text-muted-foreground">
+          No password needed — we&apos;ll send a one-time link.
+        </p>
+      </form>
 
-        <TabsContents className="mt-5">
-          <TabsContent value="password">
-            <form action={signIn} className="space-y-4">
-              <FieldEmail />
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign in
-              </Button>
-            </form>
-          </TabsContent>
+      <div className="relative py-1">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-background px-2 text-muted-foreground">or</span>
+        </div>
+      </div>
 
-          <TabsContent value="magic">
-            <form action={signIn} className="space-y-4">
-              <FieldEmail />
-              <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Email me a sign-in link
-              </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                We&apos;ll send a one-time link — no password needed.
-              </p>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="google">
-            <div className="space-y-4 py-2">
-              <GoogleLoginButton
-                callbackUrl={callbackUrl}
-                className="w-full h-11"
-              />
-              <p className="text-center text-xs text-muted-foreground">
-                Continue with your Google account.
-              </p>
-            </div>
-          </TabsContent>
-        </TabsContents>
-      </Tabs>
+      <GoogleLoginButton callbackUrl={callbackUrl} className="h-11 w-full" />
 
       {message && (
-        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm text-emerald-700 dark:text-emerald-300">
-          {message}
+        <div className="flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{message}</span>
         </div>
       )}
       {error && (
@@ -134,22 +89,6 @@ export function MemberLoginForm({ callbackUrl }: { callbackUrl: string }) {
           {error}
         </div>
       )}
-    </div>
-  );
-}
-
-function FieldEmail() {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor="email">Email</Label>
-      <Input
-        id="email"
-        name="email"
-        type="email"
-        autoComplete="email"
-        placeholder="you@example.com"
-        required
-      />
     </div>
   );
 }
