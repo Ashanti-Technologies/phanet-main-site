@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import posthog from "posthog-js";
 
 type Message = {
   role: "user" | "assistant";
@@ -154,8 +155,16 @@ export default function ChatWidget() {
     const nextMessages = [...messages, userMessage];
     setIsLoading(true);
 
+    posthog.capture("chat_message_sent", {
+      is_prayer_request: isPrayerRequest(text),
+      message_length: text.length,
+    });
+
     if (isPrayerRequest(text)) {
       savePrayerRequest(text);
+      posthog.capture("prayer_request_submitted", {
+        source: "chat_widget",
+      });
     }
 
     // Add placeholder for streaming assistant response
@@ -329,7 +338,11 @@ export default function ChatWidget() {
 
       {/* Toggle button */}
       <motion.button
-        onClick={() => setIsOpen((o) => !o)}
+        onClick={() => {
+          const next = !isOpen;
+          setIsOpen(next);
+          if (next) posthog.capture("chat_opened");
+        }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         className="w-14 h-14 rounded-full bg-crayola hover:bg-red-600 shadow-lg flex items-center justify-center transition-colors"

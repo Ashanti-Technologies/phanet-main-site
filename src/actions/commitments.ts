@@ -15,6 +15,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/app/generated/prisma/client";
 import { sendAdminNotification, sendDonorConfirmation } from "@/lib/email";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export type CommitmentWithRelations = Prisma.CommitmentGetPayload<{
   include: {
@@ -81,6 +82,30 @@ export async function createCommitment(data: CommitmentCreateInput) {
   } catch (error) {
     console.error("Failed to send notification emails:", error);
   }
+
+  // Track server-side commitment creation
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: session.user.id,
+    event: "commitment_created",
+    properties: {
+      commitment_id: commitment.id,
+      project_id: commitment.projectId,
+      project_title: commitment.project.title,
+      amount: Number(commitment.amountCommitted),
+      country: commitment.country,
+      is_anonymous: commitment.isAnonymous,
+      has_church_unit: !!commitment.churchUnit,
+      funding_mode: commitment.project.fundingMode,
+    },
+  });
+  posthog.identify({
+    distinctId: session.user.id,
+    properties: {
+      email: session.user.email,
+      name: session.user.name,
+    },
+  });
 
   revalidatePath(`/projects/${validated.projectId}`);
   revalidatePath("/admin/projects");

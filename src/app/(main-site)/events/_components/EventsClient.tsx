@@ -13,6 +13,7 @@ import {
   formatEventDate,
   formatEventDateShort,
 } from "@/lib/events";
+import posthog from "posthog-js";
 
 const CATEGORIES: { value: "all" | EventCategory; label: string }[] = [
   { value: "all", label: "All Events" },
@@ -28,6 +29,15 @@ function EventCard({ event }: { event: Event }) {
     <Link
       href={`/events/${event.slug}`}
       className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100"
+      onClick={() =>
+        posthog.capture("event_card_clicked", {
+          event_id: event.id,
+          event_title: event.title,
+          event_category: event.category,
+          event_date: event.date,
+          is_featured: false,
+        })
+      }
     >
       {/* Image / Gradient area */}
       <div
@@ -99,6 +109,15 @@ function FeaturedEventCard({ event }: { event: Event }) {
     <Link
       href={`/events/${event.slug}`}
       className="group relative rounded-2xl overflow-hidden flex flex-col lg:flex-row bg-gray-900 shadow-lg hover:shadow-2xl transition-all duration-300 border border-white/10 mb-10"
+      onClick={() =>
+        posthog.capture("event_card_clicked", {
+          event_id: event.id,
+          event_title: event.title,
+          event_category: event.category,
+          event_date: event.date,
+          is_featured: true,
+        })
+      }
     >
       {/* Gradient background (left on desktop, top on mobile) */}
       <div
@@ -201,6 +220,7 @@ export default function EventsClient({ events }: Props) {
   const handleCategory = (value: "all" | EventCategory) => {
     setCategory(value);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    posthog.capture("events_category_filtered", { category: value });
     pushUrl(query, value);
   };
 

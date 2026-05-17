@@ -11,6 +11,8 @@ import {
 } from "@/app/components/ui/card";
 import { Users, Target, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import { getPostHogClient } from "@/lib/posthog-server";
+import { getServerAuthSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +27,18 @@ const fundingModeColors = {
 };
 
 export default async function ProjectsListingPage() {
-  const projects = await getProjects({
-    status: "ACTIVE",
-    includeCommitments: true,
+  const [projects, session] = await Promise.all([
+    getProjects({ status: "ACTIVE", includeCommitments: true }),
+    getServerAuthSession(),
+  ]);
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: session?.user?.id ?? "anonymous",
+    event: "projects_list_viewed",
+    properties: {
+      project_count: projects.length,
+    },
   });
 
   return (

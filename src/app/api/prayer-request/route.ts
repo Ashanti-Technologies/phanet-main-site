@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/database";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(req: Request) {
   try {
@@ -20,6 +21,18 @@ export async function POST(req: Request) {
         name: name?.trim() || null,
         email: email?.trim().toLowerCase() || null,
         phone: phone?.trim() || null,
+      },
+    });
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: email?.trim().toLowerCase() || "anonymous",
+      event: "prayer_request_submitted",
+      properties: {
+        source: "api",
+        has_name: !!name,
+        has_email: !!email,
+        has_phone: !!phone,
       },
     });
 

@@ -1,6 +1,8 @@
 import { getProjectById } from "@/actions/projects";
 import { getThankYouWallData } from "@/actions/commitments";
 import { notFound } from "next/navigation";
+import { getPostHogClient } from "@/lib/posthog-server";
+import { getServerAuthSession } from "@/lib/auth";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/app/components/ui/button";
@@ -48,7 +50,22 @@ export default async function ProjectDetailPage({ params }: Props) {
     notFound();
   }
 
-  const thankYouData = await getThankYouWallData(id);
+  const [thankYouData, session] = await Promise.all([
+    getThankYouWallData(id),
+    getServerAuthSession(),
+  ]);
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: session?.user?.id ?? "anonymous",
+    event: "project_viewed",
+    properties: {
+      project_id: project.id,
+      project_title: project.title,
+      funding_mode: project.fundingMode,
+      supporter_count: project.commitments.length,
+    },
+  });
 
   const target = Number(project.targetAmount);
   const raised = project.amountRaised;

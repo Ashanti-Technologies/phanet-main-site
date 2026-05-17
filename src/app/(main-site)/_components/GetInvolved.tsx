@@ -5,6 +5,7 @@ import { useInView } from 'framer-motion';
 import { useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import posthog from 'posthog-js';
 
 export default function GetInvolved() {
     const ref = useRef(null);
@@ -68,6 +69,11 @@ export default function GetInvolved() {
                                 <Link
                                     href="/join"
                                     className="inline-block bg-crayola hover:bg-crayola/90 text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300"
+                                    onClick={() =>
+                                        posthog.capture("get_involved_clicked", {
+                                            source: "home_get_involved_section",
+                                        })
+                                    }
                                 >
                                     Get Involved Today
                                 </Link>

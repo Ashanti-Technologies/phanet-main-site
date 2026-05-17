@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useRef } from "react";
+import posthog from "posthog-js";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -178,12 +179,30 @@ export default function Hero() {
                       <Link
                         href={slide.ctas.primary.href}
                         className="px-6 py-3 rounded-full font-medium text-sm sm:text-base bg-crayola hover:bg-crayola/90 text-white transition-colors"
+                        onClick={() =>
+                          posthog.capture("hero_cta_clicked", {
+                            cta_text: slide.ctas.primary.text,
+                            cta_href: slide.ctas.primary.href,
+                            cta_type: "primary",
+                            slide_id: slide.id,
+                            slide_headline: slide.headline,
+                          })
+                        }
                       >
                         {slide.ctas.primary.text}
                       </Link>
                       <Link
                         href={slide.ctas.secondary.href}
                         className="px-6 py-3 rounded-full font-medium text-sm sm:text-base bg-white/10 hover:bg-white/20 text-white border border-white/30 transition-colors backdrop-blur-sm"
+                        onClick={() =>
+                          posthog.capture("hero_cta_clicked", {
+                            cta_text: slide.ctas.secondary.text,
+                            cta_href: slide.ctas.secondary.href,
+                            cta_type: "secondary",
+                            slide_id: slide.id,
+                            slide_headline: slide.headline,
+                          })
+                        }
                       >
                         {slide.ctas.secondary.text}
                       </Link>

@@ -3,6 +3,7 @@
 import { Button } from "@/app/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
+import posthog from "posthog-js";
 
 interface GoogleLoginButtonProps {
   callbackUrl?: string;
@@ -19,6 +20,9 @@ export function GoogleLoginButton({
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    posthog.capture("google_login_initiated", {
+      callback_url: callbackUrl,
+    });
     try {
       await authClient.signIn.social({
         provider: "google",
@@ -26,6 +30,7 @@ export function GoogleLoginButton({
       });
     } catch (error) {
       console.error("Google login error:", error);
+      posthog.captureException(error);
       setIsLoading(false);
     }
   };

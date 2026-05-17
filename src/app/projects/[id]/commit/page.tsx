@@ -27,6 +27,7 @@ import {
 import { Switch } from "@/app/components/ui/switch";
 import { ArrowLeft, Loader2, CheckCircle, Heart } from "lucide-react";
 import Link from "next/link";
+import posthog from "posthog-js";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -51,10 +52,14 @@ export default function CommitmentPage(props: Props) {
   const [useCustomChurchUnit, setUseCustomChurchUnit] = useState(false);
 
   useEffect(() => {
+    posthog.capture("commitment_page_viewed", { project_id: params.id });
+
     async function checkSession() {
       const result = await authClient.getSession();
       if (result?.data?.user) {
+        const user = result.data.user as { id: string; name: string; email: string };
         setSession(result.data as { user: { name: string; email: string } });
+        posthog.identify(user.id, { email: user.email, name: user.name });
       }
       setIsLoading(false);
     }
@@ -66,7 +71,7 @@ export default function CommitmentPage(props: Props) {
 
     checkSession();
     loadChurchUnits();
-  }, []);
+  }, [params.id]);
 
   async function handleSubmit(formData: FormData) {
     setIsSubmitting(true);
@@ -90,12 +95,21 @@ export default function CommitmentPage(props: Props) {
         isAnonymous: formData.get("isAnonymous") === "on",
       };
 
+      posthog.capture("commitment_submitted", {
+        project_id: params.id,
+        amount: data.amountCommitted,
+        country: data.country,
+        is_anonymous: data.isAnonymous,
+        has_church_unit: !!data.churchUnit,
+      });
+
       const result = await createCommitment(data);
 
       if (result.success) {
         setIsSuccess(true);
       }
     } catch (err) {
+      posthog.captureException(err);
       setError(
         err instanceof Error ? err.message : "Failed to submit commitment"
       );
