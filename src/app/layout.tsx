@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import JsonLd from "./components/JsonLd";
 import { APP_CONFIG } from "@/constants";
@@ -8,7 +8,21 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ReactQueryProvider from "./components/providers/ReactQueryProvider";
 
-const dmSans = DM_Sans({ subsets: ["latin"] });
+const brandDisplay = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-brand-serif",
+});
+
+const brandSans = Inter({
+  subsets: ["latin"],
+  variable: "--font-brand-sans",
+});
+
+const brandMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-brand-mono",
+  weight: ["400", "500"],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_CONFIG.siteUrl),
@@ -106,7 +120,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+      className={`${brandDisplay.variable} ${brandSans.variable} ${brandMono.variable}`}
+    >
       <head>
         <Script id="google-tag-manager" strategy="afterInteractive">
           {`
@@ -120,7 +139,7 @@ export default function RootLayout({
         <JsonLd data={jsonLdData} />
         <link rel="canonical" href={APP_CONFIG.siteUrl} />
       </head>
-      <body className={`${dmSans.className} antialiased`}>
+      <body className="font-sans antialiased">
         <noscript>
           <iframe
             src="https://www.googletagmanager.com/ns.html?id=GTM-WNPLHGTG"

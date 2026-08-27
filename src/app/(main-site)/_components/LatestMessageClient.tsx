@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
-import { useRef, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
@@ -18,13 +17,13 @@ function FeaturedPlayer({ video }: { video: YoutubeVideo }) {
 
   if (playing) {
     return (
-      <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl">
+      <div className="relative z-10 aspect-video w-full overflow-hidden rounded-xl shadow-2xl ring-offset-gray-950 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-4 sm:rounded-2xl">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&rel=0`}
           title={video.title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          className="absolute inset-0 w-full h-full"
+          className="absolute inset-0 h-full w-full"
         />
       </div>
     );
@@ -35,20 +34,23 @@ function FeaturedPlayer({ video }: { video: YoutubeVideo }) {
       type="button"
       onClick={() => setPlaying(true)}
       aria-label={`Play: ${video.title}`}
-      className="relative z-10 rounded-2xl overflow-hidden shadow-2xl group cursor-pointer block w-full"
+      className="group relative z-10 block w-full cursor-pointer overflow-hidden rounded-xl shadow-2xl ring-offset-gray-950 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 sm:rounded-2xl"
     >
       <div className="relative aspect-video">
         <Image
           src={video.thumbnailUrl}
           alt={video.title}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-500 motion-reduce:transition-none motion-safe:group-hover:scale-105"
           sizes="(min-width: 1024px) 50vw, 100vw"
         />
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+        <div className="absolute inset-0 bg-black/20 transition-colors motion-reduce:transition-none group-hover:bg-black/30" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-crayola rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-            <Play className="w-6 h-6 sm:w-8 sm:h-8 text-white fill-white ml-1" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform motion-reduce:transition-none motion-safe:group-hover:scale-110 sm:h-20 sm:w-20">
+            <Play
+              aria-hidden="true"
+              className="ml-1 h-6 w-6 fill-current sm:h-8 sm:w-8"
+            />
           </div>
         </div>
       </div>
@@ -56,13 +58,29 @@ function FeaturedPlayer({ video }: { video: YoutubeVideo }) {
   );
 }
 
+function BrushVideoFrame({ video }: { video: YoutubeVideo }) {
+  return (
+    <div className="relative isolate mx-auto aspect-[685/481] w-full max-w-3xl lg:max-w-none">
+      <Image
+        src="/images/brushy.svg"
+        alt=""
+        fill
+        sizes="(min-width: 1024px) 50vw, 100vw"
+        className="pointer-events-none select-none object-contain opacity-80"
+      />
+
+      {/* These percentage insets match the transparent safe area within brushy.svg. */}
+      <div className="absolute inset-x-[8%] top-[14%] z-10 flex h-[72%] items-center">
+        <FeaturedPlayer video={video} />
+      </div>
+    </div>
+  );
+}
+
 export default function LatestMessageClient({
   featuredVideo,
   otherVideos,
 }: Props) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: false,
     align: "start",
@@ -78,7 +96,7 @@ export default function LatestMessageClient({
   }, [emblaApi]);
 
   return (
-    <section className="relative py-20 overflow-hidden bg-gray-950">
+    <section className="relative overflow-hidden bg-gray-950 py-20">
       <div
         className="absolute inset-0 opacity-20"
         style={{
@@ -88,84 +106,60 @@ export default function LatestMessageClient({
       />
       <div className="absolute inset-0 bg-gradient-to-b from-gray-950 via-gray-900/50 to-gray-950" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header — collapsed */}
-        <motion.div
-          ref={ref}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3">
+        <div className="mb-12 text-center">
+          <h2 className="mb-3 font-serif text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Watch our latest message
           </h2>
           <Link
             href="/messages"
-            className="inline-flex items-center text-gray-300 hover:text-white text-sm sm:text-base underline underline-offset-4 decoration-gray-600 hover:decoration-white transition-colors"
+            className="inline-flex items-center rounded-sm text-sm text-gray-300 underline decoration-gray-600 underline-offset-4 transition-colors hover:text-white hover:decoration-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-gray-950 motion-reduce:transition-none sm:text-base"
           >
             Browse 500+ past messages
           </Link>
-        </motion.div>
+        </div>
 
         {/* Featured Message */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-16"
-        >
-          <div className="relative">
-            <div className="absolute -right-8 -top-8 w-[120%] h-[120%] z-0 opacity-60 pointer-events-none">
-              <Image
-                src="/images/brushy.svg"
-                alt=""
-                fill
-                className="object-contain"
-              />
-            </div>
-            <FeaturedPlayer video={featuredVideo} />
-          </div>
+        <div className="mb-16 grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
+          <BrushVideoFrame video={featuredVideo} />
 
           <div className="lg:pl-4">
-            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mt-3 mb-4">
+            <h3 className="mb-4 mt-3 text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
               {featuredVideo.title}
             </h3>
 
-            <p className="text-gray-400 text-base sm:text-lg mb-6">
+            <p className="mb-6 text-base text-gray-400 sm:text-lg">
               {featuredVideo.publishedAt}
             </p>
 
             <Link
               href="/messages"
-              className="inline-flex items-center px-6 py-3 rounded-full font-medium text-sm bg-transparent text-white border border-white/30 hover:bg-white/10 transition-colors"
+              className="inline-flex min-h-10 items-center rounded-full border border-white/30 bg-transparent px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-gray-950 motion-reduce:transition-none"
             >
               Find a message
             </Link>
           </div>
-        </motion.div>
+        </div>
 
         {/* Other Messages Carousel */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="relative"
-        >
-          <div className="flex justify-end gap-2 mb-4">
+        <div className="relative">
+          <div className="mb-4 flex justify-end gap-2">
             <button
+              type="button"
               onClick={scrollPrev}
-              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-gray-950 motion-reduce:transition-none"
               aria-label="Previous messages"
             >
-              <ChevronLeft className="w-5 h-5 text-white" />
+              <ChevronLeft aria-hidden="true" className="h-5 w-5 text-white" />
             </button>
             <button
+              type="button"
               onClick={scrollNext}
-              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-gray-950 motion-reduce:transition-none"
               aria-label="Next messages"
             >
-              <ChevronRight className="w-5 h-5 text-white" />
+              <ChevronRight aria-hidden="true" className="h-5 w-5 text-white" />
             </button>
           </div>
 
@@ -176,36 +170,39 @@ export default function LatestMessageClient({
                 {otherVideos.map((video) => (
                   <div
                     key={video.id}
-                    className="flex-shrink-0 w-[280px] sm:w-[320px] lg:w-[360px]"
+                    className="w-[280px] flex-shrink-0 sm:w-[320px] lg:w-[360px]"
                   >
                     <Link
                       href={video.videoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block group"
+                      className="group block rounded-xl focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-gray-950"
                     >
-                      <div className="relative rounded-xl overflow-hidden aspect-video mb-3">
+                      <div className="relative mb-3 aspect-video overflow-hidden rounded-xl">
                         <Image
                           src={video.thumbnailUrl}
                           alt={video.title}
                           fill
                           unoptimized
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          className="object-cover transition-transform duration-500 motion-reduce:transition-none motion-safe:group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                        <div className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/10 motion-reduce:transition-none" />
                         <div className="absolute inset-0 flex flex-col justify-end p-4">
                           <div>
-                            <h4 className="text-white text-lg font-bold leading-tight">
+                            <h4 className="text-lg font-bold leading-tight text-white">
                               {video.title}
                             </h4>
-                            <p className="text-white/70 text-sm mt-1">
+                            <p className="mt-1 text-sm text-white/70">
                               {video.publishedAt}
                             </p>
                           </div>
                         </div>
-                        <div className="absolute top-3 right-3">
-                          <div className="w-10 h-10 bg-crayola rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                            <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                        <div className="absolute right-3 top-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform motion-reduce:transition-none motion-safe:group-hover:scale-110">
+                            <Play
+                              aria-hidden="true"
+                              className="ml-0.5 h-4 w-4 fill-current"
+                            />
                           </div>
                         </div>
                       </div>
@@ -220,7 +217,7 @@ export default function LatestMessageClient({
               className="pointer-events-none absolute inset-y-0 right-0 w-16 sm:w-24 bg-gradient-to-l from-gray-950 to-transparent"
             />
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
