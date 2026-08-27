@@ -6,18 +6,32 @@ import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import type { YoutubeVideo } from "@/lib/youtube";
+import { cn } from "@/lib/utils";
 
 type Props = {
   featuredVideo: YoutubeVideo;
   otherVideos: YoutubeVideo[];
 };
 
-function FeaturedPlayer({ video }: { video: YoutubeVideo }) {
+function FeaturedPlayer({
+  video,
+  fillFrame = false,
+}: {
+  video: YoutubeVideo;
+  fillFrame?: boolean;
+}) {
   const [playing, setPlaying] = useState(false);
 
   if (playing) {
     return (
-      <div className="relative z-10 aspect-video w-full overflow-hidden rounded-xl shadow-2xl ring-offset-gray-950 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-4 sm:rounded-2xl">
+      <div
+        className={cn(
+          "relative z-10 w-full overflow-hidden ring-offset-gray-950 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-4",
+          fillFrame
+            ? "h-full focus-within:ring-inset"
+            : "aspect-video rounded-xl shadow-2xl sm:rounded-2xl",
+        )}
+      >
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&rel=0`}
           title={video.title}
@@ -34,9 +48,14 @@ function FeaturedPlayer({ video }: { video: YoutubeVideo }) {
       type="button"
       onClick={() => setPlaying(true)}
       aria-label={`Play: ${video.title}`}
-      className="group relative z-10 block w-full cursor-pointer overflow-hidden rounded-xl shadow-2xl ring-offset-gray-950 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 sm:rounded-2xl"
+      className={cn(
+        "group relative z-10 block w-full cursor-pointer overflow-hidden ring-offset-gray-950 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4",
+        fillFrame
+          ? "h-full focus-visible:ring-inset"
+          : "rounded-xl shadow-2xl sm:rounded-2xl",
+      )}
     >
-      <div className="relative aspect-video">
+      <div className={cn("relative", fillFrame ? "h-full" : "aspect-video")}>
         <Image
           src={video.thumbnailUrl}
           alt={video.title}
@@ -60,19 +79,20 @@ function FeaturedPlayer({ video }: { video: YoutubeVideo }) {
 
 function BrushVideoFrame({ video }: { video: YoutubeVideo }) {
   return (
-    <div className="relative isolate mx-auto aspect-[685/481] w-full max-w-3xl lg:max-w-none">
-      <Image
-        src="/images/brushy.svg"
-        alt=""
-        fill
-        sizes="(min-width: 1024px) 50vw, 100vw"
-        className="pointer-events-none select-none object-contain opacity-80"
-      />
-
-      {/* These percentage insets match the transparent safe area within brushy.svg. */}
-      <div className="absolute inset-x-[8%] top-[14%] z-10 flex h-[72%] items-center">
-        <FeaturedPlayer video={video} />
-      </div>
+    <div
+      className="relative isolate mx-auto aspect-[685/481] w-full max-w-3xl drop-shadow-2xl lg:max-w-none"
+      style={{
+        maskImage: "url('/images/brushy.svg')",
+        maskPosition: "center",
+        maskRepeat: "no-repeat",
+        maskSize: "100% 100%",
+        WebkitMaskImage: "url('/images/brushy.svg')",
+        WebkitMaskPosition: "center",
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskSize: "100% 100%",
+      }}
+    >
+      <FeaturedPlayer video={video} fillFrame />
     </div>
   );
 }
@@ -97,14 +117,11 @@ export default function LatestMessageClient({
 
   return (
     <section className="relative overflow-hidden bg-gray-950 py-20">
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px)`,
-          backgroundSize: "24px 24px",
-        }}
-      />
       <div className="absolute inset-0 bg-gradient-to-b from-gray-950 via-gray-900/50 to-gray-950" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[url('/images/dot-texture.svg')] bg-[length:192px_192px] bg-repeat opacity-40"
+      />
 
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header — collapsed */}
