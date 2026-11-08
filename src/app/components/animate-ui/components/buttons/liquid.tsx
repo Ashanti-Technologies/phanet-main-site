@@ -19,6 +19,8 @@ const buttonVariants = cva(
           "[--liquid-button-background-color:var(--accent)] [--liquid-button-color:var(--destructive)] text-white shadow-xs focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         secondary:
           "[--liquid-button-background-color:var(--accent)] [--liquid-button-color:var(--secondary)] text-secondary hover:text-secondary-foreground shadow-xs",
+        brand:
+          "[--liquid-button-background-color:var(--color-mikado-yellow)] [--liquid-button-color:var(--color-midnight-green)] text-midnight-green hover:text-mikado-yellow shadow-xs",
         ghost:
           "[--liquid-button-background-color:var(--transparent)] [--liquid-button-color:var(--primary)] text-primary hover:text-primary-foreground shadow-xs",
       },

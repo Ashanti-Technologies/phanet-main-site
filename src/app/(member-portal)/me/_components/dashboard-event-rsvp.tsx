@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { setMyEventRsvp } from "@/actions/member-portal";
 import { Button } from "@/app/components/ui/button";
+import { LiquidButton } from "@/app/components/animate-ui/components/buttons/liquid";
 
 export function DashboardEventRsvp({
   eventId,
@@ -27,7 +28,7 @@ export function DashboardEventRsvp({
 
   if (status === "GOING") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-300">
         <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-900">
           <CheckCircle2 className="h-4 w-4" />
           You&apos;re going
@@ -47,13 +48,15 @@ export function DashboardEventRsvp({
   }
 
   return (
-    <Button
+    <LiquidButton
       onClick={() => update("GOING")}
       disabled={isPending}
-      className="w-full bg-mikado-yellow text-midnight-green hover:bg-mikado-yellow/90"
+      variant="brand"
+      size="lg"
+      className="w-full rounded-xl"
     >
       {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       RSVP — I&apos;ll be there
-    </Button>
+    </LiquidButton>
   );
 }

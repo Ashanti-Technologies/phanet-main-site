@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { LiquidButton } from "@/app/components/animate-ui/components/buttons/liquid";
 import { Progress } from "@/app/components/ui/progress";
 import { Badge } from "@/app/components/ui/badge";
 import { EmptyState } from "./_components/empty-state";
@@ -104,13 +105,13 @@ export default async function MemberPortalPage() {
   return (
     <div className="space-y-6">
       {/* Hero */}
-      <section className="overflow-hidden rounded-2xl border bg-gradient-to-br from-midnight-green via-midnight-green to-[#0a4d62] text-white shadow-sm">
+      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-midnight-green via-midnight-green to-[#0a4d62] text-white shadow-(--shadow-float) motion-safe:rise-in">
         <div className="grid gap-6 p-6 sm:p-8 md:grid-cols-[1.4fr_1fr]">
           <div className="space-y-3">
             <p className="text-sm font-medium text-mikado-yellow">
               {greeting}
             </p>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h1 className="font-serif text-4xl font-medium tracking-tight text-balance sm:text-5xl">
               {firstName}, welcome back.
             </h1>
             <p className="max-w-prose text-sm text-white/80">
@@ -120,7 +121,7 @@ export default async function MemberPortalPage() {
             </p>
           </div>
 
-          <div className="rounded-xl bg-white/10 p-4 backdrop-blur">
+          <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10 backdrop-blur">
             <div className="mb-2 flex items-center justify-between text-xs">
               <span className="font-medium uppercase tracking-wider text-mikado-yellow">
                 Profile completeness
@@ -131,17 +132,18 @@ export default async function MemberPortalPage() {
             </div>
             <Progress
               value={completeness.percent}
-              className="h-2 bg-white/20 [&>div]:bg-mikado-yellow"
+              className="h-2 bg-white/20 [&>div]:bg-mikado-yellow [&>div]:motion-safe:fill-in"
             />
             <p className="mt-3 text-xs text-white/70">
               {needsConfirmation
                 ? "Please review and confirm your details so we can serve you better."
                 : `${completeness.percent}% complete — keep your details fresh anytime.`}
             </p>
-            <Button
+            <LiquidButton
               asChild
-              size="sm"
-              className="mt-4 w-full bg-mikado-yellow text-midnight-green hover:bg-mikado-yellow/90"
+              variant="brand"
+              size="lg"
+              className="mt-4 w-full rounded-xl [--liquid-button-color:var(--color-white)] hover:text-midnight-green"
             >
               <Link href="/me/profile">
                 {needsConfirmation
@@ -149,16 +151,16 @@ export default async function MemberPortalPage() {
                   : "Update my profile"}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
-            </Button>
+            </LiquidButton>
           </div>
         </div>
       </section>
 
       {/* What's next + Prayer wall */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="border-border/50 shadow-(--shadow-soft) motion-safe:rise-in [--stagger:1]">
           <CardHeader className="flex flex-row items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium">
               <CalendarClock className="h-4 w-4 text-midnight-green" />
               What&apos;s next
             </CardTitle>
@@ -173,7 +175,7 @@ export default async function MemberPortalPage() {
             {nextEventRow ? (
               <div className="space-y-4">
                 <div>
-                  <p className="text-lg font-semibold leading-tight">
+                  <p className="font-serif text-xl font-medium leading-tight">
                     {nextEventRow.title}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -206,9 +208,9 @@ export default async function MemberPortalPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-border/50 shadow-(--shadow-soft) motion-safe:rise-in [--stagger:2]">
           <CardHeader className="flex flex-row items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-2 font-serif text-lg font-medium">
               <Sparkles className="h-4 w-4 text-midnight-green" />
               Your prayer wall
             </CardTitle>
@@ -260,15 +262,15 @@ export default async function MemberPortalPage() {
       </div>
 
       {/* Giving */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-border/50 shadow-(--shadow-soft) motion-safe:rise-in [--stagger:3]">
         <div className="grid gap-0 sm:grid-cols-[1fr_auto] sm:items-center">
           <CardHeader className="flex flex-row items-start gap-3 sm:items-center">
             <div className="rounded-full bg-mikado-yellow/20 p-2 text-midnight-green">
               <HandHeart className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-base">Your giving this year</CardTitle>
-              <p className="mt-1 text-2xl font-semibold tracking-tight text-midnight-green">
+              <CardTitle className="font-serif text-lg font-medium">Your giving this year</CardTitle>
+              <p className="mt-1 font-serif text-3xl font-medium tracking-tight text-midnight-green tabular-nums">
                 {formatCurrency(ytdConfirmed)}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -278,12 +280,14 @@ export default async function MemberPortalPage() {
             </div>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2 sm:justify-end sm:py-6">
-            <Button
+            <LiquidButton
               asChild
-              className="bg-mikado-yellow text-midnight-green hover:bg-mikado-yellow/90"
+              variant="brand"
+              size="lg"
+              className="rounded-xl"
             >
               <Link href="/projects">Give to a project</Link>
-            </Button>
+            </LiquidButton>
             <Button asChild variant="outline">
               <Link href="/me/giving">View giving history</Link>
             </Button>

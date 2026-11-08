@@ -5,6 +5,7 @@ import { APP_CONFIG } from "@/constants";
 import { getCurrentMemberOrRedirect } from "@/lib/member-portal";
 import { PortalDesktopNav, PortalMobileNav } from "./_components/portal-nav";
 import { PortalUserMenu } from "./_components/portal-user-menu";
+import { portalSans } from "./_components/portal-font";
 
 export default async function MemberPortalLayout({
   children,
@@ -17,8 +18,10 @@ export default async function MemberPortalLayout({
   const email = member.email || session.user.email || "";
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
+    <div
+      className={`${portalSans.variable} min-h-svh bg-background font-sans text-foreground antialiased **:data-[slot=button]:active:scale-[0.97]`}
+    >
+      <header className="sticky top-0 z-30 border-b border-border/40 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link
             href="/me"
@@ -34,7 +37,7 @@ export default async function MemberPortalLayout({
               priority
             />
             <span className="hidden sm:flex sm:flex-col sm:leading-tight">
-              <span className="text-sm font-semibold tracking-tight text-midnight-green">
+              <span className="font-serif text-base font-semibold tracking-tight text-midnight-green">
                 PHANET Portal
               </span>
               <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -53,10 +56,10 @@ export default async function MemberPortalLayout({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 md:pb-12">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-32 pt-6 sm:px-6 md:pb-12">
         {children}
 
-        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-6 text-xs text-muted-foreground">
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-6 text-xs text-muted-foreground">
           <p className="flex items-center gap-2">
             <LifeBuoy className="h-3.5 w-3.5" />
             Need help? Reach us at{" "}

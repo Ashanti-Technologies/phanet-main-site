@@ -8,6 +8,8 @@ export function getPostHogClient() {
       host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
       flushAt: 1,
       flushInterval: 0,
+      // Calls become no-ops in development.
+      disabled: process.env.NODE_ENV === "development",
     });
   }
   return posthogClient;
