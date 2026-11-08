@@ -24,7 +24,7 @@ function emptyToNull(value?: string | null) {
 
 export async function getAdminEvents() {
   await requireAdmin();
-  return prisma.event.findMany({ orderBy: { date: "asc" } });
+  return prisma.event.findMany({ orderBy: { date: "desc" } });
 }
 
 export async function getAdminEventById(id: string) {

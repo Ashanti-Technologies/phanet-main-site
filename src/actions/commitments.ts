@@ -9,7 +9,6 @@ import {
   manualFinanceUpdateSchema,
   type CommitmentCreateInput,
   type CommitmentStatusUpdateInput,
-  type CommitmentFiltersInput,
   type ManualFinanceUpdateInput,
 } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
@@ -118,26 +117,33 @@ export async function createCommitment(data: CommitmentCreateInput) {
  */
 export async function getCommitmentsByProject(
   projectId: string,
-  filters?: Partial<CommitmentFiltersInput>
+  input: Record<string, unknown> = {}
 ) {
   await requireAdmin();
+  const filters = commitmentFiltersSchema.parse(input);
 
   const where: Prisma.CommitmentWhereInput = { projectId };
 
-  if (filters?.status) {
-    where.status = filters.status;
+  if (filters.status.length) {
+    where.status = { in: filters.status };
   }
 
-  if (filters?.search) {
+  if (filters.search) {
     where.OR = [
       { fullName: { contains: filters.search, mode: "insensitive" } },
       { email: { contains: filters.search, mode: "insensitive" } },
     ];
   }
 
-  const page = filters?.page || 1;
-  const limit = filters?.limit || 20;
+  const { page, limit } = filters;
   const skip = (page - 1) * limit;
+  const dir = filters.sort?.desc ? "desc" : "asc";
+  const orderBy: Prisma.CommitmentOrderByWithRelationInput =
+    filters.sort?.id === "name"
+      ? { fullName: dir }
+      : filters.sort?.id === "amount"
+        ? { amountCommitted: dir }
+        : { createdAt: filters.sort ? dir : "desc" };
 
   const [commitments, total] = await Promise.all([
     prisma.commitment.findMany({
@@ -147,7 +153,7 @@ export async function getCommitmentsByProject(
           select: { id: true, name: true, email: true, image: true },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy,
       skip,
       take: limit,
     }),

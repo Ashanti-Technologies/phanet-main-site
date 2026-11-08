@@ -13,7 +13,6 @@ import {
   type MemberUpdateInput,
 } from "@/lib/schemas/member.schema";
 
-type MemberListFilterInput = z.input<typeof memberListFilterSchema>;
 type MemberListFilter = z.output<typeof memberListFilterSchema>;
 import { logAudit } from "@/lib/audit";
 
@@ -31,8 +30,7 @@ export type MemberWithRelations = Prisma.MemberGetPayload<{
   include: typeof memberInclude;
 }>;
 
-function ageBucketCondition(bucket: MemberListFilter["ageBucket"]) {
-  if (!bucket) return undefined;
+function ageBucketCondition(bucket: MemberListFilter["age"][number]) {
   const now = new Date();
   const yearsAgo = (y: number) => new Date(now.getFullYear() - y, now.getMonth(), now.getDate());
   switch (bucket) {
@@ -49,32 +47,44 @@ function ageBucketCondition(bucket: MemberListFilter["ageBucket"]) {
   }
 }
 
-export async function listMembers(input: Partial<MemberListFilterInput> = {}) {
+export async function listMembers(input: Record<string, unknown> = {}) {
   await requirePermission("read", "Member");
   const filter = memberListFilterSchema.parse(input);
 
-  const where: Prisma.MemberWhereInput = {};
+  const and: Prisma.MemberWhereInput[] = [];
   if (filter.q) {
     const q = filter.q;
-    where.OR = [
-      { fullName: { contains: q, mode: "insensitive" } },
-      { preferredName: { contains: q, mode: "insensitive" } },
-      { email: { contains: q, mode: "insensitive" } },
-      { phone: { contains: q } },
-      { whatsapp: { contains: q } },
-    ];
+    and.push({
+      OR: [
+        { fullName: { contains: q, mode: "insensitive" } },
+        { preferredName: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+        { phone: { contains: q } },
+        { whatsapp: { contains: q } },
+      ],
+    });
   }
-  if (filter.status) where.status = filter.status;
-  if (filter.unitId) where.units = { some: { unitId: filter.unitId } };
-  if (filter.tagId) where.tags = { some: { tagId: filter.tagId } };
-  const dobRange = ageBucketCondition(filter.ageBucket);
-  if (dobRange) where.dob = dobRange;
+  if (filter.householdId) and.push({ householdId: filter.householdId });
+  if (filter.status.length) and.push({ status: { in: filter.status } });
+  if (filter.units.length)
+    and.push({ units: { some: { unitId: { in: filter.units } } } });
+  if (filter.tags.length)
+    and.push({ tags: { some: { tagId: { in: filter.tags } } } });
+  if (filter.age.length)
+    and.push({ OR: filter.age.map((b) => ({ dob: ageBucketCondition(b) })) });
+  const where: Prisma.MemberWhereInput = { AND: and };
+
+  const dir = filter.sort?.desc ? "desc" : "asc";
+  const orderBy: Prisma.MemberOrderByWithRelationInput =
+    filter.sort?.id === "joinDate"
+      ? { joinDate: { sort: dir, nulls: "last" } }
+      : { fullName: dir };
 
   const [total, items] = await prisma.$transaction([
     prisma.member.count({ where }),
     prisma.member.findMany({
       where,
-      orderBy: { fullName: "asc" },
+      orderBy,
       skip: (filter.page - 1) * filter.pageSize,
       take: filter.pageSize,
       include: memberInclude,

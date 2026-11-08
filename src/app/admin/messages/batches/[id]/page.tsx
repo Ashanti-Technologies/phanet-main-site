@@ -7,22 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/app/components/ui/table";
-
-const DELIVERY_TONE: Record<string, string> = {
-  QUEUED: "text-muted-foreground",
-  SENT: "text-emerald-700 border-emerald-500/40 dark:text-emerald-300",
-  DELIVERED: "text-emerald-700 border-emerald-500/40 dark:text-emerald-300",
-  FAILED: "text-rose-700 border-rose-500/40 dark:text-rose-300",
-  BOUNCED: "text-amber-700 border-amber-500/40 dark:text-amber-300",
-};
+import { MessageLogsTable } from "../../_components/message-tables";
 
 export default async function BatchDetailPage({
   params,
@@ -93,39 +78,7 @@ export default async function BatchDetailPage({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Provider ref</TableHead>
-                  <TableHead>Error</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batch.logs.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell className="text-sm">{l.recipient}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={DELIVERY_TONE[l.status] ?? ""}
-                      >
-                        {l.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground font-mono">
-                      {l.providerRef ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-xs text-rose-700 dark:text-rose-400 max-w-md truncate">
-                      {l.error ?? ""}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <MessageLogsTable logs={batch.logs} />
         </CardContent>
       </Card>
     </div>

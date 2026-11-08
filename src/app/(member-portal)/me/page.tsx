@@ -49,7 +49,12 @@ export default async function MemberPortalPage() {
     prisma.event.findFirst({
       where: { status: "PUBLISHED", date: { gte: today } },
       orderBy: { date: "asc" },
-      include: { rsvps: { where: { memberId: member.id } } },
+      include: {
+        rsvps: { where: { memberId: member.id } },
+        // registrant OR registered by someone else (e.g. a spouse)
+        registrations: { where: { registrantId: member.id }, select: { id: true } },
+        attendees: { where: { memberId: member.id }, select: { id: true } },
+      },
     }),
     prisma.prayerRequest.findFirst({
       where: {
@@ -196,12 +201,33 @@ export default async function MemberPortalPage() {
                     ) : null}
                   </div>
                 </div>
-                <DashboardEventRsvp
-                  eventId={nextEventRow.id}
-                  initialStatus={
-                    nextEventRow.rsvps[0]?.status ?? null
-                  }
-                />
+                {nextEventRow.registrationEnabled ? (
+                  nextEventRow.registrations.length ||
+                  nextEventRow.attendees.length ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Badge variant="outline">You&apos;re registered</Badge>
+                      {nextEventRow.registrations.length ? (
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/events/${nextEventRow.slug}/register`}>
+                            View booking
+                            <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <Button asChild size="sm">
+                      <Link href={`/events/${nextEventRow.slug}/register`}>
+                        Register
+                      </Link>
+                    </Button>
+                  )
+                ) : (
+                  <DashboardEventRsvp
+                    eventId={nextEventRow.id}
+                    initialStatus={nextEventRow.rsvps[0]?.status ?? null}
+                  />
+                )}
               </div>
             ) : (
               <EmptyState

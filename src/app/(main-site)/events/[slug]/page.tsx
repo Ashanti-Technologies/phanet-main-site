@@ -169,7 +169,14 @@ export default async function EventDetailPage({
                 </ul>
 
                 <div className="space-y-3">
-                  {event.registrationUrl && (
+                  {event.registrationUrl?.startsWith("/") ? (
+                    <Link
+                      href={event.registrationUrl}
+                      className="flex items-center justify-center gap-2 w-full bg-crayola hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-sm"
+                    >
+                      Register Now
+                    </Link>
+                  ) : event.registrationUrl ? (
                     <a
                       href={event.registrationUrl}
                       target="_blank"
@@ -179,7 +186,7 @@ export default async function EventDetailPage({
                       Register Now
                       <ExternalLink className="w-4 h-4" />
                     </a>
-                  )}
+                  ) : null}
                   <Link
                     href="/events"
                     className="flex items-center justify-center w-full border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-3 px-6 rounded-xl transition-colors text-sm"

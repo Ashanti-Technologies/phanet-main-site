@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/database";
 import { Prisma } from "../src/app/generated/prisma/client";
-import { getSeedEvents } from "@/lib/events";
 import { plainTextToHtml } from "@/lib/rich-text";
 
 async function main() {
@@ -58,44 +57,6 @@ async function main() {
     });
   }
   console.log(`✅ Created ${churchUnits.length} church unit options`);
-
-  console.log("Creating CMS events...");
-  const events = getSeedEvents();
-  for (const event of events) {
-    await prisma.event.upsert({
-      where: { slug: event.slug },
-      update: {
-        title: event.title,
-        category: event.category,
-        date: new Date(event.date),
-        endDate: event.endDate ? new Date(event.endDate) : null,
-        time: event.time,
-        location: event.location,
-        address: event.address ?? null,
-        description: event.description,
-        bodyHtml: plainTextToHtml(event.body),
-        isFeatured: !!event.isFeatured,
-        registrationUrl: event.registrationUrl ?? null,
-        status: "PUBLISHED",
-      },
-      create: {
-        slug: event.slug,
-        title: event.title,
-        category: event.category,
-        date: new Date(event.date),
-        endDate: event.endDate ? new Date(event.endDate) : null,
-        time: event.time,
-        location: event.location,
-        address: event.address ?? null,
-        description: event.description,
-        bodyHtml: plainTextToHtml(event.body),
-        isFeatured: !!event.isFeatured,
-        registrationUrl: event.registrationUrl ?? null,
-        status: "PUBLISHED",
-      },
-    });
-  }
-  console.log(`✅ Created ${events.length} CMS events`);
 
   console.log("Creating homepage CMS defaults...");
   const homepageDefaults = [

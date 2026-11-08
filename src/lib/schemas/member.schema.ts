@@ -73,22 +73,29 @@ export const memberUpdateSchema = z
 export type MemberCreateInput = z.input<typeof memberCreateSchema>;
 export type MemberUpdateInput = z.input<typeof memberUpdateSchema>;
 
+export const MEMBER_STATUSES = [
+  "VISITOR",
+  "PENDING_APPROVAL",
+  "REGULAR",
+  "MEMBER",
+  "INACTIVE",
+  "TRANSFERRED",
+  "DECEASED",
+] as const;
+export const AGE_BUCKETS = ["under18", "18-29", "30-49", "50-69", "70plus"] as const;
+
+// Multi-select filters; an invalid value in the URL just means "no filter".
 export const memberListFilterSchema = z.object({
   q: z.string().trim().optional(),
-  unitId: z.string().optional(),
-  tagId: z.string().optional(),
-  status: z
-    .enum([
-      "VISITOR",
-      "PENDING_APPROVAL",
-      "REGULAR",
-      "MEMBER",
-      "INACTIVE",
-      "TRANSFERRED",
-      "DECEASED",
-    ])
-    .optional(),
-  ageBucket: z.enum(["under18", "18-29", "30-49", "50-69", "70plus"]).optional(),
+  householdId: z.string().optional(),
+  units: z.array(z.string()).catch([]).default([]),
+  tags: z.array(z.string()).catch([]).default([]),
+  status: z.array(z.enum(MEMBER_STATUSES)).catch([]).default([]),
+  age: z.array(z.enum(AGE_BUCKETS)).catch([]).default([]),
+  sort: z
+    .object({ id: z.enum(["name", "joinDate"]), desc: z.boolean() })
+    .nullish()
+    .catch(null),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(200).default(25),
 });

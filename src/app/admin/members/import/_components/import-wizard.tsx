@@ -34,6 +34,39 @@ import {
   runMemberImport,
   type ImportRow,
 } from "@/actions/member-import";
+import { DataTable } from "@/app/components/data-table/data-table";
+import {
+  columnHelper,
+  facetFilterFn,
+} from "@/app/components/data-table/features";
+
+type DuplicateRow = { id: string; row: number; reason: string; row_data: ImportRow };
+const dup = columnHelper<DuplicateRow>();
+const duplicateColumns = dup.columns([
+  dup.accessor("row", {
+    header: "Row",
+    cell: ({ getValue }) => (
+      <span className="text-xs text-muted-foreground">{getValue()}</span>
+    ),
+  }),
+  dup.accessor((d) => d.row_data.fullName ?? "", {
+    id: "name",
+    header: "Name",
+    cell: ({ getValue }) => <span className="text-sm">{getValue()}</span>,
+  }),
+  dup.accessor((d) => d.row_data.email ?? d.row_data.phone ?? "", {
+    id: "contact",
+    header: "Email/Phone",
+    cell: ({ getValue }) => <span className="text-xs">{getValue() || "—"}</span>,
+  }),
+  dup.accessor("reason", {
+    header: "Reason",
+    filterFn: facetFilterFn,
+    cell: ({ getValue }) => (
+      <span className="text-xs text-amber-700 dark:text-amber-400">{getValue()}</span>
+    ),
+  }),
+]);
 
 const TARGET_FIELDS = [
   { value: "fullName", label: "Full name *" },
@@ -306,36 +339,20 @@ export function ImportWizard() {
           </div>
 
           {preview.sampleDuplicates.length > 0 && (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">Row</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email/Phone</TableHead>
-                    <TableHead>Reason</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {preview.sampleDuplicates.map((d) => (
-                    <TableRow key={d.row}>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {d.row}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {d.row_data.fullName}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {d.row_data.email ?? d.row_data.phone ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-xs text-amber-700 dark:text-amber-400">
-                        {d.reason}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              columns={duplicateColumns}
+              data={preview.sampleDuplicates.map((d) => ({ id: String(d.row), ...d }))}
+              searchPlaceholder="Search duplicates…"
+              filters={[
+                {
+                  id: "reason",
+                  title: "Reason",
+                  options: [...new Set(preview.sampleDuplicates.map((d) => d.reason))].map(
+                    (r) => ({ value: r, label: r }),
+                  ),
+                },
+              ]}
+            />
           )}
 
           <div className="flex justify-between">

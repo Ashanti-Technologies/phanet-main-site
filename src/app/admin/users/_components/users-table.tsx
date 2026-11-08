@@ -2,16 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search, ShieldCheck, UserRound } from "lucide-react";
+import { Loader2, ShieldCheck, UserRound } from "lucide-react";
 import { updateUserRoles } from "@/actions/admin-users";
-import { Input } from "@/app/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
 import {
   Avatar,
   AvatarFallback,
@@ -29,14 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/app/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/app/components/ui/table";
+import { DataTable } from "@/app/components/data-table/data-table";
+import { DataTableColumnHeader } from "@/app/components/data-table/data-table-column-header";
+import { columnHelper } from "@/app/components/data-table/features";
 import {
   ROLES,
   ROLE_DEFINITIONS,
@@ -71,6 +58,96 @@ function initials(name: string) {
   );
 }
 
+const NO_ROLES = "__none";
+
+const col = columnHelper<UserRow>();
+
+function userColumns(onEdit: (user: UserRow) => void) {
+  return col.columns([
+    // Name + email in one value so the search box matches either.
+    col.accessor((u) => `${u.name} ${u.email}`, {
+      id: "user",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="User" />,
+      enableHiding: false,
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
+              <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
+                {initials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="font-medium leading-tight truncate">{user.name}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user.email}
+              </p>
+            </div>
+          </div>
+        );
+      },
+    }),
+    col.accessor("roles", {
+      header: "Roles",
+      enableSorting: false,
+      // Facet counts per role (and "No roles"), not per role combination.
+      getUniqueValues: (u) => (u.roles.length ? u.roles : [NO_ROLES]),
+      filterFn: (row, id, selected: string[]) => {
+        const roles = row.original.roles;
+        return roles.length
+          ? roles.some((r) => selected.includes(r))
+          : selected.includes(NO_ROLES);
+      },
+      cell: ({ row }) => (
+        <div className="flex flex-wrap gap-1">
+          {row.original.roles.length === 0 ? (
+            <span className="text-xs text-muted-foreground">None</span>
+          ) : (
+            row.original.roles.map((r) => (
+              <Badge
+                key={r}
+                variant="outline"
+                className={
+                  ROLE_DEFINITIONS[r].isAdminRole
+                    ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
+                    : ""
+                }
+              >
+                {ROLE_DEFINITIONS[r].label}
+              </Badge>
+            ))
+          )}
+        </div>
+      ),
+    }),
+    col.accessor((u) => new Date(u.createdAt), {
+      id: "joined",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Joined" />,
+      cell: ({ getValue }) => (
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {getValue().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </span>
+      ),
+    }),
+    col.display({
+      id: "actions",
+      cell: ({ row }) => (
+        <div className="text-right">
+          <Button size="sm" variant="outline" onClick={() => onEdit(row.original)}>
+            Manage access
+          </Button>
+        </div>
+      ),
+    }),
+  ]);
+}
+
 export function UsersTable({
   users,
   units,
@@ -79,159 +156,42 @@ export function UsersTable({
   units: UnitRow[];
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "member" | "none">(
-    "all",
-  );
   const [editing, setEditing] = useState<UserRow | null>(null);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return users.filter((u) => {
-      if (roleFilter === "admin" && !hasAnyAdminRole(u.roles)) return false;
-      if (roleFilter === "member" && !u.roles.includes(ROLES.MEMBER)) return false;
-      if (roleFilter === "none" && u.roles.length > 0) return false;
-      if (!q) return true;
-      return (
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q)
-      );
-    });
-  }, [users, query, roleFilter]);
-
+  const columns = useMemo(() => userColumns(setEditing), []);
   const adminCount = users.filter((u) => hasAnyAdminRole(u.roles)).length;
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name or email…"
-              className="pl-8 h-9"
-              aria-label="Search users"
-            />
-          </div>
-          <Select
-            value={roleFilter}
-            onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}
-          >
-            <SelectTrigger className="h-9 w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All users</SelectItem>
-              <SelectItem value="admin">Has admin role</SelectItem>
-              <SelectItem value="member">Member only</SelectItem>
-              <SelectItem value="none">No roles</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm">
-          <Badge variant="outline" className="gap-1.5">
-            <UserRound className="h-3 w-3" />
-            {users.length} total
-          </Badge>
-          <Badge variant="outline" className="gap-1.5">
-            <ShieldCheck className="h-3 w-3" />
-            {adminCount} admin{adminCount === 1 ? "" : "s"}
-          </Badge>
-        </div>
+      <div className="flex items-center gap-2 text-sm">
+        <Badge variant="outline" className="gap-1.5">
+          <UserRound className="h-3 w-3" />
+          {users.length} total
+        </Badge>
+        <Badge variant="outline" className="gap-1.5">
+          <ShieldCheck className="h-3 w-3" />
+          {adminCount} admin{adminCount === 1 ? "" : "s"}
+        </Badge>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40%]">User</TableHead>
-              <TableHead>Roles</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-24 text-center text-sm text-muted-foreground"
-                >
-                  No users match your filters.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        {user.image ? (
-                          <AvatarImage src={user.image} alt={user.name} />
-                        ) : null}
-                        <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
-                          {initials(user.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <p className="font-medium leading-tight truncate">
-                          {user.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {user.roles.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">
-                          None
-                        </span>
-                      ) : (
-                        user.roles.map((r) => (
-                          <Badge
-                            key={r}
-                            variant="outline"
-                            className={
-                              ROLE_DEFINITIONS[r].isAdminRole
-                                ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
-                                : ""
-                            }
-                          >
-                            {ROLE_DEFINITIONS[r].label}
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground tabular-nums">
-                    {new Date(user.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditing(user)}
-                    >
-                      Manage access
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={users}
+        searchPlaceholder="Search by name or email…"
+        emptyMessage="No users yet."
+        filters={[
+          {
+            id: "roles",
+            title: "Role",
+            options: [
+              ...ALL_ROLE_KEYS.map((key) => ({
+                value: key,
+                label: ROLE_DEFINITIONS[key].label,
+              })),
+              { value: NO_ROLES, label: "No roles" },
+            ],
+          },
+        ]}
+      />
 
       {editing && (
         <EditAccessDialog

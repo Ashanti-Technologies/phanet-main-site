@@ -3,7 +3,6 @@ import { getCommitmentsByProject } from "@/actions/commitments";
 import { requireAdmin } from "@/lib/auth-guard";
 import { notFound } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
-import { Badge } from "@/app/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -11,30 +10,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/app/components/ui/table";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ExportButton } from "./_components/export-button";
-import { CommitmentFinanceForm } from "./_components/commitment-finance-form";
+import { CommitmentsTable } from "./_components/commitments-table";
+import {
+  parseTableQuery,
+  type TableSearchParams,
+} from "@/app/components/data-table/search-params";
+import { serializePrisma } from "@/lib/serializers/serializePrisma";
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<TableSearchParams>;
 }
 
-const statusColors = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  CONFIRMED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-red-100 text-red-800",
-};
-
-export default async function CommitmentsPage({ params }: Props) {
+export default async function CommitmentsPage({ params, searchParams }: Props) {
   await requireAdmin();
   const { id } = await params;
   const project = await getProjectById(id);
@@ -43,7 +34,14 @@ export default async function CommitmentsPage({ params }: Props) {
     notFound();
   }
 
-  const { commitments, pagination } = await getCommitmentsByProject(id);
+  const query = parseTableQuery(await searchParams, ["status"]);
+  const { commitments, pagination } = await getCommitmentsByProject(id, {
+    search: query.q,
+    status: query.filters.status,
+    sort: query.sort,
+    page: query.page,
+    limit: query.pageSize,
+  });
 
   return (
     <div className="space-y-6">
@@ -68,60 +66,10 @@ export default async function CommitmentsPage({ params }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {commitments.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              No commitments yet for this project
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Country</TableHead>
-                    <TableHead>Church Unit</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Finance</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {commitments.map((commitment) => (
-                    <TableRow key={commitment.id}>
-                      <TableCell className="font-medium">
-                        {commitment.fullName}
-                        {commitment.isAnonymous && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            (Anonymous)
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>{commitment.email}</TableCell>
-                      <TableCell>{commitment.country}</TableCell>
-                      <TableCell>{commitment.churchUnit || "-"}</TableCell>
-                      <TableCell className="text-right font-medium">
-                        GH₵{" "}
-                        {Number(commitment.amountCommitted).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusColors[commitment.status]}>
-                          {commitment.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <CommitmentFinanceForm commitment={commitment} />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(commitment.createdAt).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <CommitmentsTable
+            commitments={serializePrisma(commitments)}
+            total={pagination.total}
+          />
         </CardContent>
       </Card>
     </div>

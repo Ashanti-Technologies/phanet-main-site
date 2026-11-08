@@ -23,10 +23,17 @@ export const commitmentStatusUpdateSchema = z.object({
 
 export const commitmentFiltersSchema = z.object({
   projectId: z.string().cuid().optional(),
-  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED"]).optional(),
-  search: z.string().optional(),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  status: z
+    .array(z.enum(["PENDING", "CONFIRMED", "CANCELLED"]))
+    .catch([])
+    .default([]),
+  search: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().catch(1).default(1),
+  limit: z.coerce.number().int().positive().max(100).catch(25).default(25),
+  sort: z
+    .object({ id: z.enum(["name", "amount", "date"]), desc: z.boolean() })
+    .nullish()
+    .catch(null),
 });
 
 export type CommitmentCreateInput = z.infer<typeof commitmentCreateSchema>;

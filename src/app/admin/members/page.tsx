@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listMembers } from "@/actions/members";
+import { getHouseholdById } from "@/actions/households";
 import { getChurchUnits } from "@/actions/church-units";
 import { listTags } from "@/actions/tags";
 import { Button } from "@/app/components/ui/button";
@@ -9,38 +10,49 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Plus, Upload } from "lucide-react";
-import { MembersFilters } from "./_components/members-filters";
+import { Plus, Upload, X } from "lucide-react";
+import { Badge } from "@/app/components/ui/badge";
 import { MembersTable } from "./_components/members-table";
-import { MembersPagination } from "./_components/members-pagination";
-
-type SearchParams = Record<string, string | string[] | undefined>;
-
-function first(v: string | string[] | undefined) {
-  return Array.isArray(v) ? v[0] : v;
-}
+import {
+  parseTableQuery,
+  type TableSearchParams,
+} from "@/app/components/data-table/search-params";
 
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: Promise<TableSearchParams>;
 }) {
   const sp = await searchParams;
+  const householdId = typeof sp.householdId === "string" ? sp.householdId : "";
+  const query = parseTableQuery(sp, [
+    "status",
+    "units",
+    "tags",
+    "age",
+  ]);
   const filter = {
-    q: first(sp.q),
-    unitId: first(sp.unitId),
-    tagId: first(sp.tagId),
-    status: first(sp.status) as never,
-    ageBucket: first(sp.ageBucket) as never,
-    page: first(sp.page) ?? "1",
-    pageSize: first(sp.pageSize) ?? "25",
+    q: query.q,
+    householdId: householdId || undefined,
+    ...query.filters,
+    sort: query.sort,
+    page: query.page,
+    pageSize: query.pageSize,
   };
 
-  const [data, units, tags] = await Promise.all([
+  const [data, units, tags, household] = await Promise.all([
     listMembers(filter),
     getChurchUnits(true),
     listTags(),
+    householdId ? getHouseholdById(householdId) : null,
   ]);
+
+  // Same URL minus the household scope (set by the household page's link).
+  const withoutHousehold = new URLSearchParams(
+    Object.entries(sp).flatMap(([k, v]) =>
+      k === "householdId" || typeof v !== "string" ? [] : [[k, v]],
+    ),
+  ).toString();
 
   return (
     <div className="space-y-6">
@@ -69,14 +81,24 @@ export default async function MembersPage({
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base">Directory</CardTitle>
+          {householdId && (
+            <Badge variant="secondary" className="w-fit gap-1.5">
+              Household: {household?.name ?? "Unknown"}
+              <Link
+                href={`/admin/members${withoutHousehold ? `?${withoutHousehold}` : ""}`}
+                aria-label="Show all households"
+              >
+                <X className="h-3 w-3" />
+              </Link>
+            </Badge>
+          )}
         </CardHeader>
-        <CardContent className="space-y-4">
-          <MembersFilters units={units} tags={tags} />
-          <MembersTable items={data.items} />
-          <MembersPagination
-            page={data.page}
-            pageSize={data.pageSize}
+        <CardContent>
+          <MembersTable
+            items={data.items}
             total={data.total}
+            units={units}
+            tags={tags}
           />
         </CardContent>
       </Card>
