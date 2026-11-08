@@ -32,44 +32,30 @@ export default async function MemberLoginPage({
   return (
     <main className="min-h-svh grid lg:grid-cols-2 bg-background">
       {/* Left — ad / marketing column. Drop image, video, or pitch copy in here. */}
-      <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-foreground text-background p-10">
-        {/* Background gradient layer */}
-        <div className="absolute inset-0 bg-gradient-to-br from-foreground via-foreground to-amber-900/40" />
-        <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-mikado-yellow/20 blur-3xl" />
-        <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl" />
+      <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-black text-white p-10">
+        <Image
+          src="/images/landing/happy.webp"
+          alt=""
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover"
+        />
+        {/* Scrim: light at top, heavy at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
 
         <div className="relative z-10 flex items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-2 text-sm font-medium text-background/80 hover:text-background"
+            className="flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to phanerosisnetwork.com
           </Link>
         </div>
 
-        <div className="relative z-10 space-y-6 max-w-md">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/images/logo.svg"
-              alt="PHANET"
-              width={48}
-              height={48}
-              className="brightness-0 invert"
-            />
-            <span className="text-xl font-semibold tracking-tight">
-              Phanerosis Network
-            </span>
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight leading-tight">
-            Stay connected to your church family.
-          </h1>
-          <p className="text-base text-background/70 leading-relaxed">
-            Update your profile, RSVP to upcoming events, follow your giving
-            history, and keep in touch with your church units — all in one
-            place.
-          </p>
-          <div className="grid gap-3 pt-2">
+        <div className="relative z-10 mt-auto mb-8 space-y-6 max-w-md">
+          <div className="grid gap-3">
             <Feature
               title="Your prayer life"
               body="Submit prayer requests and follow up with our pastoral team."
@@ -85,7 +71,7 @@ export default async function MemberLoginPage({
           </div>
         </div>
 
-        <p className="relative z-10 text-xs text-background/50">
+        <p className="relative z-10 text-xs text-white/60">
           © {new Date().getFullYear()} Phanerosis Prayer Network International
         </p>
       </aside>
@@ -94,9 +80,13 @@ export default async function MemberLoginPage({
       <section className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center lg:text-left">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-md bg-mikado-yellow text-lg font-bold text-black lg:mx-0">
-              PN
-            </div>
+            <Image
+              src="/images/logo.svg"
+              alt="PHANET"
+              width={48}
+              height={48}
+              className="mx-auto mb-4 lg:mx-0"
+            />
             <h2 className="text-2xl font-semibold tracking-tight">
               Welcome back
             </h2>
@@ -133,9 +123,9 @@ export default async function MemberLoginPage({
 
 function Feature({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-background/10 bg-background/5 backdrop-blur-sm p-3">
+    <div className="rounded-lg border border-white/15 bg-white/10 backdrop-blur-md p-3">
       <p className="text-sm font-semibold">{title}</p>
-      <p className="text-xs text-background/60 mt-0.5">{body}</p>
+      <p className="text-xs text-white/75 mt-0.5">{body}</p>
     </div>
   );
 }

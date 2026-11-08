@@ -7,6 +7,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import type { YoutubeVideo } from "@/lib/youtube";
 import { cn } from "@/lib/utils";
+import DarkDotBackground from "@/app/components/layout/DarkDotBackground";
 
 type Props = {
   featuredVideo: YoutubeVideo;
@@ -117,11 +118,7 @@ export default function LatestMessageClient({
 
   return (
     <section className="relative overflow-hidden bg-gray-950 py-20">
-      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 via-gray-900/50 to-gray-950" />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[url('/images/dot-texture.svg')] bg-[length:192px_192px] bg-repeat opacity-40"
-      />
+      <DarkDotBackground />
 
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header — collapsed */}

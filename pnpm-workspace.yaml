@@ -1,6 +1,9 @@
-onlyBuiltDependencies:
-  - '@prisma/engines'
-  - '@vercel/speed-insights'
-  - esbuild
-  - prisma
-  - sharp
+allowBuilds:
+  '@prisma/engines': true
+  '@vercel/speed-insights': true
+  core-js: true
+  esbuild: true
+  msw: true
+  prisma: true
+  protobufjs: true
+  sharp: true
