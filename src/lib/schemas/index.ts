@@ -3,6 +3,7 @@ export * from "./commitment.schema";
 export * from "./church-unit.schema";
 export * from "./proof-upload.schema";
 export * from "./cms.schema";
+export * from "./event-registration.schema";
 export * from "./admin.schema";
 export * from "./member.schema";
 export * from "./message.schema";

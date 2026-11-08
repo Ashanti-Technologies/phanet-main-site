@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  eventRegistrationFieldsSchema,
+  eventTypeSchema,
+} from "./event-registration.schema";
 
 export const publishStatusSchema = z.enum(["DRAFT", "PUBLISHED"]);
 
@@ -40,6 +44,10 @@ export const eventUpsertSchema = richTextSchema.extend({
   imagePublicId: z.string().trim().optional(),
   imageAlt: z.string().trim().optional(),
   status: publishStatusSchema.default("DRAFT"),
+  type: eventTypeSchema.default("MEETING"),
+  registrationEnabled: z.boolean().default(false),
+  registrationClosesAt: z.coerce.date().optional().nullable(),
+  registrationFields: eventRegistrationFieldsSchema.default([]),
 });
 
 export const contentPageUpsertSchema = richTextSchema.extend({

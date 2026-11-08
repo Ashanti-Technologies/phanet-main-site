@@ -55,6 +55,10 @@ export async function saveEvent(input: EventUpsertInput) {
     imagePublicId: emptyToNull(data.imagePublicId),
     imageAlt: emptyToNull(data.imageAlt),
     status: data.status,
+    type: data.type,
+    registrationEnabled: data.registrationEnabled,
+    registrationClosesAt: data.registrationClosesAt ?? null,
+    registrationFields: data.registrationFields,
   };
 
   const event = data.id

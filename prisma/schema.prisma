@@ -188,9 +188,9 @@ model Region {
 }
 
 model Member {
-  id                 String         @id @default(cuid())
-  userId             String?        @unique
-  user               User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id                 String               @id @default(cuid())
+  userId             String?              @unique
+  user               User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   fullName           String
   preferredName      String?
   dob                DateTime?
@@ -202,25 +202,25 @@ model Member {
   addressLine        String?
   city               String?
   countryId          String?
-  countryRef         Country?       @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  countryRef         Country?             @relation(fields: [countryId], references: [id], onDelete: SetNull)
   regionId           String?
-  regionRef          Region?        @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  regionRef          Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
   region             String?
-  country            String?        @default("Ghana")
+  country            String?              @default("Ghana")
   occupation         String?
-  bio                String?        @db.Text
+  bio                String?              @db.Text
   photoUrl           String?
   photoPublicId      String?
   salvationDate      DateTime?
   baptismDate        DateTime?
   weddingAnniversary DateTime?
   joinDate           DateTime?
-  status             MemberStatus   @default(VISITOR)
-  notes              String?        @db.Text
-  notifyByEmail      Boolean        @default(true)
-  notifyBySms        Boolean        @default(true)
+  status             MemberStatus         @default(VISITOR)
+  notes              String?              @db.Text
+  notifyByEmail      Boolean              @default(true)
+  notifyBySms        Boolean              @default(true)
   householdId        String?
-  household          Household?     @relation(fields: [householdId], references: [id], onDelete: SetNull)
+  household          Household?           @relation(fields: [householdId], references: [id], onDelete: SetNull)
   units              MemberUnit[]
   tags               MemberTag[]
   attendance         Attendance[]
@@ -229,9 +229,11 @@ model Member {
   notesList          MemberNote[]
   invites            MemberInvite[]
   eventRsvps         EventRsvp[]
+  eventRegistrations EventRegistration[]
+  eventAttendances   EventAttendee[]
   phanetProfile      MemberPhanetProfile?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @default(now()) @updatedAt
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @default(now()) @updatedAt
 
   @@index([email])
   @@index([phone])
@@ -244,33 +246,33 @@ model Member {
 }
 
 model MemberPhanetProfile {
-  id                         String                  @id @default(cuid())
-  memberId                   String                  @unique
-  member                     Member                  @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  formSubmittedAt            DateTime?
-  emergencyContactName       String?
-  emergencyContactPhone      String?
-  lifeStage                  PhanetLifeStage?
-  professionalTrack          PhanetProfessionalTrack?
-  organizationName           String?
-  regionalChapter            PhanetRegionalChapter?
-  tertiaryInstitution        String?
-  tertiaryProgramme          String?
-  tertiaryYear               String?
-  tertiaryResidence          String?
-  tertiaryChapterRole        PhanetChapterRole?
-  tertiaryExecutiveRole      String?
-  campusMinistryInvolvement  String?                 @db.Text
-  shsName                    String?
-  shsYear                    String?
-  shsProgramme               String?
-  shsChapterRole             PhanetChapterRole?
-  shsExecutiveRole           String?
-  departmentText             String?                 @db.Text
-  nationalRole               String?
-  overseasProgramme          String?
-  createdAt                  DateTime                @default(now())
-  updatedAt                  DateTime                @updatedAt
+  id                        String                   @id @default(cuid())
+  memberId                  String                   @unique
+  member                    Member                   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  formSubmittedAt           DateTime?
+  emergencyContactName      String?
+  emergencyContactPhone     String?
+  lifeStage                 PhanetLifeStage?
+  professionalTrack         PhanetProfessionalTrack?
+  organizationName          String?
+  regionalChapter           PhanetRegionalChapter?
+  tertiaryInstitution       String?
+  tertiaryProgramme         String?
+  tertiaryYear              String?
+  tertiaryResidence         String?
+  tertiaryChapterRole       PhanetChapterRole?
+  tertiaryExecutiveRole     String?
+  campusMinistryInvolvement String?                  @db.Text
+  shsName                   String?
+  shsYear                   String?
+  shsProgramme              String?
+  shsChapterRole            PhanetChapterRole?
+  shsExecutiveRole          String?
+  departmentText            String?                  @db.Text
+  nationalRole              String?
+  overseasProgramme         String?
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
 
   @@index([lifeStage])
   @@index([professionalTrack])
@@ -779,27 +781,35 @@ model PaymentIntent {
 // ============================================
 
 model Event {
-  id              String        @id @default(cuid())
-  slug            String        @unique
-  title           String
-  category        String
-  date            DateTime
-  endDate         DateTime?
-  time            String
-  location        String
-  address         String?
-  description     String        @db.Text
-  bodyJson        Json?
-  bodyHtml        String        @db.Text
-  isFeatured      Boolean       @default(false)
-  registrationUrl String?
-  imageUrl        String?
-  imagePublicId   String?
-  imageAlt        String?
-  status          PublishStatus @default(DRAFT)
-  rsvps           EventRsvp[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                   String              @id @default(cuid())
+  slug                 String              @unique
+  title                String
+  category             String
+  date                 DateTime
+  endDate              DateTime?
+  time                 String
+  location             String
+  address              String?
+  description          String              @db.Text
+  bodyJson             Json?
+  bodyHtml             String              @db.Text
+  isFeatured           Boolean             @default(false)
+  registrationUrl      String?
+  imageUrl             String?
+  imagePublicId        String?
+  imageAlt             String?
+  status               PublishStatus       @default(DRAFT)
+  type                 EventType           @default(MEETING)
+  registrationEnabled  Boolean             @default(false)
+  registrationClosesAt DateTime?
+  /// Admin-defined extra questions; shape: eventRegistrationFieldsSchema
+  registrationFields   Json?
+  rsvps                EventRsvp[]
+  registrations        EventRegistration[]
+  attendees            EventAttendee[]
+  roomTypes            EventRoomType[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   @@index([status, date])
   @@index([category])
@@ -820,6 +830,123 @@ model EventRsvp {
   @@index([eventId, status])
   @@index([memberId, status])
   @@map("event_rsvp")
+}
+
+// ============================================
+// EVENT REGISTRATION (camps & meetings)
+// ============================================
+
+enum EventType {
+  MEETING
+  CAMP
+}
+
+enum EventRegistrationStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum AttendeeRelationship {
+  SELF
+  SPOUSE
+  CHILD
+  GUEST
+}
+
+enum AgeGroup {
+  ADULT
+  TEEN
+  CHILD
+  INFANT
+}
+
+enum TravelMode {
+  PRIVATE_CAR
+  PUBLIC_TRANSPORT
+  ORGANISED_TRANSPORT
+  FLIGHT
+  OTHER
+}
+
+/// One booking, filled in by `registrant` for themselves and/or others.
+model EventRegistration {
+  id             String                  @id @default(cuid())
+  eventId        String
+  event          Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrantId   String
+  registrant     Member                  @relation(fields: [registrantId], references: [id], onDelete: Cascade)
+  status         EventRegistrationStatus @default(CONFIRMED)
+  arrivalDate    DateTime                @db.Date
+  arrivalTime    String?
+  travelMode     TravelMode?
+  origin         String?
+  notes          String?                 @db.Text
+  /// Agreed to be contacted after the event (follow-up filter).
+  contactConsent Boolean                 @default(false)
+  /// Answers to booking-scoped custom questions, keyed by field id.
+  answers        Json?
+  attendees      EventAttendee[]
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@unique([eventId, registrantId])
+  @@index([eventId, status])
+  @@map("event_registration")
+}
+
+/// One person on a booking. Every attendee is a Member row (VISITOR if new).
+model EventAttendee {
+  id                String               @id @default(cuid())
+  registrationId    String
+  registration      EventRegistration    @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  eventId           String
+  event             Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberId          String
+  member            Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  relationship      AttendeeRelationship
+  ageGroup          AgeGroup?
+  dietaryPreference String?
+  allergies         String?              @db.Text
+  /// Answers to person-scoped custom questions, keyed by field id.
+  answers           Json?
+  roomId            String?
+  room              EventRoom?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  checkedInAt       DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@unique([eventId, memberId])
+  @@index([registrationId])
+  @@index([roomId])
+  @@map("event_attendee")
+}
+
+model EventRoomType {
+  id          String      @id @default(cuid())
+  eventId     String
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  rooms       EventRoom[]
+  createdAt   DateTime    @default(now())
+
+  @@unique([eventId, name])
+  @@map("event_room_type")
+}
+
+model EventRoom {
+  id         String          @id @default(cuid())
+  roomTypeId String
+  roomType   EventRoomType   @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  name       String
+  beds       Int
+  /// Restrict to one gender; null = mixed / family room.
+  gender     Gender?
+  attendees  EventAttendee[]
+  createdAt  DateTime        @default(now())
+
+  @@unique([roomTypeId, name])
+  @@map("event_room")
 }
 
 model ContentPage {

@@ -20,6 +20,11 @@ import { Switch } from "@/app/components/ui/switch";
 import { RichTextEditor } from "@/app/admin/_components/rich-text-editor";
 import { CloudinaryImageField } from "@/app/admin/_components/cloudinary-image-field";
 import { DeleteButton } from "@/app/admin/_components/delete-button";
+import {
+  parseRegistrationFields,
+  type RegistrationField,
+} from "@/lib/schemas/event-registration.schema";
+import { RegistrationQuestionsEditor } from "./registration-questions-editor";
 
 type EventFormProps = {
   event?: {
@@ -41,12 +46,25 @@ type EventFormProps = {
     imagePublicId: string | null;
     imageAlt: string | null;
     status: "DRAFT" | "PUBLISHED";
+    type: "MEETING" | "CAMP";
+    registrationEnabled: boolean;
+    registrationClosesAt: Date | string | null;
+    registrationFields: unknown;
   } | null;
 };
 
 function toDateInput(value?: Date | string | null) {
   if (!value) return "";
   return new Date(value).toISOString().slice(0, 10);
+}
+
+// datetime-local wants local wall-clock time, not UTC.
+function toDateTimeInput(value?: Date | string | null) {
+  if (!value) return "";
+  const d = new Date(value);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
 }
 
 function slugify(value: string) {
@@ -68,6 +86,15 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
     initialEvent?.status ?? "DRAFT"
   );
   const [isFeatured, setIsFeatured] = useState(!!initialEvent?.isFeatured);
+  const [type, setType] = useState<"MEETING" | "CAMP">(
+    initialEvent?.type ?? "MEETING"
+  );
+  const [registrationEnabled, setRegistrationEnabled] = useState(
+    !!initialEvent?.registrationEnabled
+  );
+  const [registrationFields, setRegistrationFields] = useState<
+    RegistrationField[]
+  >(() => parseRegistrationFields(initialEvent?.registrationFields));
   const [body, setBody] = useState({
     html: initialEvent?.bodyHtml ?? "<p></p>",
     json: initialEvent?.bodyJson,
@@ -110,6 +137,12 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
         imagePublicId: image.publicId,
         imageAlt: image.alt,
         status,
+        type,
+        registrationEnabled,
+        registrationClosesAt: formData.get("registrationClosesAt")
+          ? new Date(String(formData.get("registrationClosesAt"))).toISOString()
+          : null,
+        registrationFields: registrationFields.filter((f) => f.label.trim()),
       });
 
       router.push(`/admin/content/events/${result.data.id}`);
@@ -183,6 +216,21 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
+          <Label>Event type</Label>
+          <Select
+            value={type}
+            onValueChange={(value) => setType(value as "MEETING" | "CAMP")}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MEETING">Meeting</SelectItem>
+              <SelectItem value="CAMP">Camp (with accommodation)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
           <Label>Category</Label>
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger>
@@ -195,15 +243,6 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
               <SelectItem value="diaspora">Diaspora</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Registration URL</Label>
-          <Input
-            name="registrationUrl"
-            type="url"
-            defaultValue={initialEvent?.registrationUrl ?? ""}
-            placeholder="https://forms.google.com"
-          />
         </div>
       </div>
 
@@ -239,6 +278,57 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
         ownerType="event"
         ownerId={initialEvent?.id}
       />
+
+      <section className="space-y-4 rounded-md border p-4">
+        <div className="flex items-center gap-3">
+          <Switch
+            id="registrationEnabled"
+            checked={registrationEnabled}
+            onCheckedChange={setRegistrationEnabled}
+          />
+          <Label htmlFor="registrationEnabled">
+            Members register on this website
+          </Label>
+        </div>
+
+        {registrationEnabled ? (
+          <>
+            <div className="space-y-2 md:max-w-xs">
+              <Label htmlFor="registrationClosesAt">Registration closes</Label>
+              <Input
+                id="registrationClosesAt"
+                name="registrationClosesAt"
+                type="datetime-local"
+                defaultValue={toDateTimeInput(initialEvent?.registrationClosesAt)}
+                suppressHydrationWarning
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to keep registration open until the event starts.
+              </p>
+            </div>
+            <RegistrationQuestionsEditor
+              value={registrationFields}
+              onChange={setRegistrationFields}
+            />
+            {type === "CAMP" && (
+              <p className="text-sm text-muted-foreground">
+                Rooms and room types are set up on the event&apos;s Rooms page
+                after saving.
+              </p>
+            )}
+          </>
+        ) : (
+          <div className="space-y-2">
+            <Label>External registration URL</Label>
+            <Input
+              name="registrationUrl"
+              type="url"
+              defaultValue={initialEvent?.registrationUrl ?? ""}
+              placeholder="https://forms.google.com"
+            />
+          </div>
+        )}
+      </section>
 
       <div className="flex items-center gap-3 rounded-md border p-4">
         <Switch checked={isFeatured} onCheckedChange={setIsFeatured} id="featured" />
