@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { cache } from "react";
 import { betterAuth } from "better-auth";
 import {
   admin,
@@ -121,10 +122,11 @@ export const auth = betterAuth({
   },
 });
 
-export const getServerAuthSession = async () => {
+// cache(): dedupe across layout + page + guards within one request.
+export const getServerAuthSession = cache(async () => {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   return session;
-};
+});

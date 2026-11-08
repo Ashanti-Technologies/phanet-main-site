@@ -112,6 +112,7 @@ export function ProjectImages({ project }: ProjectImagesProps) {
           {CLOUDINARY_UPLOAD_PRESET ? (
             <CldUploadWidget
               uploadPreset={CLOUDINARY_UPLOAD_PRESET}
+              signatureEndpoint="/api/sign-cloudinary-params"
               onSuccess={(result) =>
                 handleUploadSuccess(
                   result as { info: { secure_url: string; public_id: string } },

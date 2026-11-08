@@ -13,9 +13,10 @@ import {
 import { cn } from "@/lib/utils";
 
 function parseISODate(value: string | null): Date | undefined {
-  if (!value) return undefined;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? undefined : d;
+  // Parse YYYY-MM-DD as a local date; new Date("YYYY-MM-DD") is UTC and
+  // shifts a day back in negative-offset timezones.
+  const m = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : undefined;
 }
 
 function toISODate(date: Date | undefined): string | null {
@@ -43,7 +44,8 @@ export function DateField({
   const selected = parseISODate(value);
   const captionToYear = toYear ?? new Date().getFullYear();
   const display = selected
-    ? selected.toLocaleDateString(undefined, {
+    ? // Fixed locale so server and browser render the same text (hydration).
+      selected.toLocaleDateString("en-GB", {
         day: "numeric",
         month: "long",
         year: "numeric",

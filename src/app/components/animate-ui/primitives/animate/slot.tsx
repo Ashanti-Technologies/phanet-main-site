@@ -58,11 +58,21 @@ function mergeProps<T extends HTMLElement>(
   return merged;
 }
 
+// Children passed from a Server Component can arrive as a lazy reference
+// (no `.type` yet). Unwrap it the same way Radix's Slot does.
+const REACT_LAZY_TYPE = Symbol.for('react.lazy');
+
 function Slot<T extends HTMLElement = HTMLElement>({
-  children,
+  children: rawChildren,
   ref,
   ...props
 }: SlotProps<T>) {
+  const children =
+    rawChildren?.$$typeof === REACT_LAZY_TYPE &&
+    typeof rawChildren._payload?.then === 'function'
+      ? React.use(rawChildren._payload)
+      : rawChildren;
+
   const isAlreadyMotion =
     typeof children.type === 'object' &&
     children.type !== null &&

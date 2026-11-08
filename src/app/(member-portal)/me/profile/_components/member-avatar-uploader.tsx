@@ -77,6 +77,7 @@ export function MemberAvatarUploader({
         {CLOUDINARY_UPLOAD_PRESET ? (
           <CldUploadWidget
             uploadPreset={CLOUDINARY_UPLOAD_PRESET}
+            signatureEndpoint="/api/sign-cloudinary-params"
             options={{ sources: ["local", "camera"], maxFiles: 1 }}
             onSuccess={(result) =>
               handleUpload(

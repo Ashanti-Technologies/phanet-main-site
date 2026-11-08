@@ -81,6 +81,7 @@ export function ProjectProofUploads({
           ) : CLOUDINARY_UPLOAD_PRESET ? (
             <CldUploadWidget
               uploadPreset={CLOUDINARY_UPLOAD_PRESET}
+              signatureEndpoint="/api/sign-cloudinary-params"
               onSuccess={(result) => {
                 const info = (result as {
                   info: { secure_url: string; public_id: string };

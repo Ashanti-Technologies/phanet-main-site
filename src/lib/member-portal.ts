@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import { requirePermission } from "@/lib/auth-guard";
@@ -13,7 +14,7 @@ const memberPortalInclude = {
   phanetProfile: true,
 } satisfies Prisma.MemberInclude;
 
-export async function getCurrentMemberForPortal() {
+export const getCurrentMemberForPortal = cache(async () => {
   const session = await requirePermission("access", "MemberPortal");
 
   const linkedMember = await prisma.member.findUnique({
@@ -50,7 +51,7 @@ export async function getCurrentMemberForPortal() {
   });
 
   return { session, member: linkedByEmail };
-}
+});
 
 export async function getCurrentMemberOrRedirect() {
   const { session, member } = await getCurrentMemberForPortal();
