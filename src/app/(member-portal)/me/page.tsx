@@ -101,12 +101,15 @@ export default async function MemberPortalPage() {
     (member.preferredName || member.fullName || "").split(" ")[0] || "Friend";
   const greeting = timeOfDayGreeting();
   const needsConfirmation = !member.phanetProfile?.formSubmittedAt;
+  const showCompleteness = needsConfirmation || completeness.percent < 100;
 
   return (
     <div className="space-y-6">
       {/* Hero */}
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-midnight-green via-midnight-green to-[#0a4d62] text-white shadow-(--shadow-float) motion-safe:rise-in">
-        <div className="grid gap-6 p-6 sm:p-8 md:grid-cols-[1.4fr_1fr]">
+        <div
+          className={`grid gap-6 p-6 sm:p-8 ${showCompleteness ? "md:grid-cols-[1.4fr_1fr]" : ""}`}
+        >
           <div className="space-y-3">
             <p className="text-sm font-medium text-mikado-yellow">
               {greeting}
@@ -121,6 +124,7 @@ export default async function MemberPortalPage() {
             </p>
           </div>
 
+          {showCompleteness ? (
           <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10 backdrop-blur">
             <div className="mb-2 flex items-center justify-between text-xs">
               <span className="font-medium uppercase tracking-wider text-mikado-yellow">
@@ -145,14 +149,15 @@ export default async function MemberPortalPage() {
               size="lg"
               className="mt-4 w-full rounded-xl [--liquid-button-color:var(--color-white)] hover:text-midnight-green"
             >
-              <Link href="/me/profile">
+              <Link href="/me/profile/edit">
                 {needsConfirmation
                   ? "Review my details"
-                  : "Update my profile"}
+                  : "Complete my profile"}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </LiquidButton>
           </div>
+          ) : null}
         </div>
       </section>
 

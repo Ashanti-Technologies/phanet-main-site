@@ -12,6 +12,7 @@ import {
 } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
 import { updateMyPhoto } from "@/actions/member-portal";
+import { PROFILE_PICS_FOLDER } from "@/constants";
 
 const CldUploadWidget = dynamic<CldUploadWidgetProps>(
   () => import("next-cloudinary").then((mod) => mod.CldUploadWidget),
@@ -78,7 +79,11 @@ export function MemberAvatarUploader({
           <CldUploadWidget
             uploadPreset={CLOUDINARY_UPLOAD_PRESET}
             signatureEndpoint="/api/sign-cloudinary-params"
-            options={{ sources: ["local", "camera"], maxFiles: 1 }}
+            options={{
+              sources: ["local", "camera"],
+              maxFiles: 1,
+              folder: PROFILE_PICS_FOLDER,
+            }}
             onSuccess={(result) =>
               handleUpload(
                 result as { info: { secure_url: string; public_id: string } },

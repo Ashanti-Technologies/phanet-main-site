@@ -18,6 +18,7 @@ import {
 } from "@/app/components/ui/select";
 import { CloudinaryImageField } from "@/app/admin/_components/cloudinary-image-field";
 import { createMember, updateMember } from "@/actions/members";
+import { PROFILE_PICS_FOLDER } from "@/constants";
 
 const NO_HOUSEHOLD = "__none__";
 
@@ -167,6 +168,7 @@ export function MemberForm({
           }}
           ownerType="member"
           ownerId={values.id}
+          folder={PROFILE_PICS_FOLDER}
         />
       </Section>
 

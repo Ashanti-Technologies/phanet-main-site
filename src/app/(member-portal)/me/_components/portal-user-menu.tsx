@@ -84,7 +84,7 @@ export function PortalUserMenu({
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="gap-2">
-          <Link href="/me/profile?tab=notifications">
+          <Link href="/me/notifications">
             <Bell className="h-4 w-4" />
             Notifications
           </Link>

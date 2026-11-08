@@ -28,6 +28,7 @@ type CloudinaryImageFieldProps = {
   onChange: (value: ImageValue) => void;
   ownerType?: string;
   ownerId?: string;
+  folder?: string;
 };
 
 export function CloudinaryImageField({
@@ -35,6 +36,7 @@ export function CloudinaryImageField({
   onChange,
   ownerType,
   ownerId,
+  folder,
 }: CloudinaryImageFieldProps) {
   async function handleUpload(result: {
     info: { secure_url: string; public_id: string };
@@ -88,6 +90,7 @@ export function CloudinaryImageField({
             <CldUploadWidget
               uploadPreset={CLOUDINARY_UPLOAD_PRESET}
               signatureEndpoint="/api/sign-cloudinary-params"
+              options={folder ? { folder } : undefined}
               onSuccess={(result) =>
                 handleUpload(
                   result as { info: { secure_url: string; public_id: string } },

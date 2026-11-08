@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import {
   confirmMyProfile,
@@ -25,22 +27,18 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { DateField } from "../../_components/date-field";
-
-type Gender = "MALE" | "FEMALE";
-type MaritalStatus = "SINGLE" | "MARRIED" | "WIDOWED" | "DIVORCED";
-type LifeStage = "WORKING_PROFESSIONAL" | "TERTIARY_STUDENT" | "SHS_STUDENT";
-type RegionalChapter =
-  | "GREATER_ACCRA"
-  | "ASHANTI"
-  | "DIASPORA"
-  | "NORTHERN"
-  | "CENTRAL_NORTH"
-  | "CENTRAL_SOUTH"
-  | "NORTH_EAST"
-  | "BONO"
-  | "EASTERN"
-  | "WESTERN";
-type ProfessionalTrack = "EMPLOYED" | "SELF_EMPLOYED" | "STUDYING_OVERSEAS";
+import {
+  GENDER_LABELS,
+  LIFE_STAGE_LABELS,
+  MARITAL_LABELS,
+  REGIONAL_CHAPTER_LABELS,
+  TRACK_LABELS,
+  type Gender,
+  type LifeStage,
+  type MaritalStatus,
+  type ProfessionalTrack,
+  type RegionalChapter,
+} from "./profile-labels";
 
 export type MemberProfile = {
   preferredName: string | null;
@@ -68,38 +66,6 @@ type CountryOption = { id: string; name: string; code: string };
 type RegionOption = { id: string; name: string; countryId: string };
 
 const NONE = "__none__";
-const GENDER_LABELS: Record<Gender, string> = {
-  MALE: "Male",
-  FEMALE: "Female",
-};
-const MARITAL_LABELS: Record<MaritalStatus, string> = {
-  SINGLE: "Single",
-  MARRIED: "Married",
-  WIDOWED: "Widowed",
-  DIVORCED: "Divorced",
-};
-const LIFE_STAGE_LABELS: Record<LifeStage, string> = {
-  WORKING_PROFESSIONAL: "Working professional",
-  TERTIARY_STUDENT: "Tertiary student",
-  SHS_STUDENT: "SHS student",
-};
-const REGIONAL_CHAPTER_LABELS: Record<RegionalChapter, string> = {
-  GREATER_ACCRA: "Greater Accra",
-  ASHANTI: "Ashanti",
-  DIASPORA: "Diaspora",
-  NORTHERN: "Northern",
-  CENTRAL_NORTH: "Central North",
-  CENTRAL_SOUTH: "Central South",
-  NORTH_EAST: "North East",
-  BONO: "Bono",
-  EASTERN: "Eastern",
-  WESTERN: "Western",
-};
-const TRACK_LABELS: Record<ProfessionalTrack, string> = {
-  EMPLOYED: "Employed",
-  SELF_EMPLOYED: "Self-employed",
-  STUDYING_OVERSEAS: "Studying overseas",
-};
 
 export function ProfileForm({
   member,
@@ -112,6 +78,7 @@ export function ProfileForm({
   regions: RegionOption[];
   needsConfirmation: boolean;
 }) {
+  const router = useRouter();
   const [state, setState] = useState(member);
   const [confirmed, setConfirmed] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -160,7 +127,7 @@ export function ProfileForm({
     startTransition(async () => {
       try {
         await updateMyProfile(buildPayload());
-        setMessage({ type: "success", text: "Profile saved." });
+        router.push("/me/profile");
       } catch (err) {
         setMessage({
           type: "error",
@@ -182,10 +149,7 @@ export function ProfileForm({
     startTransition(async () => {
       try {
         await confirmMyProfile(buildPayload());
-        setMessage({
-          type: "success",
-          text: "Thank you! Your details are confirmed.",
-        });
+        router.push("/me/profile");
       } catch (err) {
         setMessage({
           type: "error",
@@ -426,7 +390,10 @@ export function ProfileForm({
           </CardContent>
         </Card>
       ) : (
-        <div className="sticky bottom-20 z-20 flex justify-end rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur md:bottom-4">
+        <div className="sticky bottom-20 z-20 flex justify-end gap-2 rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur md:bottom-4">
+          <Button asChild variant="ghost" disabled={isPending}>
+            <Link href="/me/profile">Cancel</Link>
+          </Button>
           <Button type="button" onClick={handleSave} disabled={isPending}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save profile
