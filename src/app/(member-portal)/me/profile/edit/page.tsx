@@ -51,6 +51,7 @@ export default async function EditMemberProfilePage() {
         member={{
           preferredName: member.preferredName,
           occupation: member.occupation,
+          bio: member.bio,
           dob: member.dob ? member.dob.toISOString().slice(0, 10) : null,
           gender: member.gender,
           maritalStatus: member.maritalStatus,

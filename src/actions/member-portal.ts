@@ -52,6 +52,7 @@ async function applyProfileUpdate(
       data: {
         preferredName: data.preferredName,
         occupation: data.occupation,
+        bio: data.bio,
         dob: data.dob,
         gender: data.gender ?? null,
         maritalStatus: data.maritalStatus ?? null,

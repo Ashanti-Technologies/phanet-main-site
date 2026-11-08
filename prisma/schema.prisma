@@ -208,6 +208,7 @@ model Member {
   region             String?
   country            String?        @default("Ghana")
   occupation         String?
+  bio                String?        @db.Text
   photoUrl           String?
   photoPublicId      String?
   salvationDate      DateTime?

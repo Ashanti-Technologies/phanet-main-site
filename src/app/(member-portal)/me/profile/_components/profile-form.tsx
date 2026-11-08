@@ -19,6 +19,7 @@ import {
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -43,6 +44,7 @@ import {
 export type MemberProfile = {
   preferredName: string | null;
   occupation: string | null;
+  bio: string | null;
   dob: string | null;
   gender: Gender | null;
   maritalStatus: MaritalStatus | null;
@@ -102,6 +104,7 @@ export function ProfileForm({
     return {
       preferredName: state.preferredName,
       occupation: state.occupation,
+      bio: state.bio,
       dob: state.dob,
       gender: state.gender,
       maritalStatus: state.maritalStatus,
@@ -181,6 +184,20 @@ export function ProfileForm({
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                rows={4}
+                maxLength={1000}
+                value={state.bio ?? ""}
+                onChange={(e) => update("bio", e.target.value || null)}
+                placeholder="A few lines about yourself, your walk with God, what you're passionate about…"
+              />
+              <p className="text-right text-xs text-muted-foreground">
+                {(state.bio ?? "").length}/1000
+              </p>
+            </div>
             <FieldText
               label="Preferred name"
               value={state.preferredName}

@@ -197,6 +197,19 @@ export default async function MemberDetailPage({
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
+          {member.bio ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">About</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-line text-sm leading-relaxed">
+                  {member.bio}
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Contact</CardTitle>

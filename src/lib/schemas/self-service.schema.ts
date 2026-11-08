@@ -46,6 +46,13 @@ export const memberProfileUpdateSchema = z.object({
   // About you
   preferredName: optionalString,
   occupation: optionalString,
+  bio: z
+    .string()
+    .trim()
+    .max(1000, "Keep your bio under 1000 characters")
+    .optional()
+    .nullable()
+    .transform((value) => (value && value.length > 0 ? value : null)),
   dob: optionalDate,
   gender: z.enum(["MALE", "FEMALE"]).optional().nullable(),
   maritalStatus: z

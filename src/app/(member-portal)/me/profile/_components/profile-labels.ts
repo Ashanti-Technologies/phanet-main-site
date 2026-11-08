@@ -47,3 +47,12 @@ export const TRACK_LABELS: Record<ProfessionalTrack, string> = {
   SELF_EMPLOYED: "Self-employed",
   STUDYING_OVERSEAS: "Studying overseas",
 };
+export const STATUS_LABELS: Record<string, string> = {
+  VISITOR: "Visitor",
+  PENDING_APPROVAL: "Pending approval",
+  REGULAR: "Regular member",
+  MEMBER: "Member",
+  INACTIVE: "Inactive",
+  TRANSFERRED: "Transferred",
+  DECEASED: "Deceased",
+};
