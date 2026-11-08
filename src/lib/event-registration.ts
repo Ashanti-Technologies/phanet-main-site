@@ -42,3 +42,79 @@ export function maskName(fullName: string) {
   if (parts.length < 2) return parts[0] ?? "";
   return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 }
+
+const AGE_LABELS: Record<string, string> = {
+  ADULT: "Adult",
+  TEEN: "Teen",
+  CHILD: "Child",
+  INFANT: "Infant",
+};
+const TRAVEL_LABELS: Record<string, string> = {
+  PRIVATE_CAR: "Private car",
+  PUBLIC_TRANSPORT: "Public transport",
+  ORGANISED_TRANSPORT: "Organised transport",
+  FLIGHT: "Flight",
+  OTHER: "Other",
+};
+const REL_LABELS: Record<string, string> = {
+  SELF: "Registrant",
+  SPOUSE: "Spouse",
+  CHILD: "Child",
+  GUEST: "Guest",
+};
+
+/** Flat, one-row-per-person view of an event's registrations (admin). */
+export async function getEventAttendeeRows(eventId: string) {
+  const attendees = await prisma.eventAttendee.findMany({
+    where: { eventId, registration: { status: "CONFIRMED" } },
+    orderBy: [{ registration: { createdAt: "asc" } }, { createdAt: "asc" }],
+    include: {
+      member: { select: { fullName: true, phone: true, email: true, gender: true, status: true } },
+      room: { select: { name: true, roomType: { select: { name: true } } } },
+      registration: {
+        include: { registrant: { select: { fullName: true, phone: true, email: true } } },
+      },
+    },
+  });
+
+  return attendees.map((a) => {
+    const r = a.registration;
+    return {
+      id: a.id,
+      registrationId: r.id,
+      name: a.member.fullName,
+      phone: a.member.phone ?? "",
+      email: a.member.email ?? "",
+      gender: a.member.gender ?? "",
+      memberStatus: a.member.status,
+      relationship: REL_LABELS[a.relationship] ?? a.relationship,
+      bookedBy: r.registrant.fullName,
+      bookedByContact: r.registrant.phone || r.registrant.email || "",
+      ageGroup: a.ageGroup ? AGE_LABELS[a.ageGroup] : "",
+      food: a.dietaryPreference ?? "",
+      allergies: a.allergies ?? "",
+      arrivalDate: r.arrivalDate.toISOString().slice(0, 10),
+      arrivalTime: r.arrivalTime ?? "",
+      travel: r.travelMode ? TRAVEL_LABELS[r.travelMode] : "",
+      origin: r.origin ?? "",
+      notes: r.notes ?? "",
+      contactConsent: r.contactConsent,
+      room: a.room ? `${a.room.roomType.name} · ${a.room.name}` : "",
+      checkedIn: !!a.checkedInAt,
+      personAnswers: (a.answers ?? {}) as Record<string, string | boolean>,
+      bookingAnswers: (r.answers ?? {}) as Record<string, string | boolean>,
+    };
+  });
+}
+
+export type AttendeeRow = Awaited<ReturnType<typeof getEventAttendeeRows>>[number];
+
+/** Count rows by a key, most common first. Empty keys become `emptyLabel`. */
+export function tally(rows: AttendeeRow[], key: (r: AttendeeRow) => string, emptyLabel = "Not given") {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    const k = key(r) || emptyLabel;
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+}

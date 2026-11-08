@@ -29,7 +29,10 @@ export async function getAdminEvents() {
 
 export async function getAdminEventById(id: string) {
   await requireAdmin();
-  return prisma.event.findUnique({ where: { id } });
+  return prisma.event.findUnique({
+    where: { id },
+    include: { _count: { select: { attendees: true } } },
+  });
 }
 
 export async function saveEvent(input: EventUpsertInput) {

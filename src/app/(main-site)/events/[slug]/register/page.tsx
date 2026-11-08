@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { CalendarDays, MapPin } from "lucide-react";
 import { prisma } from "@/lib/database";
 import { getServerAuthSession } from "@/lib/auth";
 import { getCurrentMemberForPortal } from "@/lib/member-portal";
 import { isRegistrationOpen } from "@/lib/event-registration";
+import { registerLocation } from "@/lib/event-subdomain";
 import { formatEventDate } from "@/lib/events";
 import { parseRegistrationFields } from "@/lib/schemas/event-registration.schema";
 import { AccountGate } from "./_components/account-gate";
@@ -36,6 +38,7 @@ export default async function EventRegisterPage({ params, searchParams }: Props)
 
   const open = isRegistrationOpen(event);
   const session = await getServerAuthSession();
+  const here = registerLocation(event.slug, (await headers()).get("host"));
 
   return (
     <main className="bg-background py-16 my-16 text-foreground">
@@ -87,12 +90,17 @@ export default async function EventRegisterPage({ params, searchParams }: Props)
 
         {!session ? (
           open ? (
-            <AccountGate slug={event.slug} />
+            <AccountGate slug={event.slug} callbackUrl={here.url} />
           ) : (
             <Closed />
           )
         ) : (
-          <SignedIn event={event} open={open} sessionUser={session.user} />
+          <SignedIn
+            event={event}
+            open={open}
+            sessionUser={session.user}
+            registerPath={here.path}
+          />
         )}
       </div>
     </main>
@@ -103,10 +111,12 @@ async function SignedIn({
   event,
   open,
   sessionUser,
+  registerPath,
 }: {
   event: NonNullable<Awaited<ReturnType<typeof prisma.event.findFirst>>>;
   open: boolean;
   sessionUser: { name: string; email: string };
+  registerPath: string;
 }) {
   const { member } = await getCurrentMemberForPortal();
 
@@ -163,6 +173,7 @@ async function SignedIn({
     <RegistrationForm
       // remount after save so new people become saved rows (no double-create)
       key={registration?.updatedAt.toISOString() ?? "new"}
+      registerPath={registerPath}
       event={{
         id: event.id,
         slug: event.slug,

@@ -9,8 +9,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { GoogleLoginButton } from "@/app/components/auth";
 
-export function AccountGate({ slug }: { slug: string }) {
-  const callbackUrl = `/events/${slug}/register`;
+export function AccountGate({ slug, callbackUrl }: { slug: string; callbackUrl: string }) {
   const [isPending, startTransition] = useTransition();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -25,9 +25,21 @@ export const auth = betterAuth({
     "https://phanerosisnetwork.com",
     "https://www.phanerosisnetwork.com",
     "https://projects.phanerosisnetwork.com",
+    "https://hoe.phanerosisnetwork.com",
     "http://localhost:3000",
     "http://projects.localhost:3000",
+    "http://hoe.localhost:3000",
   ],
+  advanced: {
+    // New prefix so pre-existing host-only cookies are ignored (everyone signs
+    // in once more). Otherwise a stale apex-only cookie could survive sign-out.
+    cookiePrefix: "phanet",
+    // Share the session across apex, www, projects. and hoe. in production.
+    // Off locally: browsers won't set a phanerosisnetwork.com cookie on localhost.
+    ...(process.env.BETTER_AUTH_URL?.includes("phanerosisnetwork.com") && {
+      crossSubDomainCookies: { enabled: true, domain: "phanerosisnetwork.com" },
+    }),
+  },
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),

@@ -56,6 +56,8 @@ type Props = {
     fields: RegistrationField[];
   };
   open: boolean;
+  /** "/register" on the hoe. subdomain, else /events/<slug>/register */
+  registerPath: string;
   me: { id: string; fullName: string; email: string; phone: string | null } | null;
   sessionUser: { name: string; email: string };
   household: { id: string; fullName: string }[];
@@ -224,7 +226,7 @@ export function RegistrationForm(props: Props) {
         attendees,
       });
       if (!res.success) return setError(res.error);
-      router.replace(`/events/${event.slug}/register?done=1`, { scroll: true });
+      router.replace(`${props.registerPath}?done=1`, { scroll: true });
       router.refresh();
     });
   }
@@ -233,7 +235,7 @@ export function RegistrationForm(props: Props) {
     startTransition(async () => {
       const res = await cancelEventRegistration(event.id);
       if (!res.success) return setError(res.error);
-      router.replace(`/events/${event.slug}/register?cancelled=1`);
+      router.replace(`${props.registerPath}?cancelled=1`);
       router.refresh();
     });
   }

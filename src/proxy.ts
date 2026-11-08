@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { HOE, isHoeHost } from "@/lib/event-subdomain";
 
 /**
  * Next.js 16 Proxy for subdomain-based routing
@@ -12,6 +13,21 @@ export function proxy(request: NextRequest): NextResponse | undefined {
   const isProjectsSubdomain =
     hostname.startsWith("projects.") ||
     hostname.startsWith("projects.localhost");
+
+  // hoe.phanerosisnetwork.com → the Heaven on Earth event. Only "/" and
+  // "/register" are rewritten; everything else (/auth, /me, /events/…, /api)
+  // passes through so sign-in and the portal keep working on this host.
+  if (isHoeHost(hostname)) {
+    const target =
+      url.pathname === "/"
+        ? `/events/${HOE.slug}`
+        : url.pathname === "/register"
+          ? `/events/${HOE.slug}/register`
+          : null;
+    if (!target) return undefined;
+    url.pathname = target;
+    return NextResponse.rewrite(url);
+  }
 
   // Handle projects subdomain routing
   if (isProjectsSubdomain) {

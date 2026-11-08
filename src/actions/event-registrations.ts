@@ -6,6 +6,7 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import { auth, getServerAuthSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/auth-guard";
 import { getMessagingService } from "@/lib/messaging";
 import { renderEmail } from "@/lib/email-templates/render";
 import { BrandedTextEmail } from "@/lib/email-templates/BrandedTextEmail";
@@ -16,6 +17,7 @@ import {
   isRegistrationOpen,
   maskName,
 } from "@/lib/event-registration";
+import { registerEmailUrl, registerLocation } from "@/lib/event-subdomain";
 import {
   createEventAccountSchema,
   parseRegistrationFields,
@@ -85,9 +87,10 @@ export async function createEventAccount(input: {
   }
 
   try {
+    const h = await headers();
     await auth.api.signInMagicLink({
-      body: { email, callbackURL: `/events/${event.slug}/register` },
-      headers: await headers(),
+      body: { email, callbackURL: registerLocation(event.slug, h.get("host")).url },
+      headers: h,
     });
   } catch (err) {
     console.error("[event-registration] magic link failed:", err);
@@ -368,6 +371,30 @@ export async function cancelEventRegistration(eventId: string): Promise<Result> 
   return { success: true, data: undefined };
 }
 
+// ---------------------------------------------------------------------------
+// Admin
+// ---------------------------------------------------------------------------
+
+export async function setAttendeeCheckIn(
+  attendeeId: string,
+  checkedIn: boolean,
+): Promise<Result> {
+  const session = await requirePermission("update", "Member");
+  const attendee = await prisma.eventAttendee.update({
+    where: { id: String(attendeeId) },
+    data: { checkedInAt: checkedIn ? new Date() : null },
+    select: { eventId: true },
+  });
+  await logAudit({
+    action: checkedIn ? "event_attendee.check_in" : "event_attendee.undo_check_in",
+    subject: "EventAttendee",
+    subjectId: attendeeId,
+    actorId: session.user.id,
+  });
+  revalidatePath(`/admin/content/events/${attendee.eventId}/registrations`);
+  return { success: true, data: undefined };
+}
+
 async function sendConfirmation({
   to,
   event,
@@ -385,7 +412,7 @@ async function sendConfirmation({
       select: { member: { select: { fullName: true } } },
       orderBy: { createdAt: "asc" },
     });
-    const url = `${process.env.BETTER_AUTH_URL ?? ""}/events/${event.slug}/register`;
+    const url = registerEmailUrl(event.slug);
     const date = event.date.toLocaleDateString("en-GB", {
       weekday: "long",
       day: "numeric",

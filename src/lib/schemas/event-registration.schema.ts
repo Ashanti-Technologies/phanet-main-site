@@ -162,3 +162,26 @@ export function validateAnswers(
   }
   return { ok: true, value };
 }
+
+// ---------------------------------------------------------------------------
+// Rooms (camp events, admin)
+// ---------------------------------------------------------------------------
+
+export const roomTypeInputSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(80),
+  description: z.string().trim().max(300).optional().transform((v) => v || null),
+});
+
+export const roomInputSchema = z.object({
+  name: z.string().trim().min(1, "Room name is required").max(80),
+  beds: z.coerce.number().int().min(1, "At least 1 bed").max(500),
+  gender: z
+    .enum(["MALE", "FEMALE", ""])
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
+/** Bulk add: quantity > 1 creates "<name> 1" … "<name> n". */
+export const roomsCreateSchema = roomInputSchema.extend({
+  quantity: z.coerce.number().int().min(1).max(200).default(1),
+});

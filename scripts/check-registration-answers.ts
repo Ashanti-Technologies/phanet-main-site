@@ -6,6 +6,7 @@ import {
   validateAnswers,
   type RegistrationField,
 } from "../src/lib/schemas/event-registration.schema";
+import { toCsv } from "../src/lib/reports";
 
 const fields: RegistrationField[] = [
   { id: "size", label: "T-shirt", type: "select", options: ["S", "M"], required: true, scope: "person" },
@@ -22,4 +23,11 @@ assert.equal(validateAnswers(fields, "person", { size: "XXL" }).ok, false); // n
 assert.deepEqual(validateAnswers(fields, "booking", { church: "  " }), { ok: true, value: {} });
 assert.deepEqual(parseRegistrationFields("garbage"), []);
 assert.equal(parseRegistrationFields(fields).length, 3);
-console.log("registration answers: ok");
+
+// CSV export: formulas neutralised, phone numbers untouched.
+assert.equal(
+  toCsv([{ a: "+233 24 123 4567", b: "=HYPERLINK(1)", c: "+cmd|x", d: 'say "hi", ok', e: -3 }]).split("\n")[1],
+  `+233 24 123 4567,'=HYPERLINK(1),'+cmd|x,"say ""hi"", ok",-3`,
+);
+console.log("registration answers + csv: ok");
+process.exit(0); // reports.ts opens a DB pool on import

@@ -204,7 +204,16 @@ export function toCsv(rows: Array<Record<string, string | number | null>>) {
   if (rows.length === 0) return "";
   const headers = Object.keys(rows[0]);
   const escape = (value: string | number | null) => {
-    const raw = value == null ? "" : String(value);
+    // Neutralise spreadsheet formulas in user-typed text (=, +, -, @),
+    // but leave phone numbers like "+233 24 123 4567" alone.
+    const isFormula = (v: string) =>
+      /^[=@\t\r]/.test(v) || /^[+-](?![\d\s()]+$)/.test(v);
+    const raw =
+      value == null
+        ? ""
+        : typeof value === "string" && isFormula(value)
+          ? `'${value}`
+          : String(value);
     return /[",\n]/.test(raw) ? `"${raw.replace(/"/g, '""')}"` : raw;
   };
   return [
