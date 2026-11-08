@@ -16,8 +16,7 @@ const fail = (error: string): Result => ({ success: false, error });
 const ok: Result = { success: true };
 
 function refresh(eventId: string) {
-  revalidatePath(`/admin/content/events/${eventId}/rooms`);
-  revalidatePath(`/admin/content/events/${eventId}/registrations`);
+  revalidatePath(`/admin/content/events/${eventId}`);
 }
 
 function friendly(err: unknown): Result {

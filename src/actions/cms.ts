@@ -24,15 +24,15 @@ function emptyToNull(value?: string | null) {
 
 export async function getAdminEvents() {
   await requireAdmin();
-  return prisma.event.findMany({ orderBy: { date: "desc" } });
+  return prisma.event.findMany({
+    orderBy: { date: "desc" },
+    include: { _count: { select: { attendees: true } } },
+  });
 }
 
 export async function getAdminEventById(id: string) {
   await requireAdmin();
-  return prisma.event.findUnique({
-    where: { id },
-    include: { _count: { select: { attendees: true } } },
-  });
+  return prisma.event.findUnique({ where: { id } });
 }
 
 export async function saveEvent(input: EventUpsertInput) {
@@ -69,6 +69,7 @@ export async function saveEvent(input: EventUpsertInput) {
     : await prisma.event.create({ data: payload });
 
   revalidatePath("/admin/content/events");
+  revalidatePath(`/admin/content/events/${event.id}`);
   revalidatePath("/events");
   revalidatePath(`/events/${event.slug}`);
   return { success: true, data: event };

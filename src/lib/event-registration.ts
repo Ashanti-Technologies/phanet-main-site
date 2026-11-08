@@ -118,3 +118,71 @@ export function tally(rows: AttendeeRow[], key: (r: AttendeeRow) => string, empt
   }
   return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 }
+
+/** Rooms (grouped by type, with usage) and bookings for room allocation. */
+export async function getEventRooms(eventId: string) {
+  const [roomTypes, registrations] = await Promise.all([
+    prisma.eventRoomType.findMany({
+      where: { eventId },
+      orderBy: { createdAt: "asc" },
+      include: { rooms: { include: { _count: { select: { attendees: true } } } } },
+    }),
+    prisma.eventRegistration.findMany({
+      where: { eventId, status: "CONFIRMED" },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        registrant: { select: { fullName: true } },
+        attendees: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            relationship: true,
+            ageGroup: true,
+            roomId: true,
+            member: { select: { fullName: true, gender: true } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const rooms = roomTypes.flatMap((t) =>
+    t.rooms
+      // natural sort so "Room 2" comes before "Room 10"
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        typeId: t.id,
+        typeName: t.name,
+        beds: r.beds,
+        gender: r.gender,
+        used: r._count.attendees,
+      })),
+  );
+
+  return {
+    rooms,
+    roomTypes: roomTypes.map((t) => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      rooms: rooms.filter((r) => r.typeId === t.id),
+    })),
+    bookings: registrations.map((r) => ({
+      id: r.id,
+      registrant: r.registrant.fullName,
+      attendees: r.attendees.map((a) => ({
+        id: a.id,
+        name: a.member.fullName,
+        gender: a.member.gender,
+        ageGroup: a.ageGroup,
+        relationship: a.relationship,
+        roomId: a.roomId,
+      })),
+    })),
+  };
+}
+
+export type EventRooms = Awaited<ReturnType<typeof getEventRooms>>;

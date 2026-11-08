@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Eye, Pencil } from "lucide-react";
 import type { Event } from "@/app/generated/prisma/client";
 import { Button } from "@/app/components/ui/button";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -16,12 +17,21 @@ import {
   type EventCategory,
 } from "@/lib/events";
 
-const col = columnHelper<Event>();
+type EventRow = Event & { _count: { attendees: number } };
+
+const col = columnHelper<EventRow>();
 
 const columns = col.columns([
   col.accessor("title", {
     header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
-    cell: ({ row }) => <span className="font-medium">{row.original.title}</span>,
+    cell: ({ row }) => (
+      <Link
+        href={`/admin/content/events/${row.original.id}`}
+        className="font-medium underline-offset-4 hover:underline"
+      >
+        {row.original.title}
+      </Link>
+    ),
     enableHiding: false,
   }),
   col.accessor("date", {
@@ -46,6 +56,23 @@ const columns = col.columns([
       <DataTableColumnHeader column={column} title="Location" />
     ),
   }),
+  col.accessor((e) => e._count.attendees, {
+    id: "registered",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Registered" />
+    ),
+    cell: ({ row }) =>
+      row.original.registrationEnabled || row.original._count.attendees ? (
+        <Link
+          href={`/admin/content/events/${row.original.id}?tab=registrations`}
+          className="tabular-nums underline-offset-4 hover:underline"
+        >
+          {row.original._count.attendees}
+        </Link>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      ),
+  }),
   col.accessor("status", {
     header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
@@ -54,16 +81,29 @@ const columns = col.columns([
   col.display({
     id: "actions",
     cell: ({ row }) => (
-      <div className="text-right">
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/admin/content/events/${row.original.id}`}>Edit</Link>
+      <div className="flex justify-end gap-1">
+        <Button asChild variant="ghost" size="icon" title="View event">
+          <Link
+            href={`/admin/content/events/${row.original.id}`}
+            aria-label={`View ${row.original.title}`}
+          >
+            <Eye className="h-4 w-4" />
+          </Link>
+        </Button>
+        <Button asChild variant="ghost" size="icon" title="Edit event">
+          <Link
+            href={`/admin/content/events/${row.original.id}/edit`}
+            aria-label={`Edit ${row.original.title}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </Link>
         </Button>
       </div>
     ),
   }),
 ]);
 
-export function EventsTable({ events }: { events: Event[] }) {
+export function EventsTable({ events }: { events: EventRow[] }) {
   return (
     <DataTable
       columns={columns}

@@ -1,28 +1,20 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft, Download } from "lucide-react";
-import { requirePermission } from "@/lib/auth-guard";
-import { prisma } from "@/lib/database";
-import { getEventAttendeeRows, tally } from "@/lib/event-registration";
-import { formatEventDate } from "@/lib/events";
+import { Download } from "lucide-react";
+import { tally, type AttendeeRow } from "@/lib/event-registration";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { AttendeesTable } from "./_components/attendees-table";
+import { AttendeesTable } from "./attendees-table";
+import { Stat } from "./stat";
 
-export const dynamic = "force-dynamic";
-
-type Props = { params: Promise<{ id: string }> };
-
-export default async function EventRegistrationsPage({ params }: Props) {
-  await requirePermission("read", "Member");
-  const { id } = await params;
-  const event = await prisma.event.findUnique({
-    where: { id },
-    select: { id: true, title: true, date: true, endDate: true, type: true },
-  });
-  if (!event) notFound();
-
-  const rows = await getEventAttendeeRows(id);
+export function RegistrationsPanel({
+  eventId,
+  isCamp,
+  rows,
+}: {
+  eventId: string;
+  isCamp: boolean;
+  rows: AttendeeRow[];
+}) {
   const bookings = new Set(rows.map((r) => r.registrationId)).size;
   const checkedIn = rows.filter((r) => r.checkedIn).length;
   const allergies = rows.filter((r) => r.allergies);
@@ -36,37 +28,18 @@ export default async function EventRegistrationsPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={`/admin/content/events/${event.id}`} aria-label="Back to event">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Registrations</h1>
-            <p className="text-muted-foreground">
-              {event.title} ·{" "}
-              {formatEventDate(
-                event.date.toISOString(),
-                event.endDate?.toISOString(),
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {event.type === "CAMP" && (
-            <Button asChild variant="outline">
-              <Link href={`/admin/content/events/${event.id}/rooms`}>Allocate rooms</Link>
-            </Button>
-          )}
+      <div className="flex flex-wrap justify-end gap-2">
+        {isCamp && (
           <Button asChild variant="outline">
-            <a href={`/admin/content/events/${event.id}/registrations/export`}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </a>
+            <Link href={`/admin/content/events/${eventId}?tab=rooms`}>Allocate rooms</Link>
           </Button>
-        </div>
+        )}
+        <Button asChild variant="outline">
+          <a href={`/admin/content/events/${eventId}/registrations/export`}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </a>
+        </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -111,21 +84,10 @@ export default async function EventRegistrationsPage({ params }: Props) {
           <CardTitle>Everyone registered</CardTitle>
         </CardHeader>
         <CardContent>
-          <AttendeesTable rows={rows} showRoom={event.type === "CAMP"} />
+          <AttendeesTable rows={rows} showRoom={isCamp} />
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="text-2xl font-semibold tabular-nums">{value}</p>
-      </CardContent>
-    </Card>
   );
 }
 

@@ -391,7 +391,7 @@ export async function setAttendeeCheckIn(
     subjectId: attendeeId,
     actorId: session.user.id,
   });
-  revalidatePath(`/admin/content/events/${attendee.eventId}/registrations`);
+  revalidatePath(`/admin/content/events/${attendee.eventId}`);
   return { success: true, data: undefined };
 }
 

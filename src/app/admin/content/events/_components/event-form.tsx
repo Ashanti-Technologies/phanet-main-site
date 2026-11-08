@@ -312,8 +312,8 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
             />
             {type === "CAMP" && (
               <p className="text-sm text-muted-foreground">
-                After saving, use the Rooms button at the top of this page to
-                set up rooms and allocate people.
+                After saving, set up rooms and allocate people from the
+                event&apos;s Rooms tab.
               </p>
             )}
           </>
