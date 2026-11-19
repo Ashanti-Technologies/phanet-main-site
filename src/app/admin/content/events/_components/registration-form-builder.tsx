@@ -55,6 +55,7 @@ import {
 } from "@/app/components/ui/sortable";
 import { Textarea } from "@/app/components/ui/textarea";
 import { RegistrationFieldInput } from "@/app/components/registration-field";
+import { cn } from "@/lib/utils";
 import {
   DEFAULT_REGISTRATION_FIELDS,
   OPTION_FIELD_TYPES,
@@ -194,7 +195,12 @@ export function RegistrationFormBuilder({ value, onChange, otherForms }: Props) 
             <SortableOverlay>
               {({ value: id }) => {
                 const f = value.find((x) => x.id === id);
-                return f ? <CardSummary field={f} className="bg-background shadow-lg" /> : null;
+                return f ? (
+                  <CardSummary
+                    field={f}
+                    className="rounded-lg border bg-background py-3 pr-4 pl-11 shadow-lg"
+                  />
+                ) : null;
               }}
             </SortableOverlay>
           </Sortable>
@@ -273,16 +279,26 @@ function CardSummary({
   className?: string;
 }) {
   const Icon = TYPES[field.type].icon;
+  // Spans only: this renders inside the accordion's <button>.
   return (
-    <span className={`flex min-w-0 flex-1 items-center gap-3 rounded-md border px-3 py-2 ${className}`}>
-      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-      <span className="truncate font-medium">
-        {field.label || <span className="text-muted-foreground">Untitled question</span>}
+    <span className={cn("flex min-w-0 flex-1 items-center gap-3 text-left", className)}>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
+        <Icon className="size-4 text-muted-foreground" aria-hidden />
       </span>
-      <span className="ml-auto flex shrink-0 gap-1">
-        {field.required && field.type !== "switch" && <Badge variant="secondary">Required</Badge>}
-        {field.scope === "person" && <Badge variant="outline">Each person</Badge>}
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-sm font-medium">
+          {field.label || <span className="text-muted-foreground">Untitled question</span>}
+        </span>
+        <span className="truncate text-xs font-normal text-muted-foreground">
+          {TYPES[field.type].label} ·{" "}
+          {field.scope === "person" ? "For each person" : "Once per booking"}
+        </span>
       </span>
+      {field.required && field.type !== "switch" && (
+        <Badge variant="secondary" className="ml-auto shrink-0">
+          Required
+        </Badge>
+      )}
     </span>
   );
 }
@@ -310,24 +326,52 @@ function FieldCard({
   }
 
   return (
-    <AccordionItem value={f.id} className="rounded-md border last:border-b">
-      <div className="flex items-center gap-1 pr-1">
+    <AccordionItem
+      value={f.id}
+      className="rounded-lg border bg-card transition-shadow last:border-b data-[state=open]:shadow-sm"
+    >
+      <div className="flex items-center gap-1 pr-2 pl-1">
         <SortableItemHandle
           render={
-            <Button type="button" variant="ghost" size="icon" aria-label="Drag to reorder" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0 cursor-grab text-muted-foreground"
+              aria-label="Drag to reorder"
+            />
           }
         >
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
+          <GripVertical className="size-4" />
         </SortableItemHandle>
-        <AccordionTrigger className="min-w-0 py-2 hover:no-underline">
-          <CardSummary field={f} className="border-0 px-0 py-0" />
-        </AccordionTrigger>
-        <Button type="button" variant="ghost" size="icon" aria-label="Duplicate question" onClick={onDuplicate}>
-          <Copy className="h-4 w-4" />
-        </Button>
-        <Button type="button" variant="ghost" size="icon" aria-label="Delete question" onClick={onRemove}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        {/* The trigger's header wrapper isn't stretchable, so this div makes the row fill the width. */}
+        <div className="min-w-0 flex-1">
+          <AccordionTrigger className="items-center gap-3 py-3 hover:no-underline [&>svg]:translate-y-0">
+            <CardSummary field={f} />
+          </AccordionTrigger>
+        </div>
+        <div className="ml-1 flex shrink-0 items-center border-l pl-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 text-muted-foreground"
+            aria-label="Duplicate question"
+            onClick={onDuplicate}
+          >
+            <Copy className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 text-muted-foreground hover:text-destructive"
+            aria-label="Delete question"
+            onClick={onRemove}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
       </div>
 
       <AccordionContent className="space-y-4 border-t px-4 pt-4">
