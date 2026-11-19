@@ -35,6 +35,17 @@ export async function getAdminEventById(id: string) {
   return prisma.event.findUnique({ where: { id } });
 }
 
+/** Other events' registration forms, for "Copy form from…" in the builder. */
+export async function listEventForms(excludeId?: string) {
+  await requireAdmin();
+  return prisma.event.findMany({
+    where: { id: { not: excludeId }, registrationEnabled: true },
+    orderBy: { date: "desc" },
+    take: 50,
+    select: { id: true, title: true, registrationFields: true },
+  });
+}
+
 export async function saveEvent(input: EventUpsertInput) {
   await requireAdmin();
   const data = eventUpsertSchema.parse(input);

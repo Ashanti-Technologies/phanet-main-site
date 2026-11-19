@@ -22,11 +22,10 @@ export function OverviewPanel({
   return (
     <div className="space-y-6">
       {rows && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Stat label="People" value={rows.length} />
           <Stat label="Bookings" value={new Set(rows.map((r) => r.registrationId)).size} />
           <Stat label="Checked in" value={`${rows.filter((r) => r.checkedIn).length} / ${rows.length}`} />
-          <Stat label="With allergies" value={rows.filter((r) => r.allergies).length} />
         </div>
       )}
 

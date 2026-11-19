@@ -50,7 +50,7 @@ export const CATEGORY_COLORS: Record<EventCategory, string> = {
 export const CATEGORY_GRADIENTS: Record<EventCategory, string> = {
   national: "from-crayola/80 to-crayola/40",
   regional: "from-cerulean/80 to-cerulean/40",
-  "university-chapter": "from-mikado-yellow/80 to-mikado-yellow/40",
+  "university-chapter": "from-mikado-yellow/80 to-midnight-green/70",
   diaspora: "from-midnight-green/80 to-midnight-green/40",
 };
 

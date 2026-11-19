@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/database";
+import type { Answers } from "@/lib/schemas/event-registration.schema";
 
 /** Open = switched on, published, and before the closing time (or event start). */
 export function isRegistrationOpen(event: {
@@ -49,13 +50,6 @@ const AGE_LABELS: Record<string, string> = {
   CHILD: "Child",
   INFANT: "Infant",
 };
-const TRAVEL_LABELS: Record<string, string> = {
-  PRIVATE_CAR: "Private car",
-  PUBLIC_TRANSPORT: "Public transport",
-  ORGANISED_TRANSPORT: "Organised transport",
-  FLIGHT: "Flight",
-  OTHER: "Other",
-};
 const REL_LABELS: Record<string, string> = {
   SELF: "Registrant",
   SPOUSE: "Spouse",
@@ -91,18 +85,10 @@ export async function getEventAttendeeRows(eventId: string) {
       bookedBy: r.registrant.fullName,
       bookedByContact: r.registrant.phone || r.registrant.email || "",
       ageGroup: a.ageGroup ? AGE_LABELS[a.ageGroup] : "",
-      food: a.dietaryPreference ?? "",
-      allergies: a.allergies ?? "",
-      arrivalDate: r.arrivalDate.toISOString().slice(0, 10),
-      arrivalTime: r.arrivalTime ?? "",
-      travel: r.travelMode ? TRAVEL_LABELS[r.travelMode] : "",
-      origin: r.origin ?? "",
-      notes: r.notes ?? "",
-      contactConsent: r.contactConsent,
       room: a.room ? `${a.room.roomType.name} · ${a.room.name}` : "",
       checkedIn: !!a.checkedInAt,
-      personAnswers: (a.answers ?? {}) as Record<string, string | boolean>,
-      bookingAnswers: (r.answers ?? {}) as Record<string, string | boolean>,
+      personAnswers: (a.answers ?? {}) as Answers,
+      bookingAnswers: (r.answers ?? {}) as Answers,
     };
   });
 }

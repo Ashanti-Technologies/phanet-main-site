@@ -1,12 +1,17 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useMemo, useOptimistic, useTransition } from "react";
 import { setAttendeeCheckIn } from "@/actions/event-registrations";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/app/components/data-table/data-table-column-header";
 import { columnHelper, facetFilterFn } from "@/app/components/data-table/features";
 import type { AttendeeRow } from "@/lib/event-registration";
+import {
+  answerText,
+  fieldAnswer,
+  type RegistrationField,
+} from "@/lib/schemas/event-registration.schema";
 
 type Row = AttendeeRow & { checkedInLabel: string };
 
@@ -56,30 +61,20 @@ const baseColumns = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Age" />,
     filterFn: facetFilterFn,
   }),
-  col.accessor("food", {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Food" />,
-    filterFn: facetFilterFn,
-  }),
-  col.accessor("allergies", {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Allergies" />,
-    cell: ({ row }) =>
-      row.original.allergies ? (
-        <span className="text-destructive">{row.original.allergies}</span>
-      ) : null,
-  }),
-  col.accessor("arrivalDate", {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Arrival" />,
-    cell: ({ row }) =>
-      [row.original.arrivalDate, row.original.arrivalTime].filter(Boolean).join(" "),
-    filterFn: facetFilterFn,
-  }),
-  col.accessor("travel", {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Travel" />,
-  }),
-  col.accessor("origin", {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="From" />,
-  }),
 ];
+
+/** One column per form field; dropdown fields also get a facet filter. */
+const fieldColumn = (f: RegistrationField) =>
+  col.accessor((r) => answerText(fieldAnswer(r, f)), {
+    id: `f_${f.id}`,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={f.label} />,
+    cell: ({ getValue }) => (
+      <span className="line-clamp-2 max-w-xs" title={getValue()}>
+        {getValue()}
+      </span>
+    ),
+    filterFn: facetFilterFn,
+  });
 
 const roomColumn = col.accessor("room", {
   header: ({ column }) => <DataTableColumnHeader column={column} title="Room" />,
@@ -90,23 +85,44 @@ const roomColumn = col.accessor("room", {
 const uniq = (values: string[]) =>
   [...new Set(values.filter(Boolean))].sort().map((v) => ({ value: v, label: v }));
 
-export function AttendeesTable({ rows, showRoom }: { rows: AttendeeRow[]; showRoom: boolean }) {
+export function AttendeesTable({
+  rows,
+  fields,
+  showRoom,
+}: {
+  rows: AttendeeRow[];
+  fields: RegistrationField[];
+  showRoom: boolean;
+}) {
   const data: Row[] = rows.map((r) => ({
     ...r,
     checkedInLabel: r.checkedIn ? "Checked in" : "Not yet",
   }));
-  const columns = col.columns(showRoom ? [...baseColumns, roomColumn] : baseColumns);
+  const columns = useMemo(
+    () =>
+      col.columns([
+        ...baseColumns,
+        ...fields.map(fieldColumn),
+        ...(showRoom ? [roomColumn] : []),
+      ]),
+    [fields, showRoom],
+  );
 
   return (
     <DataTable
       columns={columns}
       data={data}
-      searchPlaceholder="Search names, allergies, towns…"
+      searchPlaceholder="Search names and answers…"
       emptyMessage="No one has registered yet."
       filters={[
-        { id: "food", title: "Food", options: uniq(rows.map((r) => r.food)) },
         { id: "ageGroup", title: "Age", options: uniq(rows.map((r) => r.ageGroup)) },
-        { id: "arrivalDate", title: "Arrival", options: uniq(rows.map((r) => r.arrivalDate)) },
+        ...fields
+          .filter((f) => f.type === "select")
+          .map((f) => ({
+            id: `f_${f.id}`,
+            title: f.label,
+            options: uniq(rows.map((r) => answerText(fieldAnswer(r, f)))),
+          })),
         {
           id: "checkedInLabel",
           title: "Check-in",

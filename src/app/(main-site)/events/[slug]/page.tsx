@@ -87,14 +87,14 @@ export default async function EventDetailPage({
               {CATEGORY_LABELS[event.category]}
             </span>
             {event.isFeatured && (
-              <span className="text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full bg-white text-gray-900">
+              <span className="text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full bg-background text-foreground">
                 Featured
               </span>
             )}
           </div>
 
           {/* Event title */}
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 max-w-3xl">
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-white mb-6 max-w-3xl">
             {event.title}
           </h1>
 
@@ -117,87 +117,54 @@ export default async function EventDetailPage({
       </section>
 
       {/* Content section */}
-      <section className="bg-gray-50 py-12 sm:py-16">
+      <section className="bg-background py-12 sm:py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-14">
             {/* Body text */}
             <div className="lg:col-span-2 order-2 lg:order-1">
-              {event.imageUrl && (
-                <Image
-                  src={event.imageUrl}
-                  alt={event.imageAlt || `${event.title} flyer`}
-                  width={1200}
-                  height={1500}
-                  sizes="(min-width: 1024px) 66vw, 100vw"
-                  className="mb-10 h-auto w-full rounded-2xl shadow-sm"
-                />
-              )}
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground mb-6">
                 About This Event
               </h2>
               <div
-                className="rich-text text-lg text-gray-600"
+                className="rich-text text-lg text-muted-foreground"
                 dangerouslySetInnerHTML={{
                   __html: event.bodyHtml || event.body,
                 }}
               />
             </div>
 
-            {/* Details sidebar */}
-            <div className="lg:col-span-1 order-1 lg:order-2">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
-                <h3 className="text-lg font-bold text-gray-900 mb-5">
-                  Event Details
-                </h3>
+            {/* Sidebar: flyer + what the hero doesn't already say */}
+            <div className="lg:col-span-1 order-1 lg:order-2 space-y-6">
+              {event.imageUrl && (
+                <Image
+                  src={event.imageUrl}
+                  alt={event.imageAlt || `${event.title} flyer`}
+                  width={1200}
+                  height={1500}
+                  sizes="(min-width: 1024px) 33vw, 100vw"
+                  className="mx-auto h-auto w-full max-w-md rounded-2xl border border-border"
+                />
+              )}
 
-                <ul className="space-y-4 text-sm text-gray-600 mb-6">
-                  <li className="flex items-start gap-3">
-                    <CalendarDays className="w-5 h-5 text-crayola flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-gray-800 mb-0.5">Date</p>
-                      <p>{formatEventDate(event.date, event.endDate)}</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-crayola flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-gray-800 mb-0.5">Time</p>
-                      <p>{event.time}</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-crayola flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-gray-800 mb-0.5">
-                        Location
+              <div className="bg-card rounded-2xl border border-border p-6 space-y-6">
+                <div className="flex items-start gap-3 text-sm">
+                  <MapPin className="w-5 h-5 text-crayola flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-card-foreground mb-0.5">
+                      Venue
+                    </p>
+                    <p className="text-muted-foreground">{event.location}</p>
+                    {event.address && (
+                      <p className="text-muted-foreground text-xs mt-0.5">
+                        {event.address}
                       </p>
-                      <p>{event.location}</p>
-                      {event.address && (
-                        <p className="text-gray-400 text-xs mt-0.5">
-                          {event.address}
-                        </p>
-                      )}
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span
-                      className={`w-5 h-5 rounded-full flex-shrink-0 mt-0.5 ${CATEGORY_COLORS[event.category].split(" ")[0]}`}
-                    />
-                    <div>
-                      <p className="font-semibold text-gray-800 mb-0.5">
-                        Category
-                      </p>
-                      <p>{CATEGORY_LABELS[event.category]}</p>
-                    </div>
-                  </li>
-                </ul>
+                    )}
+                  </div>
+                </div>
 
                 <div className="space-y-3">
                   {event.registrationUrl?.startsWith("/") ? (
-                    <Link
-                      href={event.registrationUrl}
-                      className="flex items-center justify-center gap-2 w-full bg-crayola hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-sm"
-                    >
+                    <Link href={event.registrationUrl} className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-6 rounded-xl transition-colors text-sm">
                       Register Now
                     </Link>
                   ) : event.registrationUrl ? (
@@ -205,7 +172,7 @@ export default async function EventDetailPage({
                       href={event.registrationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full bg-crayola hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors text-sm"
+                      className="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-6 rounded-xl transition-colors text-sm"
                     >
                       Register Now
                       <ExternalLink className="w-4 h-4" />
@@ -213,7 +180,7 @@ export default async function EventDetailPage({
                   ) : null}
                   <Link
                     href="/events"
-                    className="flex items-center justify-center w-full border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-3 px-6 rounded-xl transition-colors text-sm"
+                    className="flex items-center justify-center w-full border border-border text-muted-foreground hover:bg-muted font-medium py-3 px-6 rounded-xl transition-colors text-sm"
                   >
                     Browse All Events
                   </Link>

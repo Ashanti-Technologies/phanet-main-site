@@ -805,7 +805,7 @@ model Event {
   type                 EventType           @default(MEETING)
   registrationEnabled  Boolean             @default(false)
   registrationClosesAt DateTime?
-  /// Admin-defined extra questions; shape: eventRegistrationFieldsSchema
+  /// Admin-built registration form; shape: eventRegistrationFieldsSchema
   registrationFields   Json?
   rsvps                EventRsvp[]
   registrations        EventRegistration[]
@@ -863,34 +863,19 @@ enum AgeGroup {
   INFANT
 }
 
-enum TravelMode {
-  PRIVATE_CAR
-  PUBLIC_TRANSPORT
-  ORGANISED_TRANSPORT
-  FLIGHT
-  OTHER
-}
-
 /// One booking, filled in by `registrant` for themselves and/or others.
 model EventRegistration {
-  id             String                  @id @default(cuid())
-  eventId        String
-  event          Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  registrantId   String
-  registrant     Member                  @relation(fields: [registrantId], references: [id], onDelete: Cascade)
-  status         EventRegistrationStatus @default(CONFIRMED)
-  arrivalDate    DateTime                @db.Date
-  arrivalTime    String?
-  travelMode     TravelMode?
-  origin         String?
-  notes          String?                 @db.Text
-  /// Agreed to be contacted after the event (follow-up filter).
-  contactConsent Boolean                 @default(false)
-  /// Answers to booking-scoped custom questions, keyed by field id.
-  answers        Json?
-  attendees      EventAttendee[]
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
+  id           String                  @id @default(cuid())
+  eventId      String
+  event        Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrantId String
+  registrant   Member                  @relation(fields: [registrantId], references: [id], onDelete: Cascade)
+  status       EventRegistrationStatus @default(CONFIRMED)
+  /// Answers to booking-scoped form fields, keyed by field id.
+  answers      Json?
+  attendees    EventAttendee[]
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
 
   @@unique([eventId, registrantId])
   @@index([eventId, status])
@@ -899,24 +884,22 @@ model EventRegistration {
 
 /// One person on a booking. Every attendee is a Member row (VISITOR if new).
 model EventAttendee {
-  id                String               @id @default(cuid())
-  registrationId    String
-  registration      EventRegistration    @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  eventId           String
-  event             Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  memberId          String
-  member            Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  relationship      AttendeeRelationship
-  ageGroup          AgeGroup?
-  dietaryPreference String?
-  allergies         String?              @db.Text
-  /// Answers to person-scoped custom questions, keyed by field id.
-  answers           Json?
-  roomId            String?
-  room              EventRoom?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  checkedInAt       DateTime?
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  id             String               @id @default(cuid())
+  registrationId String
+  registration   EventRegistration    @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  eventId        String
+  event          Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberId       String
+  member         Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  relationship   AttendeeRelationship
+  ageGroup       AgeGroup?
+  /// Answers to person-scoped form fields, keyed by field id.
+  answers        Json?
+  roomId         String?
+  room           EventRoom?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  checkedInAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@unique([eventId, memberId])
   @@index([registrationId])

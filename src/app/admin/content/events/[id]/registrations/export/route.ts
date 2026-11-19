@@ -3,7 +3,11 @@ import { requirePermission } from "@/lib/auth-guard";
 import { prisma } from "@/lib/database";
 import { getEventAttendeeRows } from "@/lib/event-registration";
 import { toCsv } from "@/lib/reports";
-import { parseRegistrationFields } from "@/lib/schemas/event-registration.schema";
+import {
+  answerText,
+  fieldAnswer,
+  parseRegistrationFields,
+} from "@/lib/schemas/event-registration.schema";
 
 export async function GET(
   _req: Request,
@@ -19,8 +23,6 @@ export async function GET(
 
   const fields = parseRegistrationFields(event.registrationFields);
   const rows = await getEventAttendeeRows(id);
-  const answer = (v: string | boolean | undefined) =>
-    v === undefined ? "" : v === true ? "Yes" : v === false ? "No" : v;
 
   const csv = toCsv(
     rows.map((r) => ({
@@ -33,22 +35,9 @@ export async function GET(
       Gender: r.gender,
       "Age group": r.ageGroup,
       "Member status": r.memberStatus,
-      Food: r.food,
-      Allergies: r.allergies,
-      "Arrival date": r.arrivalDate,
-      "Arrival time": r.arrivalTime,
-      Travel: r.travel,
-      "Coming from": r.origin,
       Room: r.room,
       "Checked in": r.checkedIn ? "Yes" : "No",
-      "Stay in touch": r.contactConsent ? "Yes" : "No",
-      Notes: r.notes,
-      ...Object.fromEntries(
-        fields.map((f) => [
-          f.label,
-          answer(f.scope === "person" ? r.personAnswers[f.id] : r.bookingAnswers[f.id]),
-        ]),
-      ),
+      ...Object.fromEntries(fields.map((f) => [f.label, answerText(fieldAnswer(r, f))])),
     })),
   );
 

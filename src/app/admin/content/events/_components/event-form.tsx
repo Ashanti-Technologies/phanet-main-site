@@ -22,6 +22,8 @@ import { RichTextEditor } from "@/app/admin/_components/rich-text-editor";
 import { CloudinaryImageField } from "@/app/admin/_components/cloudinary-image-field";
 import { DeleteButton } from "@/app/admin/_components/delete-button";
 import {
+  DEFAULT_REGISTRATION_FIELDS,
+  eventRegistrationFieldsSchema,
   parseRegistrationFields,
   type RegistrationField,
 } from "@/lib/schemas/event-registration.schema";
@@ -32,7 +34,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/app/components/animate-ui/components/animate/tabs";
-import { RegistrationQuestionsEditor } from "./registration-questions-editor";
+import { RegistrationFormBuilder } from "./registration-form-builder";
 
 type EventFormProps = {
   event?: {
@@ -61,6 +63,7 @@ type EventFormProps = {
     registrationClosesAt: Date | string | null;
     registrationFields: unknown;
   } | null;
+  otherForms: { id: string; title: string; registrationFields: unknown }[];
 };
 
 function toDateInput(value?: Date | string | null) {
@@ -85,7 +88,7 @@ function slugify(value: string) {
     .replace(/^-|-$/g, "");
 }
 
-export function EventForm({ event: initialEvent }: EventFormProps) {
+export function EventForm({ event: initialEvent, otherForms }: EventFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [tab, setTab] = useState("details");
@@ -111,7 +114,11 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
   );
   const [registrationFields, setRegistrationFields] = useState<
     RegistrationField[]
-  >(() => parseRegistrationFields(initialEvent?.registrationFields));
+  >(() =>
+    initialEvent?.registrationFields == null
+      ? DEFAULT_REGISTRATION_FIELDS
+      : parseRegistrationFields(initialEvent.registrationFields),
+  );
   const [body, setBody] = useState({
     html: initialEvent?.bodyHtml ?? "<p></p>",
     json: initialEvent?.bodyJson,
@@ -136,6 +143,21 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
   async function handleSubmit(formData: FormData) {
     if (!date) {
       setError("Pick a date for the event");
+      return;
+    }
+    // Blank questions are dropped; anything else must be valid before saving
+    // (server-side Zod errors are hidden in production).
+    const fields = registrationFields.filter((f) => f.label.trim());
+    const checked = eventRegistrationFieldsSchema.safeParse(fields);
+    if (!checked.success) {
+      const issue = checked.error.issues[0];
+      const index = typeof issue.path[0] === "number" ? issue.path[0] : -1;
+      setTab("registration");
+      setError(
+        index >= 0
+          ? `Registration form, “${fields[index].label}”: ${issue.message}`
+          : `Registration form: ${issue.message}`,
+      );
       return;
     }
     setIsSaving(true);
@@ -172,7 +194,7 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
         registrationClosesAt: formData.get("registrationClosesAt")
           ? new Date(String(formData.get("registrationClosesAt"))).toISOString()
           : null,
-        registrationFields: registrationFields.filter((f) => f.label.trim()),
+        registrationFields: checked.data,
       });
 
       router.push(`/admin/content/events/${result.data.id}`);
@@ -376,9 +398,10 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
                       Leave empty to keep registration open until the event starts.
                     </p>
                   </div>
-                  <RegistrationQuestionsEditor
+                  <RegistrationFormBuilder
                     value={registrationFields}
                     onChange={setRegistrationFields}
+                    otherForms={otherForms}
                   />
                   {type === "CAMP" && (
                     <p className="text-sm text-muted-foreground">

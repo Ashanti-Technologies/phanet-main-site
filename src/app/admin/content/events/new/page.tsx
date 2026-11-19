@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { listEventForms } from "@/actions/cms";
 import { Button } from "@/app/components/ui/button";
 import { EventForm } from "../_components/event-form";
 
-export default function NewEventPage() {
+export default async function NewEventPage() {
+  const otherForms = await listEventForms();
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -17,7 +19,7 @@ export default function NewEventPage() {
           <p className="text-muted-foreground">Create a CMS event.</p>
         </div>
       </div>
-      <EventForm />
+      <EventForm otherForms={otherForms} />
     </div>
   );
 }

@@ -1,14 +1,18 @@
 import Link from "next/link";
+import Image from "next/image";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { CalendarDays, MapPin } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, MapPin } from "lucide-react";
 import { prisma } from "@/lib/database";
 import { getServerAuthSession } from "@/lib/auth";
 import { getCurrentMemberForPortal } from "@/lib/member-portal";
 import { isRegistrationOpen } from "@/lib/event-registration";
 import { registerLocation } from "@/lib/event-subdomain";
 import { formatEventDate } from "@/lib/events";
-import { parseRegistrationFields } from "@/lib/schemas/event-registration.schema";
+import {
+  parseRegistrationFields,
+  type Answers,
+} from "@/lib/schemas/event-registration.schema";
 import { AccountGate } from "./_components/account-gate";
 import { RegistrationForm, type FormRow } from "./_components/registration-form";
 
@@ -41,49 +45,68 @@ export default async function EventRegisterPage({ params, searchParams }: Props)
   const here = registerLocation(event.slug, (await headers()).get("host"));
 
   return (
-    <main className="bg-background py-16 my-16 text-foreground">
-      <div className="mx-auto w-full max-w-3xl space-y-8 px-4">
-        <header className="space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Registration
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4" />
-              {formatEventDate(
-                event.date.toISOString().slice(0, 10),
-                event.endDate?.toISOString().slice(0, 10),
-              )}
-            </span>
-            <span className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              {event.location}
-            </span>
-          </div>
+    <main className="bg-background pt-24 pb-16 text-foreground sm:pt-32">
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-4">
+        <header className="space-y-4">
           <Link
             href={`/events/${event.slug}`}
-            className="inline-block text-sm font-medium underline-offset-4 hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            About this event
+            <ArrowLeft className="h-4 w-4" />
+            Event details
           </Link>
+          <div className="flex items-start gap-4">
+            {event.imageUrl && (
+              <Image
+                src={event.imageUrl}
+                alt=""
+                width={160}
+                height={200}
+                className="h-24 w-20 shrink-0 rounded-lg border object-cover sm:h-28 sm:w-24"
+              />
+            )}
+            <div className="min-w-0 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+                Registration
+              </p>
+              <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+                {event.title}
+              </h1>
+              <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-5">
+                <span className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 shrink-0" />
+                  {formatEventDate(
+                    event.date.toISOString().slice(0, 10),
+                    event.endDate?.toISOString().slice(0, 10),
+                  )}
+                </span>
+                <span className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{event.location}</span>
+                </span>
+              </div>
+            </div>
+          </div>
         </header>
 
         {sp.done && (
-          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-emerald-800 dark:text-emerald-300">
-            <p className="font-semibold">You&apos;re registered.</p>
-            <p>
-              We&apos;ve emailed you a confirmation. You can change your booking
-              below until registration closes, or see it any time in{" "}
-              <Link href="/me" className="underline underline-offset-4">
-                your portal
-              </Link>
-              .
-            </p>
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-emerald-800 dark:text-emerald-300">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold">You&apos;re registered.</p>
+              <p>
+                We&apos;ve emailed you a confirmation. You can change your
+                booking below until registration closes, or see it any time in{" "}
+                <Link href="/me" className="underline underline-offset-4">
+                  your portal
+                </Link>
+                .
+              </p>
+            </div>
           </div>
         )}
         {sp.cancelled && (
-          <div className="rounded-md border bg-muted p-4 text-sm">
+          <div className="rounded-2xl border bg-muted p-4 text-sm">
             Your registration has been cancelled.
           </div>
         )}
@@ -142,16 +165,23 @@ async function SignedIn({
       })
     : [];
 
-  // Pre-fill food/allergies from each person's most recent booking.
+  const fields = parseRegistrationFields(event.registrationFields);
+
+  // Pre-fill person questions (food, allergies, …) from each person's most
+  // recent booking at another event. Matches by field id, so it works for
+  // the default fields and for forms copied between events.
+  const personFieldIds = new Set(
+    fields.filter((f) => f.scope === "person").map((f) => f.id),
+  );
   const ids = [member?.id, ...household.map((h) => h.id)].filter(
     (id): id is string => !!id,
   );
-  const previous = ids.length
+  const previous = ids.length && personFieldIds.size
     ? await prisma.eventAttendee.findMany({
-        where: { memberId: { in: ids } },
+        where: { memberId: { in: ids }, eventId: { not: event.id } },
         orderBy: { createdAt: "desc" },
         distinct: ["memberId"],
-        select: { memberId: true, dietaryPreference: true, allergies: true },
+        select: { memberId: true, answers: true },
       })
     : [];
 
@@ -163,9 +193,7 @@ async function SignedIn({
         label: a.member.fullName,
         relationship: a.relationship,
         ageGroup: a.ageGroup ?? undefined,
-        dietaryPreference: a.dietaryPreference ?? "",
-        allergies: a.allergies ?? "",
-        answers: (a.answers as Record<string, string | boolean>) ?? {},
+        answers: (a.answers as Answers) ?? {},
       }))
     : null;
 
@@ -178,7 +206,7 @@ async function SignedIn({
         id: event.id,
         slug: event.slug,
         type: event.type,
-        fields: parseRegistrationFields(event.registrationFields),
+        fields,
       }}
       open={open}
       me={
@@ -196,23 +224,16 @@ async function SignedIn({
       previous={Object.fromEntries(
         previous.map((p) => [
           p.memberId,
-          { dietaryPreference: p.dietaryPreference ?? "", allergies: p.allergies ?? "" },
+          Object.fromEntries(
+            Object.entries((p.answers ?? {}) as Answers).filter(([id]) =>
+              personFieldIds.has(id),
+            ),
+          ),
         ]),
       )}
-      defaultArrival={event.date.toISOString().slice(0, 10)}
-      defaultOrigin={[member?.city, member?.country].filter(Boolean).join(", ")}
       existing={
         registration && existingRows
-          ? {
-              rows: existingRows,
-              arrivalDate: registration.arrivalDate.toISOString().slice(0, 10),
-              arrivalTime: registration.arrivalTime ?? "",
-              travelMode: registration.travelMode ?? "",
-              origin: registration.origin ?? "",
-              notes: registration.notes ?? "",
-              contactConsent: registration.contactConsent,
-              answers: (registration.answers as Record<string, string | boolean>) ?? {},
-            }
+          ? { rows: existingRows, answers: (registration.answers as Answers) ?? {} }
           : null
       }
     />
@@ -221,7 +242,7 @@ async function SignedIn({
 
 function Closed() {
   return (
-    <div className="rounded-md border bg-card p-6 text-sm text-muted-foreground">
+    <div className="rounded-2xl border bg-card p-5 text-sm text-muted-foreground sm:p-6">
       Registration for this event is closed. Please contact the organisers if
       you need help.
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import posthog from "posthog-js";
@@ -116,6 +117,8 @@ function MessageBubble({ message }: { message: Message }) {
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  // On phones the registration form's sticky submit bar owns the bottom edge.
+  const hideOnPhone = usePathname()?.endsWith("/register");
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -243,7 +246,7 @@ export default function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className={`fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 ${hideOnPhone ? "max-sm:hidden" : ""}`}>
       {/* Chat window */}
       <AnimatePresence>
         {isOpen && (

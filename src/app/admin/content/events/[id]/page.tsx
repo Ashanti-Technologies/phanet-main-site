@@ -5,6 +5,7 @@ import { prisma } from "@/lib/database";
 import { can, requireAdmin } from "@/lib/auth-guard";
 import { getEventAttendeeRows, getEventRooms } from "@/lib/event-registration";
 import { formatEventDate } from "@/lib/events";
+import { parseRegistrationFields } from "@/lib/schemas/event-registration.schema";
 import { Button } from "@/app/components/ui/button";
 import { TabsContent } from "@/app/components/ui/tabs";
 import { StatusBadge } from "@/app/admin/_components/status-badge";
@@ -84,7 +85,12 @@ export default async function EventPage({ params }: Props) {
         </TabsContent>
         {showRegistrations && (
           <TabsContent value="registrations">
-            <RegistrationsPanel eventId={event.id} isCamp={isCamp} rows={rows!} />
+            <RegistrationsPanel
+              eventId={event.id}
+              isCamp={isCamp}
+              rows={rows!}
+              fields={parseRegistrationFields(event.registrationFields)}
+            />
           </TabsContent>
         )}
         {rooms && (

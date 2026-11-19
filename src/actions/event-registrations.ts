@@ -23,6 +23,7 @@ import {
   parseRegistrationFields,
   registrationSubmitSchema,
   validateAnswers,
+  type Answers,
   type RegistrationSubmitInput,
 } from "@/lib/schemas/event-registration.schema";
 
@@ -161,20 +162,13 @@ export async function submitEventRegistration(
     newPerson?: Extract<(typeof data.attendees)[number], { kind: "new" }>;
     relationship: "SELF" | "SPOUSE" | "CHILD" | "GUEST";
     ageGroup?: "ADULT" | "TEEN" | "CHILD" | "INFANT";
-    dietaryPreference?: string;
-    allergies?: string;
-    answers: Record<string, string | boolean>;
+    answers: Answers;
   };
   const resolved: Resolved[] = [];
   for (const a of data.attendees) {
     const answers = validateAnswers(fields, "person", a.answers);
     if (!answers.ok) return fail(answers.error);
-    const base = {
-      ageGroup: a.ageGroup,
-      dietaryPreference: a.dietaryPreference,
-      allergies: a.allergies,
-      answers: answers.value,
-    };
+    const base = { ageGroup: a.ageGroup, answers: answers.value };
     if (a.kind === "self") {
       resolved.push({ ...base, memberId: me?.id ?? null, isSelf: true, relationship: "SELF" });
     } else if (a.kind === "known") {
@@ -258,15 +252,7 @@ export async function submitEventRegistration(
         }
       }
 
-      const booking = {
-        arrivalDate: new Date(`${data.arrivalDate}T00:00:00Z`),
-        arrivalTime: data.arrivalTime ?? null,
-        travelMode: data.travelMode ?? null,
-        origin: data.origin ?? null,
-        notes: data.notes ?? null,
-        contactConsent: data.contactConsent,
-        answers: bookingAnswers.value,
-      };
+      const booking = { answers: bookingAnswers.value };
       const registration = await tx.eventRegistration.upsert({
         where: { eventId_registrantId: { eventId: event.id, registrantId: registrant.id } },
         create: { eventId: event.id, registrantId: registrant.id, ...booking },
@@ -282,8 +268,6 @@ export async function submitEventRegistration(
         const details = {
           relationship: r.relationship,
           ageGroup: r.ageGroup ?? null,
-          dietaryPreference: r.dietaryPreference ?? null,
-          allergies: r.allergies ?? null,
           answers: r.answers,
         };
         // update keeps admin-owned roomId / checkedInAt intact
