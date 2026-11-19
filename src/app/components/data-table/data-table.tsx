@@ -50,6 +50,8 @@ interface DataTableProps<TData extends { id: string }> {
    * Omit it to page, sort, search and filter `data` in the browser.
    */
   rowCount?: number;
+  /** Makes rows clickable (and Enter-activatable). Buttons inside cells should stopPropagation. */
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData extends { id: string }>({
@@ -59,6 +61,7 @@ export function DataTable<TData extends { id: string }>({
   searchPlaceholder = "Search…",
   emptyMessage = "No results.",
   rowCount,
+  onRowClick,
 }: DataTableProps<TData>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -227,7 +230,17 @@ export function DataTable<TData extends { id: string }>({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  {...(onRowClick && {
+                    className: "cursor-pointer",
+                    tabIndex: 0,
+                    onClick: () => onRowClick(row.original),
+                    onKeyDown: (e: React.KeyboardEvent) => {
+                      if (e.key === "Enter" && e.target === e.currentTarget) onRowClick(row.original);
+                    },
+                  })}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       <table.FlexRender cell={cell} />

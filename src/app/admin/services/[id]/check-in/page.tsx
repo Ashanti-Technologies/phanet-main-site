@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Edit } from "lucide-react";
@@ -16,6 +17,7 @@ export default async function CheckInPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requirePermission("create", "Attendance");
   const { id } = await params;
   const [service, present] = await Promise.all([
     getService(id),

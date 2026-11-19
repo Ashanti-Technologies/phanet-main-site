@@ -4,144 +4,107 @@ import {
   type MongoAbility,
   type MongoQuery,
 } from "@casl/ability";
-import { hasAnyAdminRole, ROLES, type RoleKey } from "./roles";
 import type { Action, Subject } from "./permissions";
+import { ALL, PERMISSIONS, ruleMatches } from "./catalog";
 
 export type AppAbility = MongoAbility<[Action, Subject], MongoQuery>;
 
 // CASL infers a strict conditions type from the subject. Since our Subject is
 // a string union with no schema, conditions resolve to `MongoQuery<never>`.
-// We loosen the builder's `can` signature locally so call sites can pass plain
-// query objects without per-line casts.
 type LooseCan = (
   action: Action | Action[],
   subject: Subject | Subject[],
   conditions?: Record<string, unknown>,
 ) => void;
 
+/** One active role assignment: its permission keys, everywhere or in one unit. */
+export type Grant = { permissions: string[]; unitId: string | null };
+
 export interface AbilityContext {
   userId: string;
-  roles: RoleKey[];
-  /** Unit IDs the user has any unit-scoped role in (LEADER/ASSISTANT). */
-  scopedUnitIds: string[];
+  grants: Grant[];
+  /** A Super Admin previewing someone else's access ("view as"). Read-only. */
+  preview?: { userId: string; name: string };
 }
 
-export const ANONYMOUS_CONTEXT: AbilityContext = {
-  userId: "",
-  roles: [],
-  scopedUnitIds: [],
-};
+export const ANONYMOUS_CONTEXT: AbilityContext = { userId: "", grants: [] };
+
+export function hasAdminAccess(ctx: AbilityContext): boolean {
+  return ctx.grants.length > 0;
+}
+
+export function isSuperAdmin(ctx: AbilityContext): boolean {
+  return ctx.grants.some((g) => g.unitId === null && g.permissions.includes(ALL));
+}
 
 /**
- * Build a CASL ability for the given user context. Roles are additive — a
- * user with multiple roles gets the union of their permissions.
+ * Build a CASL ability from the user's grants. Grants are additive.
  *
- * Subject-level conditions (e.g. unit scoping) live here so policy is in one
- * place and the rest of the app just calls `ability.can('update','Member', m)`.
+ * Unit-scoped checks need the instance to carry `unitIds` (the member's
+ * units), e.g. `ability.can('update', subject('Member', { unitIds }))`.
+ * A type-level check (`can('update', 'Member')`) passes for unit-scoped users
+ * too, so list queries must narrow with `scopeOf` and mutations must pass an
+ * instance.
  */
 export function defineAbilityFor(ctx: AbilityContext): AppAbility {
   const builder = new AbilityBuilder<AppAbility>(createMongoAbility);
   const can = builder.can as unknown as LooseCan;
-  const { build } = builder;
-  const roles = new Set(ctx.roles);
-  const hasMemberPortalRole = roles.has(ROLES.MEMBER) || hasAnyAdminRole(ctx.roles);
 
-  if (hasMemberPortalRole) {
+  if (ctx.userId) {
     can("access", "MemberPortal");
     can(["read", "update"], "Member", { userId: ctx.userId });
-    can("read", ["Event", "Service"]);
     can("read", ["Commitment", "PaymentIntent"], { userId: ctx.userId });
   }
 
-  if (roles.has(ROLES.SUPER_ADMIN)) {
+  if (!hasAdminAccess(ctx)) return builder.build();
+
+  // Every admin: the panel, lookup lists for pickers, and tasks assigned to them.
+  can("access", "AdminPanel");
+  can("read", ["ChurchUnit", "Tag", "User"]);
+  can(["read", "update"], "FollowUpTask", { assignedToId: ctx.userId });
+
+  if (isSuperAdmin(ctx)) {
     can("manage", "all");
-    return build();
+    return builder.build();
   }
 
-  if (roles.has(ROLES.PASTOR)) {
-    can("access", "AdminPanel");
-    can("manage", [
-      "Member",
-      "Household",
-      "Tag",
-      "Message",
-      "MessageTemplate",
-      "MessageBatch",
-      "Service",
-      "Attendance",
-      "Visitation",
-      "FollowUpTask",
-      "Note",
-      "MemberInvite",
-      "PrayerRequest",
-    ]);
-    can("read", [
-      "User",
-      "ChurchUnit",
-      "Project",
-      "Commitment",
-      "PaymentIntent",
-      "AuditLog",
-      "Fund",
-      "Income",
-      "Expense",
-      "ExpenseCategory",
-      "Budget",
-    ]);
-  }
-
-  if (roles.has(ROLES.EDITOR)) {
-    can("access", "AdminPanel");
-    can("manage", ["Event", "ContentPage", "Sermon", "HomepageSection", "MediaAsset"]);
-  }
-
-  if (roles.has(ROLES.FINANCE)) {
-    can("access", "AdminPanel");
-    can("manage", [
-      "Project",
-      "Commitment",
-      "PaymentIntent",
-      "ProofUpload",
-      "Fund",
-      "Income",
-      "Expense",
-      "ExpenseCategory",
-      "Budget",
-    ]);
-    can("read", ["Member", "ChurchUnit"]);
-  }
-
-  if (roles.has(ROLES.UNIT_LEADER)) {
-    can("access", "AdminPanel");
-    // Read everyone in the directory…
-    can("read", "Member");
-    // …but only mutate members that share at least one of the user's units.
-    if (ctx.scopedUnitIds.length > 0) {
-      can(
-        ["update", "create"],
-        "Member",
-        ({ unitIds: { $in: ctx.scopedUnitIds } }),
-      );
-      can(
-        ["read", "create", "update"],
-        "Visitation",
-        ({ unitIds: { $in: ctx.scopedUnitIds } }),
-      );
-      can(
-        ["read", "create", "update"],
-        "FollowUpTask",
-        ({ assignedToId: ctx.userId }),
-      );
-      // Notes — only general visibility. Pastoral notes stay restricted.
-      can("read", "Note", ({ visibility: "GENERAL" }));
+  for (const grant of ctx.grants) {
+    for (const key of grant.permissions) {
+      for (const rule of PERMISSIONS[key]?.rules ?? []) {
+        if (grant.unitId === null) {
+          can(rule.action, rule.subject, rule.conditions);
+        } else if (rule.unit) {
+          can(rule.action, rule.subject, {
+            ...rule.conditions,
+            unitIds: { $in: [grant.unitId] },
+          });
+        }
+      }
     }
-    can("read", ["ChurchUnit", "Tag", "Service", "Attendance"]);
   }
 
-  if (roles.has(ROLES.MEMBER)) {
-    // Member portal permissions are granted above so admin roles can use the
-    // same self-service surface when they also have member records.
-  }
+  return builder.build();
+}
 
-  return build();
+/**
+ * Where the user may do `action` on `subject`: "all", or the unit ids they're
+ * limited to ([] = nowhere). Use it to narrow list queries.
+ */
+export function scopeOf(
+  ctx: AbilityContext,
+  action: Action,
+  subject: Subject,
+): "all" | string[] {
+  if (isSuperAdmin(ctx)) return "all";
+  const units = new Set<string>();
+  for (const grant of ctx.grants) {
+    for (const key of grant.permissions) {
+      for (const rule of PERMISSIONS[key]?.rules ?? []) {
+        if (!ruleMatches(rule, action, subject)) continue;
+        if (grant.unitId === null) return "all";
+        if (rule.unit) units.add(grant.unitId);
+      }
+    }
+  }
+  return [...units];
 }

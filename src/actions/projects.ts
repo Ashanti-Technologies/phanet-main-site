@@ -39,9 +39,11 @@ export async function getProjects(options?: {
       images: {
         orderBy: { order: "asc" },
       },
+      // Public list: amounts only, never donor names or contact details.
       commitments: options?.includeCommitments
         ? {
             where: { status: "CONFIRMED" },
+            select: { amountCommitted: true, confirmedAmount: true },
           }
         : false,
     },
@@ -70,8 +72,10 @@ export async function getProjectById(id: string) {
       images: {
         orderBy: { order: "asc" },
       },
+      // Public page: amounts only, never donor names or contact details.
       commitments: {
         where: { status: "CONFIRMED" },
+        select: { amountCommitted: true, confirmedAmount: true },
       },
       proofUploads: {
         orderBy: { createdAt: "desc" },

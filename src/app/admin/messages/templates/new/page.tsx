@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import {
   Card,
   CardContent,
@@ -6,7 +7,8 @@ import {
 } from "@/app/components/ui/card";
 import { TemplateForm } from "../_components/template-form";
 
-export default function NewTemplatePage() {
+export default async function NewTemplatePage() {
+  await requirePermission("create", "MessageTemplate");
   return (
     <div className="space-y-6">
       <div>

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import { resolveMemberLocation } from "@/lib/member-location";
-import { requirePermission } from "@/lib/auth-guard";
+import { requireOrgWide, requirePermission, scopeOf } from "@/lib/auth-guard";
 import { z } from "zod";
 import {
   memberCreateSchema,
@@ -48,20 +48,77 @@ function ageBucketCondition(bucket: MemberListFilter["age"][number]) {
   }
 }
 
+/** Unit-scoped admins only reach members of their own units. */
+async function memberScope(action: "read" | "update"): Promise<Prisma.MemberWhereInput> {
+  const scope = await scopeOf(action, "Member");
+  return scope === "all" ? {} : { units: { some: { unitId: { in: scope } } } };
+}
+
+type ContactScope = "all" | string[];
+
+/** Whether contact details of a member in `unitIds` are visible under `scope`. */
+function contactVisible(scope: ContactScope, unitIds: string[]) {
+  return scope === "all" || unitIds.some((u) => scope.includes(u));
+}
+
+/**
+ * Blank contact fields the viewer may not see (members.contact). Done on the
+ * server so the values never reach the browser.
+ */
+function redactContact<
+  T extends {
+    email: string | null;
+    phone: string | null;
+    whatsapp: string | null;
+    addressLine: string | null;
+    units: { unitId: string }[];
+    user: { id: string; email: string } | null;
+  },
+>(member: T, scope: ContactScope): T & { contactHidden: boolean } {
+  if (contactVisible(scope, member.units.map((u) => u.unitId))) {
+    return { ...member, contactHidden: false };
+  }
+  return {
+    ...member,
+    email: null,
+    phone: null,
+    whatsapp: null,
+    addressLine: null,
+    user: member.user && { ...member.user, email: "" },
+    contactHidden: true,
+  };
+}
+
+async function memberUnitIds(id: string) {
+  const member = await prisma.member.findUnique({
+    where: { id },
+    select: { userId: true, units: { select: { unitId: true } } },
+  });
+  if (!member) throw new Error("Member not found");
+  return { userId: member.userId, unitIds: member.units.map((u) => u.unitId) };
+}
+
 export async function listMembers(input: Record<string, unknown> = {}) {
   await requirePermission("read", "Member");
   const filter = memberListFilterSchema.parse(input);
+  const contactScope = await scopeOf("read", "MemberContact");
 
-  const and: Prisma.MemberWhereInput[] = [];
+  const and: Prisma.MemberWhereInput[] = [await memberScope("read")];
   if (filter.q) {
     const q = filter.q;
     and.push({
       OR: [
         { fullName: { contains: q, mode: "insensitive" } },
         { preferredName: { contains: q, mode: "insensitive" } },
-        { email: { contains: q, mode: "insensitive" } },
-        { phone: { contains: q } },
-        { whatsapp: { contains: q } },
+        // Without full contact access, searching by phone/email would let
+        // someone probe for numbers they can't see.
+        ...(contactScope === "all"
+          ? [
+              { email: { contains: q, mode: "insensitive" as const } },
+              { phone: { contains: q } },
+              { whatsapp: { contains: q } },
+            ]
+          : []),
       ],
     });
   }
@@ -100,7 +157,12 @@ export async function listMembers(input: Record<string, unknown> = {}) {
     }),
   ]);
 
-  return { items, total, page: filter.page, pageSize: filter.pageSize };
+  return {
+    items: items.map((m) => redactContact(m, contactScope)),
+    total,
+    page: filter.page,
+    pageSize: filter.pageSize,
+  };
 }
 
 export async function getMemberById(id: string) {
@@ -109,7 +171,12 @@ export async function getMemberById(id: string) {
     where: { id },
     include: memberInclude,
   });
-  return member;
+  if (!member) return null;
+  await requirePermission("read", "Member", {
+    userId: member.userId,
+    unitIds: member.units.map((u) => u.unitId),
+  });
+  return redactContact(member, await scopeOf("read", "MemberContact"));
 }
 
 async function memberWriteData(input: ReturnType<typeof memberCreateSchema.parse>) {
@@ -118,8 +185,8 @@ async function memberWriteData(input: ReturnType<typeof memberCreateSchema.parse
 }
 
 export async function createMember(input: MemberCreateInput) {
-  const session = await requirePermission("create", "Member");
   const data = memberCreateSchema.parse(input);
+  const session = await requirePermission("create", "Member", { unitIds: data.unitIds });
   const writeData = await memberWriteData(data);
 
   const member = await prisma.member.create({
@@ -147,8 +214,14 @@ export async function createMember(input: MemberCreateInput) {
 }
 
 export async function updateMember(input: MemberUpdateInput) {
-  const session = await requirePermission("update", "Member");
   const data = memberUpdateSchema.parse(input);
+  // Must be allowed on the member as it is AND as it will be (a unit leader
+  // can't move someone out of their own reach, or into another unit only).
+  const current = await memberUnitIds(data.id);
+  await requirePermission("update", "Member", { unitIds: current.unitIds });
+  // The edit form submits contact fields; without seeing them it would wipe them.
+  await requirePermission("read", "MemberContact", { unitIds: current.unitIds });
+  const session = await requirePermission("update", "Member", { unitIds: data.unitIds });
   const writeData = await memberWriteData(data);
 
   const member = await prisma.$transaction(async (tx) => {
@@ -182,7 +255,9 @@ export async function updateMember(input: MemberUpdateInput) {
 }
 
 export async function deleteMember(id: string) {
-  const session = await requirePermission("delete", "Member");
+  const session = await requirePermission("delete", "Member", {
+    unitIds: (await memberUnitIds(id)).unitIds,
+  });
   await prisma.member.delete({ where: { id } });
   await logAudit({
     action: "member.delete",
@@ -195,7 +270,7 @@ export async function deleteMember(id: string) {
 }
 
 export async function getBirthdays(days = 7) {
-  await requirePermission("read", "Member");
+  await requireOrgWide("read", "Member");
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const end = new Date(start);

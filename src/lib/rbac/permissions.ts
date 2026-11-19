@@ -45,6 +45,11 @@ export const SUBJECTS = [
   "HomepageSection",
   "MediaAsset",
   "PrayerRequest",
+  "EventRegistration",
+  "Report",
+  "AdminRole",
+  "RoleAssignment",
+  "MemberContact",
   "AdminPanel",
   "MemberPortal",
 ] as const;

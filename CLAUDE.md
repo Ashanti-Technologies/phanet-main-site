@@ -28,6 +28,17 @@ Decimal/Date values from Prisma do not serialize cleanly to client components �
 
 Mutations triggered from React components go in `src/actions/` (Zod v4 schemas in `src/lib/schemas/`). Prefer extending these over adding new API routes.
 
+### Access control
+
+Admin access = `AdminRoleAssignment` rows (user → `AdminRole`, everywhere or limited to one church unit, optional expiry). A role is a list of permission keys from `src/lib/rbac/catalog.ts`; the catalog maps each key to CASL rules, so new capabilities are code changes and roles only combine them. `User.role` is **not** an authorization source, and Better Auth's admin-plugin endpoints are disabled on purpose (`admin({ roles: { user: userAc } })`). Never grant admin access from unit membership (members choose units themselves on public forms).
+
+- Every server action / admin page / route checks a specific permission: `requirePermission(action, Subject, instance?)`. `requireAdmin()` alone only proves "some admin". `requirePermission` also enforces the admin session rules (2FA, 12h) whenever the check needs admin powers.
+- Type-level checks (no instance) ignore self-only rules, but **pass for unit-limited users**: narrow lists with `scopeOf(action, subject)` and pass `{ unitIds }` (member's units) as the instance for mutations. Use `requireOrgWide` where unit-limited access must not count (exports, households, birthdays).
+- Managing roles is Super Admin only (`requireSuperAdmin`). Granting/removing access: Super Admins, or holders of `access.delegate` within their unit — bounded by `delegationProblem` in `src/lib/rbac/delegation.ts` (own units only, unit-limited roles, never beyond what they hold there, not themselves, target must be a unit member). Last-Super-Admin and self-removal guards live in `src/actions/access.ts`.
+- Member contact fields (email/phone/WhatsApp/address) need `members.contact` (subject `MemberContact`, unit-aware). `src/actions/members.ts` blanks them server-side (`redactContact`); keep any new member query that returns them going through it. Editing a member requires contact access (the form would otherwise wipe them).
+- "View as": a Super Admin's `phanet.preview_as` cookie swaps in another user's grants in `getAbilityContext` (ignored for anyone else). Previews are read-only — `requirePermission` blocks non-read actions; call `assertNotPreviewing()` in any mutation that doesn't go through it.
+- When adding an admin page, add it to `src/app/admin/_components/admin-routes.ts` (sidebar/palette filtering). Run `pnpm tsx scripts/rbac-check.ts` — it tests the policy and flags actions/pages without a permission check.
+
 ### Payments
 
 Default currency is **GHS** (Paystack is the primary provider for Ghana).

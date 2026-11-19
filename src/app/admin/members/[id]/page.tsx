@@ -7,6 +7,7 @@ import {
   listTaskAssignableUsers,
 } from "@/actions/pastoral";
 import { prisma } from "@/lib/database";
+import { can } from "@/lib/auth-guard";
 import { normalizedPhoneVariants } from "@/lib/member-portal";
 import {
   Avatar,
@@ -68,11 +69,27 @@ export default async function MemberDetailPage({
   const member = await getMemberById(id);
   if (!member) notFound();
 
+  const policy = { userId: member.userId, unitIds: member.units.map((u) => u.unitId) };
+  const [canSeeGiving, canSeePrayers, canUpdate] = await Promise.all([
+    can("read", "Commitment"),
+    can("read", "PrayerRequest"),
+    can("update", "Member", policy),
+  ]);
+  // Editing also needs contact details (the form saves them).
+  const canEdit = canUpdate && !member.contactHidden;
+
+  // Matching giving/prayers needs the real contact even when it's hidden from
+  // this viewer; it stays on the server (only the matched records are shown).
+  const contact = member.contactHidden
+    ? await prisma.member.findUnique({ where: { id: member.id }, select: { email: true, phone: true } })
+    : member;
+  const matchEmail = contact?.email ?? null;
+
   // Giving: best-effort match by email (no migration link yet — see plan Phase 5).
   const [commitments, pastoral, users, invite, prayerMatches] = await Promise.all([
-    member.email
+    matchEmail && canSeeGiving
       ? prisma.commitment.findMany({
-        where: { email: member.email },
+        where: { email: matchEmail },
         orderBy: { createdAt: "desc" },
         take: 25,
         select: {
@@ -92,7 +109,7 @@ export default async function MemberDetailPage({
       where: { memberId: member.id },
       select: { email: true, expiresAt: true, consumedAt: true },
     }),
-    getPrayerMatchesForMember(member),
+    canSeePrayers ? getPrayerMatchesForMember({ ...member, email: matchEmail, phone: contact?.phone ?? null }) : [],
   ]);
 
   const pastoralProps = {
@@ -162,11 +179,13 @@ export default async function MemberDetailPage({
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <Button asChild size="sm">
-            <Link href={`/admin/members/${member.id}/edit`}>
-              <Edit className="h-4 w-4 mr-1.5" /> Edit
-            </Link>
-          </Button>
+          {canEdit && (
+            <Button asChild size="sm">
+              <Link href={`/admin/members/${member.id}/edit`}>
+                <Edit className="h-4 w-4 mr-1.5" /> Edit
+              </Link>
+            </Button>
+          )}
           <MemberActions
             memberId={member.id}
             status={member.status}
@@ -213,6 +232,11 @@ export default async function MemberDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Contact</CardTitle>
+              {member.contactHidden && (
+                <p className="text-xs text-muted-foreground">
+                  Contact details are hidden — your role doesn&apos;t include them.
+                </p>
+              )}
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <Row icon={<Mail className="h-4 w-4" />} label="Email">
@@ -380,7 +404,9 @@ export default async function MemberDetailPage({
             <CardContent>
               {commitments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  {member.email
+                  {!canSeeGiving
+                    ? "Giving records need finance access."
+                    : matchEmail
                     ? "No commitments on file matching this member's email."
                     : "Add an email to surface giving history."}
                 </p>

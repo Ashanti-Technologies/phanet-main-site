@@ -1,27 +1,22 @@
 import { z } from "zod";
-import { ALL_ROLE_KEYS } from "@/lib/rbac/roles";
+import { PERMISSION_KEYS } from "@/lib/rbac/catalog";
 
-export const adminUserRoleSchema = z.object({
-  userId: z.string().min(1),
-  role: z.enum(["admin", "user"]),
+export const adminRoleSaveSchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().trim().min(2, "Give the role a name").max(60),
+  description: z.string().trim().max(300).optional(),
+  permissions: z.array(z.enum(PERMISSION_KEYS as [string, ...string[]])).min(1, "Pick at least one permission"),
 });
 
-export const adminUserRolesSchema = z
-  .object({
-    userId: z.string().min(1),
-    roles: z.array(z.enum(ALL_ROLE_KEYS as [string, ...string[]])),
-    unitIds: z.array(z.string().min(1)).default([]),
-  })
-  .refine(
-    (input) =>
-      !input.roles.includes("unit_leader") || input.unitIds.length > 0,
-    {
-      message: "Unit Leader role requires at least one church unit",
-      path: ["unitIds"],
-    },
-  );
+export const accessGrantSchema = z.object({
+  userId: z.string().min(1),
+  roleId: z.string().min(1),
+  unitId: z.string().min(1).nullable(),
+  expiresAt: z.coerce.date().nullable(),
+});
 
-export type AdminUserRolesInput = z.infer<typeof adminUserRolesSchema>;
+export type AdminRoleSaveInput = z.infer<typeof adminRoleSaveSchema>;
+export type AccessGrantInput = z.input<typeof accessGrantSchema>;
 
 export const prayerRequestUpdateSchema = z.object({
   id: z.cuid(),
@@ -38,7 +33,6 @@ export const manualFinanceUpdateSchema = z.object({
   internalNote: z.string().trim().optional(),
 });
 
-export type AdminUserRoleInput = z.infer<typeof adminUserRoleSchema>;
 export type PrayerRequestUpdateInput = z.infer<
   typeof prayerRequestUpdateSchema
 >;

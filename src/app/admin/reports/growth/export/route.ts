@@ -2,7 +2,7 @@ import { requirePermission } from "@/lib/auth-guard";
 import { getGrowthReport, toCsv } from "@/lib/reports";
 
 export async function GET() {
-  await requirePermission("export", "Member");
+  await requirePermission("export", "Report");
   const report = await getGrowthReport();
   const csv = toCsv(report.monthly);
   return new Response(csv, {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getAdminEvents } from "@/actions/cms";
+import { can } from "@/lib/auth-guard";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -9,7 +10,7 @@ import {
 import { EventsTable } from "./_components/events-table";
 
 export default async function AdminEventsPage() {
-  const events = await getAdminEvents();
+  const [events, canCreate] = await Promise.all([getAdminEvents(), can("create", "Event")]);
 
   return (
     <div className="space-y-6">
@@ -20,12 +21,14 @@ export default async function AdminEventsPage() {
             Manage public ministry gatherings and registrations.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/admin/content/events/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New event
-          </Link>
-        </Button>
+        {canCreate && (
+          <Button asChild>
+            <Link href="/admin/content/events/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New event
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>

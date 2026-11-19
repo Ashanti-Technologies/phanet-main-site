@@ -17,7 +17,11 @@ const fmt = (d: Date | null) =>
 export default async function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requirePermission("read", "Expense");
   const { id } = await params;
-  const [e, canEdit] = await Promise.all([getExpense(id), can("update", "Expense")]);
+  const [e, canEdit, canApprove] = await Promise.all([
+    getExpense(id),
+    can("update", "Expense"),
+    can("approve", "Expense"),
+  ]);
   if (!e) notFound();
   const status = e.voidedAt ? "VOIDED" : e.status;
 
@@ -52,7 +56,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
 
       {canEdit && !e.voidedAt && (
         <div className="flex flex-wrap gap-2">
-          <ExpenseActions id={e.id} status={e.status} />
+          {canApprove && <ExpenseActions id={e.id} status={e.status} />}
           <VoidButton id={e.id} kind="expense" />
         </div>
       )}

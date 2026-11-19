@@ -7,7 +7,6 @@ import { prisma } from "@/lib/database";
 import { auth, getServerAuthSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/auth-guard";
-import { ROLES, serializeRoles } from "@/lib/rbac/roles";
 import {
   findMemberByContact,
   getKnownPeople,
@@ -90,7 +89,7 @@ export async function createEventAccount(input: {
         email,
         name,
         emailVerified: false,
-        role: serializeRoles([ROLES.MEMBER]), // portal access only, not membership
+        role: "member", // portal access only, not membership
       });
     } catch {
       // Lost a race with a parallel request — the user exists now; carry on.
@@ -507,7 +506,7 @@ export async function setAttendeeCheckIn(
   attendeeId: string,
   checkedIn: boolean,
 ): Promise<Result> {
-  const session = await requirePermission("update", "Member");
+  const session = await requirePermission("update", "EventRegistration");
   const attendee = await prisma.eventAttendee.update({
     where: { id: String(attendeeId) },
     data: { checkedInAt: checkedIn ? new Date() : null },
@@ -533,7 +532,7 @@ export async function recordEventPayment(
   registrationId: string,
   input: { amount: number | string; method: string; reference?: string },
 ): Promise<Result> {
-  const session = await requirePermission("update", "Member");
+  const session = await requirePermission("update", "EventRegistration");
   const parsed = eventPaymentInputSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the payment details");
   const data = parsed.data;
@@ -597,7 +596,7 @@ export async function recordEventPayment(
  * is guarded on amountPaid = 0 so a payment landing mid-delete is kept.
  */
 export async function deleteEventRegistration(registrationId: string): Promise<Result> {
-  const session = await requirePermission("update", "Member");
+  const session = await requirePermission("delete", "EventRegistration");
   const reg = await prisma.eventRegistration.findUnique({
     where: { id: String(registrationId) },
     select: {

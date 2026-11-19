@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import { getChurchUnits } from "@/actions/church-units";
 import { listTags } from "@/actions/tags";
 import { listHouseholds } from "@/actions/households";
@@ -10,10 +11,11 @@ import {
 import { MemberForm, emptyMemberValues } from "../_components/member-form";
 
 export default async function NewMemberPage() {
+  await requirePermission("create", "Member");
   const [units, tags, households] = await Promise.all([
     getChurchUnits(true),
     listTags(),
-    listHouseholds(),
+    listHouseholds().catch(() => []),
   ]);
 
   return (

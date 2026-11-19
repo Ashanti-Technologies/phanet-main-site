@@ -1,6 +1,6 @@
 import { listExpenseCategories, listFunds } from "@/actions/finance";
 import { getChurchUnits } from "@/actions/church-units";
-import { requirePermission } from "@/lib/auth-guard";
+import { can, requirePermission } from "@/lib/auth-guard";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { ExpenseForm } from "../_components/expense-form";
 
@@ -24,7 +24,12 @@ export default async function NewExpensePage() {
       </div>
       <Card>
         <CardContent>
-          <ExpenseForm categories={opts(categories)} funds={opts(funds)} units={opts(units)} />
+          <ExpenseForm
+            categories={opts(categories)}
+            funds={opts(funds)}
+            units={opts(units)}
+            canApprove={await can("approve", "Expense")}
+          />
         </CardContent>
       </Card>
     </div>

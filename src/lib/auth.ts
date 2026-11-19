@@ -8,13 +8,14 @@ import {
   phoneNumber,
   twoFactor,
 } from "better-auth/plugins";
+import { userAc } from "better-auth/plugins/admin/access";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./database";
 import { nextCookies } from "better-auth/next-js";
 import { getMessagingService } from "./messaging";
 import { renderEmail } from "./email-templates/render";
 import { MagicLinkSignInEmail } from "./email-templates/MagicLinkSignInEmail";
-import { hasAnyAdminRole, parseRoles } from "./rbac/roles";
+import { loadGrants, userHasAdminAccess } from "./rbac/access";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
@@ -70,8 +71,8 @@ export const auth = betterAuth({
             await import("./member-claim")
               .then((m) => m.linkMemberByVerifiedEmail(user))
               .catch((err) => console.error("[auth] member auto-link failed:", err));
-            const roles = parseRoles(user.role);
-            if (!hasAnyAdminRole(roles)) return;
+            const grants = await loadGrants(user.id);
+            if (grants.length === 0) return;
             await prisma.auditLog.create({
               data: {
                 actorId: user.id,
@@ -82,7 +83,7 @@ export const auth = betterAuth({
                   email: user.email,
                   ipAddress: session.ipAddress ?? null,
                   userAgent: session.userAgent ?? null,
-                  roles,
+                  grants,
                 },
               },
             });
@@ -99,7 +100,11 @@ export const auth = betterAuth({
         // Implement sending OTP code via SMS
       },
     }),
-    admin({}),
+    // Authorization lives in AdminRoleAssignment, not User.role. Defining only
+    // the "user" role means the plugin's admin endpoints (setRole,
+    // impersonate, ban, …) authorize nobody — even a leftover role = "admin" —
+    // so they can't become a side door around src/lib/rbac.
+    admin({ roles: { user: userAc } }),
     twoFactor({
       issuer: "PHANET",
     }),
@@ -125,9 +130,9 @@ export const auth = betterAuth({
         if (isAdminLogin) {
           const user = await prisma.user.findFirst({
             where: { email: { equals: email, mode: "insensitive" } },
-            select: { role: true },
+            select: { id: true },
           });
-          if (!user || !hasAnyAdminRole(parseRoles(user.role))) return;
+          if (!user || !(await userHasAdminAccess(user.id))) return;
         }
 
         const portal = isAdminLogin ? "Admin Portal" : "Member Portal";

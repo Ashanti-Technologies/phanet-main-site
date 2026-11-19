@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/database";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePermission } from "@/lib/auth-guard";
 import {
   projectImageSchema,
   projectImageReorderSchema,
@@ -14,7 +14,7 @@ import { revalidatePath } from "next/cache";
  * Add an image to a project (Admin only)
  */
 export async function addProjectImage(data: ProjectImageInput) {
-  await requireAdmin();
+  await requirePermission("update", "Project");
 
   const validated = projectImageSchema.parse(data);
 
@@ -43,7 +43,7 @@ export async function addProjectImage(data: ProjectImageInput) {
  * Delete a project image (Admin only)
  */
 export async function deleteProjectImage(id: string) {
-  await requireAdmin();
+  await requirePermission("update", "Project");
 
   const image = await prisma.projectImage.delete({
     where: { id },
@@ -59,7 +59,7 @@ export async function deleteProjectImage(id: string) {
  * Reorder project images (Admin only)
  */
 export async function reorderProjectImages(data: ProjectImageReorderInput) {
-  await requireAdmin();
+  await requirePermission("update", "Project");
 
   const validated = projectImageReorderSchema.parse(data);
 

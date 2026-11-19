@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/database";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePermission } from "@/lib/auth-guard";
 import {
   churchUnitCreateSchema,
   churchUnitUpdateSchema,
@@ -24,7 +24,7 @@ export async function getChurchUnits(activeOnly = true) {
  * Create a new church unit option (Admin only)
  */
 export async function createChurchUnit(data: ChurchUnitCreateInput) {
-  await requireAdmin();
+  await requirePermission("create", "ChurchUnit");
 
   const validated = churchUnitCreateSchema.parse(data);
 
@@ -50,7 +50,7 @@ export async function createChurchUnit(data: ChurchUnitCreateInput) {
  * Update a church unit option (Admin only)
  */
 export async function updateChurchUnit(data: ChurchUnitUpdateInput) {
-  await requireAdmin();
+  await requirePermission("update", "ChurchUnit");
 
   const validated = churchUnitUpdateSchema.parse(data);
   const { id, ...updateData } = validated;
@@ -75,7 +75,7 @@ export async function updateChurchUnit(data: ChurchUnitUpdateInput) {
  * Delete a church unit option (Admin only)
  */
 export async function deleteChurchUnit(id: string) {
-  await requireAdmin();
+  await requirePermission("delete", "ChurchUnit");
 
   await prisma.churchUnitOption.delete({
     where: { id },
@@ -90,7 +90,7 @@ export async function deleteChurchUnit(id: string) {
  * Reorder church unit options (Admin only)
  */
 export async function reorderChurchUnits(orderedIds: string[]) {
-  await requireAdmin();
+  await requirePermission("update", "ChurchUnit");
 
   await prisma.$transaction(
     orderedIds.map((id, index) =>

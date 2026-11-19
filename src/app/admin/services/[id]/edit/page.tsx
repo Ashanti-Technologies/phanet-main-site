@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import { notFound } from "next/navigation";
 import { getService } from "@/actions/attendance";
 import {
@@ -18,6 +19,7 @@ export default async function EditServicePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requirePermission("update", "Service");
   const { id } = await params;
   const service = await getService(id);
   if (!service) notFound();

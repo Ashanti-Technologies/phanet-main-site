@@ -43,11 +43,14 @@ function revalidateMember(memberId: string) {
   revalidatePath(`/admin/members/${memberId}`);
 }
 
-function requireNotePermission(
+/** Notes are checked against their member's units too (unit-limited care roles). */
+async function requireNotePermission(
   action: "read" | "create" | "update" | "delete",
   visibility: "PASTORAL" | "GENERAL",
+  memberId: string,
 ) {
-  return requirePermission(action, "Note", { visibility });
+  const { instance } = await memberPolicyInstance(memberId);
+  return requirePermission(action, "Note", { ...instance, visibility });
 }
 
 export async function getMemberPastoralCare(memberId: string) {
@@ -58,8 +61,8 @@ export async function getMemberPastoralCare(memberId: string) {
     await Promise.all([
       can("read", "Visitation", instance),
       can("read", "FollowUpTask", instance),
-      can("read", "Note", { visibility: "PASTORAL" }),
-      can("read", "Note", { visibility: "GENERAL" }),
+      can("read", "Note", { ...instance, visibility: "PASTORAL" }),
+      can("read", "Note", { ...instance, visibility: "GENERAL" }),
     ]);
 
   const [visitations, tasks, notes] = await Promise.all([
@@ -99,8 +102,9 @@ export async function getMemberPastoralCare(memberId: string) {
     permissions: {
       canCreateVisitation: await can("create", "Visitation", instance),
       canCreateTask: await can("create", "FollowUpTask", instance),
-      canCreateGeneralNote: await can("create", "Note", { visibility: "GENERAL" }),
+      canCreateGeneralNote: await can("create", "Note", { ...instance, visibility: "GENERAL" }),
       canCreatePastoralNote: await can("create", "Note", {
+        ...instance,
         visibility: "PASTORAL",
       }),
       canReadPastoralNotes,
@@ -113,10 +117,13 @@ export async function listTaskAssignableUsers() {
   return prisma.user.findMany({
     where: {
       banned: { not: true },
-      role: { not: null },
+      // Anyone with active admin access can be given a task.
+      adminAccess: {
+        some: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+      },
     },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, email: true, role: true },
+    select: { id: true, name: true, email: true },
   });
 }
 
@@ -308,7 +315,7 @@ export async function deleteFollowUpTask(id: string) {
 
 export async function createMemberNote(input: MemberNoteCreateInput) {
   const data = memberNoteCreateSchema.parse(input);
-  const session = await requireNotePermission("create", data.visibility);
+  const session = await requireNotePermission("create", data.visibility, data.memberId);
   await requirePermission("read", "Member", (await memberPolicyInstance(data.memberId)).instance);
 
   const note = await prisma.memberNote.create({
@@ -332,8 +339,8 @@ export async function updateMemberNote(input: MemberNoteUpdateInput) {
     select: { memberId: true, visibility: true },
   });
   if (!current) throw new Error("Note not found");
-  const session = await requireNotePermission("update", current.visibility);
-  await requireNotePermission("update", data.visibility);
+  const session = await requireNotePermission("update", current.visibility, current.memberId);
+  await requireNotePermission("update", data.visibility, current.memberId);
 
   const note = await prisma.memberNote.update({
     where: { id: data.id },
@@ -357,7 +364,7 @@ export async function deleteMemberNote(id: string) {
     select: { memberId: true, visibility: true },
   });
   if (!current) throw new Error("Note not found");
-  const session = await requireNotePermission("delete", current.visibility);
+  const session = await requireNotePermission("delete", current.visibility, current.memberId);
   await prisma.memberNote.delete({ where: { id: parsedId } });
   await logAudit({
     action: "member_note.delete",

@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import {
   Card,
   CardContent,
@@ -14,7 +15,8 @@ function defaultDateTime(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export default function NewServicePage() {
+export default async function NewServicePage() {
+  await requirePermission("create", "Service");
   return (
     <div className="space-y-6">
       <div>

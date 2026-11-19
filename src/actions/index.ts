@@ -3,7 +3,7 @@ export * from "./commitments";
 export * from "./church-units";
 export * from "./proof-uploads";
 export * from "./cms";
-export * from "./admin-users";
+export * from "./access";
 export * from "./prayer-requests";
 export * from "./images";
 export * from "./pastoral";

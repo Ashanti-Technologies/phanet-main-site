@@ -89,7 +89,7 @@ export async function deleteService(id: string) {
 // ---------------------------- Check-in ----------------------------
 
 export async function searchMembersForCheckIn(serviceId: string, q: string) {
-  await requirePermission("read", "Member");
+  await requirePermission("create", "Attendance");
   const trimmed = q.trim();
   if (trimmed.length < 2) return { items: [], checkedInIds: [] };
 
@@ -205,7 +205,7 @@ export async function removeAttendance(input: AttendanceRemoveInput) {
 // ---------------------------- Drop-off ----------------------------
 
 export async function getDropoffMembers(weeksThreshold = 4, limit = 30) {
-  await requirePermission("read", "Member");
+  await requirePermission("read", "Report");
   const threshold = new Date();
   threshold.setDate(threshold.getDate() - weeksThreshold * 7);
 

@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AnimateIcon } from "@animate-ui/react/icons";
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export default async function EditEventPage({ params }: Props) {
+  await requirePermission("update", "Event");
   const { id } = await params;
   const [event, otherForms, funds] = await Promise.all([
     getAdminEventById(id),

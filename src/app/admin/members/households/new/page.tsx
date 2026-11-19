@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import {
   Card,
   CardContent,
@@ -6,7 +7,8 @@ import {
 } from "@/app/components/ui/card";
 import { HouseholdForm } from "../_components/household-form";
 
-export default function NewHouseholdPage() {
+export default async function NewHouseholdPage() {
+  await requirePermission("create", "Household");
   return (
     <div className="space-y-6">
       <div>

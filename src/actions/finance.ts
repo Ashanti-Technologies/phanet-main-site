@@ -120,7 +120,7 @@ export async function saveExpenseCategory(input: ExpenseCategorySaveInput) {
 // ------------------------------ Pickers ------------------------------
 
 export async function searchMembersForFinance(q: string) {
-  await requirePermission("read", "Member");
+  await requirePermission("create", "Income");
   const trimmed = q.trim();
   if (trimmed.length < 2) return [];
   return prisma.member.findMany({
@@ -329,6 +329,8 @@ function statusFields(status: ExpenseStatusKey, userId: string, now = new Date()
 export async function recordExpense(input: ExpenseCreateInput) {
   const session = await guard("create", "Expense");
   const { status, ...data } = expenseCreateSchema.parse(input);
+  // Recording it as approved/paid is an approval decision.
+  if (status !== "PENDING") await requirePermission("approve", "Expense");
   const now = new Date();
   const expense = await prisma.expense.create({
     data: {
@@ -362,6 +364,8 @@ const ALLOWED_TRANSITIONS: Record<ExpenseStatusKey, ExpenseStatusKey[]> = {
 export async function setExpenseStatus(input: ExpenseStatusInput) {
   const session = await guard("update", "Expense");
   const { id, status } = expenseStatusSchema.parse(input);
+  // Approving, rejecting and marking paid are approval decisions.
+  await requirePermission("approve", "Expense");
   const current = await prisma.expense.findUnique({
     where: { id },
     select: { status: true, voidedAt: true, approvedById: true },

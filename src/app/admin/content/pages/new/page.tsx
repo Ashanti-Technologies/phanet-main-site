@@ -1,9 +1,11 @@
+import { requirePermission } from "@/lib/auth-guard";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { ContentPageForm } from "../_components/content-page-form";
 
-export default function NewContentPagePage() {
+export default async function NewContentPagePage() {
+  await requirePermission("create", "ContentPage");
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">

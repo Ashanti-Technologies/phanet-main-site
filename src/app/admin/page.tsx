@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/database";
-import { requireAdmin } from "@/lib/auth-guard";
+import { can, getAbilityContext, requirePermission } from "@/lib/auth-guard";
+import { summarizeAccess } from "@/lib/rbac/catalog";
+import { AccessSummaryView } from "./users/_components/access-summary";
 import { getBirthdays } from "@/actions/members";
 import { getDropoffMembers } from "@/actions/attendance";
 import {
@@ -105,7 +107,8 @@ function parseRange(
 }
 
 async function getDashboardData(range: DateRange) {
-  await requireAdmin();
+  // Finance totals, prayer text and sign-ups: an org-wide overview.
+  await requirePermission("read", "Report");
 
   // Inclusive of `to`: extend by 1 day for `lt`/`lte` semantics
   const toExclusive = new Date(range.to);
@@ -329,6 +332,7 @@ export default async function AdminDashboardPage({
 }: {
   searchParams: SearchParams;
 }) {
+  if (!(await can("read", "Report"))) return <AccessHome />;
   const params = await searchParams;
   const range = parseRange(params.from, params.to);
   const [data, birthdays, dropoffs] = await Promise.all([
@@ -750,6 +754,44 @@ function EmptyHint({
     <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-8 text-muted-foreground">
       {icon}
       <p className="text-xs">{label}</p>
+    </div>
+  );
+}
+
+/** Landing page for admins without the dashboard: what they can do here. */
+async function AccessHome() {
+  const ctx = await getAbilityContext();
+  const unitIds = ctx.grants.flatMap((g) => (g.unitId ? [g.unitId] : []));
+  const units = unitIds.length
+    ? await prisma.churchUnitOption.findMany({ where: { id: { in: unitIds } }, select: { id: true, name: true } })
+    : [];
+  const unitName = new Map(units.map((u) => [u.id, u.name]));
+  const summary = summarizeAccess(
+    ctx.grants.map((g) => ({
+      permissions: g.permissions,
+      unit: g.unitId ? unitName.get(g.unitId) ?? "your unit" : null,
+    })),
+  );
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">Welcome</h1>
+        <p className="text-sm text-muted-foreground">
+          Here&apos;s what you can do in the admin. Use the menu to get started.
+        </p>
+      </div>
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle className="text-base">Your access</CardTitle>
+          <CardDescription>Need something else? Ask a Super Admin.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <AccessSummaryView summary={summary} />
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/tasks">Open my tasks</Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

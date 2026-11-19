@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import { notFound } from "next/navigation";
 import { getMemberById } from "@/actions/members";
 import { getChurchUnits } from "@/actions/church-units";
@@ -31,9 +32,16 @@ export default async function EditMemberPage({
     getMemberById(id),
     getChurchUnits(true),
     listTags(),
-    listHouseholds(),
+    // Unit-limited leaders can't browse households; the form still works.
+    listHouseholds().catch(() => []),
   ]);
   if (!member) notFound();
+  await requirePermission("update", "Member", {
+    userId: member.userId,
+    unitIds: member.units.map((u) => u.unitId),
+  });
+  // Saving submits every contact field, so editing needs to see them.
+  await requirePermission("read", "MemberContact", { unitIds: member.units.map((u) => u.unitId) });
 
   const initial: MemberFormValues = {
     ...emptyMemberValues,

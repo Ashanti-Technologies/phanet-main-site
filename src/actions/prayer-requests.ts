@@ -2,19 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/database";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePermission } from "@/lib/auth-guard";
 import {
   prayerRequestUpdateSchema,
   type PrayerRequestUpdateInput,
 } from "@/lib/schemas";
 
 export async function getAdminPrayerRequests() {
-  await requireAdmin();
+  await requirePermission("read", "PrayerRequest");
   return prisma.prayerRequest.findMany({ orderBy: { createdAt: "desc" } });
 }
 
 export async function updatePrayerRequest(input: PrayerRequestUpdateInput) {
-  await requireAdmin();
+  await requirePermission("update", "PrayerRequest");
   const data = prayerRequestUpdateSchema.parse(input);
   const now = new Date();
 
@@ -33,7 +33,7 @@ export async function updatePrayerRequest(input: PrayerRequestUpdateInput) {
 }
 
 export async function deletePrayerRequest(id: string) {
-  await requireAdmin();
+  await requirePermission("delete", "PrayerRequest");
   const prayer = await prisma.prayerRequest.delete({ where: { id } });
   revalidatePath("/admin/prayer-requests");
   return { success: true, data: prayer };

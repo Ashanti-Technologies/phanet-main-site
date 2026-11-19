@@ -164,7 +164,7 @@ export async function updateMyNotifications(
 export async function setMyEventRsvp(input: EventRsvpInput) {
   const data = eventRsvpSchema.parse(input);
   const { session, member } = await requireLinkedMember();
-  await requirePermission("read", "Event");
+  await requirePermission("access", "MemberPortal");
 
   const event = await prisma.event.findFirst({
     where: { id: data.eventId, status: "PUBLISHED" },

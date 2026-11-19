@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import {
   Card,
   CardContent,
@@ -6,7 +7,8 @@ import {
 } from "@/app/components/ui/card";
 import { ImportWizard } from "./_components/import-wizard";
 
-export default function ImportPage() {
+export default async function ImportPage() {
+  await requirePermission("import", "Member");
   return (
     <div className="space-y-6">
       <div>

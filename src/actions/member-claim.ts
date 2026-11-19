@@ -8,7 +8,6 @@ import { getMessagingService } from "@/lib/messaging";
 import { renderEmail } from "@/lib/email-templates/render";
 import { ClaimMagicLinkEmail } from "@/lib/email-templates/ClaimMagicLinkEmail";
 import { logAudit } from "@/lib/audit";
-import { ROLES, serializeRoles } from "@/lib/rbac/roles";
 import {
   startClaimByEmailSchema,
   startClaimByPhoneSchema,
@@ -287,29 +286,17 @@ export async function consumeClaimToken(token: string) {
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, role: true },
+    select: { id: true },
   });
   if (existingUser) {
     // An account already exists for this email — usually because the user
     // signed up via Google earlier, or a previous claim half-completed.
     // The click itself proves email ownership, so it's safe to:
     //   - link the member to that user,
-    //   - grant the MEMBER role if they don't already have one,
     //   - consume the invite so the link can't be replayed.
     // We then bounce them to login with the email pre-filled. They sign in
     // via magic link or Google and land on /me with full member access.
-    const currentRoles = existingUser.role
-      ? existingUser.role.split(",").map((r) => r.trim()).filter(Boolean)
-      : [];
-    const nextRoles = currentRoles.includes(ROLES.MEMBER)
-      ? currentRoles
-      : [...currentRoles, ROLES.MEMBER];
-
     await prisma.$transaction([
-      prisma.user.update({
-        where: { id: existingUser.id },
-        data: { role: nextRoles.join(",") },
-      }),
       prisma.member.update({
         where: { id: invite.memberId },
         data: {
@@ -354,7 +341,7 @@ export async function consumeClaimToken(token: string) {
     prisma.user.update({
       where: { id: userId },
       data: {
-        role: serializeRoles([ROLES.MEMBER]),
+        role: "member",
         emailVerified: true,
       },
     }),

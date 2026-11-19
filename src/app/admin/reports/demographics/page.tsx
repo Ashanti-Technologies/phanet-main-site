@@ -6,7 +6,7 @@ import { ReportHeader } from "../_components/report-shell";
 import { Stat } from "@/app/admin/_components/stat";
 
 export default async function DemographicsReportPage() {
-  await requirePermission("read", "Member");
+  await requirePermission("read", "Report");
   const report = await getDemographicsReport();
 
   return (

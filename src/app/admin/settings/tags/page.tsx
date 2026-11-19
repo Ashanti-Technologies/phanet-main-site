@@ -1,4 +1,5 @@
 import { listTags } from "@/actions/tags";
+import { requirePermission } from "@/lib/auth-guard";
 import {
   Card,
   CardContent,
@@ -8,6 +9,7 @@ import {
 import { TagsList } from "./_components/tags-list";
 
 export default async function TagsPage() {
+  await requirePermission("update", "Tag");
   const tags = await listTags();
   return (
     <div className="space-y-6">

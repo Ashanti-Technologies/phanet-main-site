@@ -6,7 +6,7 @@ import { ReportHeader } from "../_components/report-shell";
 import { Stat } from "@/app/admin/_components/stat";
 
 export default async function EngagementReportPage() {
-  await requirePermission("read", "Attendance");
+  await requirePermission("read", "Report");
   const report = await getEngagementReport();
 
   return (

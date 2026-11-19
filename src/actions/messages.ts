@@ -142,7 +142,7 @@ export async function resolveSegment(
   segment: SegmentInput,
   channel: "EMAIL" | "SMS",
 ) {
-  await requirePermission("read", "Member");
+  await requirePermission("send", "Message");
   const where = segmentWhere(segment, channel);
   const [count, sample] = await Promise.all([
     prisma.member.count({ where }),

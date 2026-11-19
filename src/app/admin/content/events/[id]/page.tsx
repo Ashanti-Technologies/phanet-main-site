@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock, ExternalLink, MapPin, Pencil, Star } from "lucide-react";
 import { prisma } from "@/lib/database";
-import { can, requireAdmin } from "@/lib/auth-guard";
+import { can, requirePermission } from "@/lib/auth-guard";
 import {
   getEventAttendeeRows,
   getEventRooms,
@@ -36,14 +36,18 @@ type Props = { params: Promise<{ id: string }> };
 const TIMING_TONE: Record<string, Tone> = { upcoming: "info", live: "success", ended: "neutral" };
 
 export default async function EventPage({ params }: Props) {
-  await requireAdmin();
+  await requirePermission("read", "Event");
   const { id } = await params;
   const event = await prisma.event.findUnique({ where: { id } });
   if (!event) notFound();
 
-  // Registrations and rooms show people's details → only for roles that can
-  // read members (editors still get the overview and Edit).
-  const canSeePeople = await can("read", "Member");
+  // Registrations and rooms show people's details → only for roles with
+  // registration access (content editors still get the overview and Edit).
+  const [canSeePeople, canEdit, canExport] = await Promise.all([
+    can("read", "EventRegistration"),
+    can("update", "Event"),
+    can("export", "EventRegistration"),
+  ]);
   const isCamp = event.type === "CAMP";
   // ponytail: loads every tab's data up front; fine for camp-sized events.
   const showFees = chargesFees(event.paymentMode);
@@ -90,7 +94,7 @@ export default async function EventPage({ params }: Props) {
           ...(rooms && people.length
             ? [{ label: "Everyone has a room", done: unassigned === 0, href: "?tab=rooms", cta: "Allocate" }]
             : []),
-        ];
+        ].filter((item) => canEdit || item.href !== editHref);
 
   const tabs: EventTab[] = [
     { value: "overview", label: "Overview" },
@@ -184,15 +188,17 @@ export default async function EventPage({ params }: Props) {
                 </Link>
               </Button>
             )}
-            <Button asChild>
-              <Link href={editHref}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
-              </Link>
-            </Button>
+            {canEdit && (
+              <Button asChild>
+                <Link href={editHref}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </Link>
+              </Button>
+            )}
             <EventMoreMenu
               registerPath={isOpen ? registerPath : null}
-              exportHref={rows?.length ? `/admin/content/events/${event.id}/registrations/export` : null}
+              exportHref={canExport && rows?.length ? `/admin/content/events/${event.id}/registrations/export` : null}
             />
           </div>
         </div>

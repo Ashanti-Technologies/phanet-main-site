@@ -28,6 +28,8 @@ import {
 
 type Item = {
   label: string;
+  /** Admin route; hidden unless the user may open it. */
+  href?: string;
   icon: React.ReactNode;
   onSelect: () => void;
   shortcut?: string;
@@ -39,7 +41,7 @@ type Group = {
   items: Item[];
 };
 
-export function CommandPalette() {
+export function CommandPalette({ allowed }: { allowed: string[] }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { setTheme } = useTheme();
@@ -76,91 +78,107 @@ export function CommandPalette() {
         {
           label: "Dashboard",
           icon: <LayoutDashboard className="h-4 w-4" />,
+          href: "/admin",
           onSelect: go("/admin"),
           keywords: ["home", "overview"],
         },
         {
           label: "Events",
           icon: <CalendarDays className="h-4 w-4" />,
+          href: "/admin/content/events",
           onSelect: go("/admin/content/events"),
         },
         {
           label: "Pages",
           icon: <FileText className="h-4 w-4" />,
+          href: "/admin/content/pages",
           onSelect: go("/admin/content/pages"),
         },
         {
           label: "Homepage",
           icon: <Home className="h-4 w-4" />,
+          href: "/admin/content/homepage",
           onSelect: go("/admin/content/homepage"),
         },
         {
           label: "Sermons",
           icon: <MessageSquare className="h-4 w-4" />,
+          href: "/admin/content/sermons",
           onSelect: go("/admin/content/sermons"),
         },
         {
           label: "Projects",
           icon: <FolderKanban className="h-4 w-4" />,
+          href: "/admin/projects",
           onSelect: go("/admin/projects"),
         },
         {
           label: "Finance",
           icon: <Wallet className="h-4 w-4" />,
+          href: "/admin/finance",
           onSelect: go("/admin/finance"),
           keywords: ["money", "income", "expenses", "tithe", "offering"],
         },
         {
           label: "Record income",
           icon: <Plus className="h-4 w-4" />,
+          href: "/admin/finance/income/new",
           onSelect: go("/admin/finance/income/new"),
           keywords: ["tithe", "offering", "collection", "gift"],
         },
         {
           label: "Record expense",
           icon: <Plus className="h-4 w-4" />,
+          href: "/admin/finance/expenses/new",
           onSelect: go("/admin/finance/expenses/new"),
           keywords: ["spend", "payment", "receipt"],
         },
         {
           label: "My tasks",
           icon: <ClipboardList className="h-4 w-4" />,
+          href: "/admin/tasks",
           onSelect: go("/admin/tasks"),
           keywords: ["follow up", "pastoral"],
         },
         {
           label: "Prayer requests",
           icon: <HeartHandshake className="h-4 w-4" />,
+          href: "/admin/prayer-requests",
           onSelect: go("/admin/prayer-requests"),
           keywords: ["prayers", "requests"],
         },
         {
           label: "Growth report",
           icon: <BarChart3 className="h-4 w-4" />,
+          href: "/admin/reports/growth",
           onSelect: go("/admin/reports/growth"),
           keywords: ["reports", "members"],
         },
         {
           label: "Demographics report",
           icon: <BarChart3 className="h-4 w-4" />,
+          href: "/admin/reports/demographics",
           onSelect: go("/admin/reports/demographics"),
           keywords: ["reports", "age", "gender", "units"],
         },
         {
           label: "Engagement report",
           icon: <BarChart3 className="h-4 w-4" />,
+          href: "/admin/reports/engagement",
           onSelect: go("/admin/reports/engagement"),
           keywords: ["reports", "attendance"],
         },
         {
           label: "Users",
           icon: <Users className="h-4 w-4" />,
+          href: "/admin/users",
           onSelect: go("/admin/users"),
           keywords: ["members", "people"],
         },
         {
           label: "Church units",
           icon: <Settings className="h-4 w-4" />,
+          href: "/admin/settings/church-units",
           onSelect: go("/admin/settings/church-units"),
           keywords: ["settings"],
         },
@@ -172,18 +190,21 @@ export function CommandPalette() {
         {
           label: "New project",
           icon: <Plus className="h-4 w-4" />,
+          href: "/admin/projects/new",
           onSelect: go("/admin/projects/new"),
           keywords: ["create", "add"],
         },
         {
           label: "New event",
           icon: <Plus className="h-4 w-4" />,
+          href: "/admin/content/events/new",
           onSelect: go("/admin/content/events/new"),
           keywords: ["create", "add"],
         },
         {
           label: "New page",
           icon: <Plus className="h-4 w-4" />,
+          href: "/admin/content/pages/new",
           onSelect: go("/admin/content/pages/new"),
           keywords: ["create", "add"],
         },
@@ -232,6 +253,9 @@ export function CommandPalette() {
       ],
     },
   ];
+  const visibleGroups = groups
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.href || allowed.includes(i.href)) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <Command.Dialog
@@ -257,7 +281,7 @@ export function CommandPalette() {
         <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
           No matches found.
         </Command.Empty>
-        {groups.map((group) => (
+        {visibleGroups.map((group) => (
           <Command.Group
             key={group.heading}
             heading={group.heading}

@@ -1,12 +1,12 @@
 import { getChurchUnits } from "@/actions/church-units";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePermission } from "@/lib/auth-guard";
 import { ChurchUnitsList } from "./_components/church-units-list";
 import { Button } from "@/app/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default async function ChurchUnitsSettingsPage() {
-  await requireAdmin();
+  await requirePermission("update", "ChurchUnit");
   const churchUnits = await getChurchUnits(false);
 
   return (

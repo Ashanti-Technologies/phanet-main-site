@@ -14,7 +14,7 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  await requirePermission("export", "Member");
+  await requirePermission("export", "EventRegistration");
   const { id } = await params;
   const event = await prisma.event.findUnique({
     where: { id },

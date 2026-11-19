@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/database";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePermission } from "@/lib/auth-guard";
 import {
   contentPageUpsertSchema,
   eventUpsertSchema,
@@ -28,7 +28,7 @@ function emptyToNull(value?: string | null) {
 }
 
 export async function getAdminEvents() {
-  await requireAdmin();
+  await requirePermission("read", "Event");
   return prisma.event.findMany({
     orderBy: { date: "desc" },
     include: { _count: { select: { attendees: true } } },
@@ -36,7 +36,7 @@ export async function getAdminEvents() {
 }
 
 export async function getAdminEventById(id: string) {
-  await requireAdmin();
+  await requirePermission("read", "Event");
   const event = await prisma.event.findUnique({
     where: { id },
     include: {
@@ -61,7 +61,7 @@ export async function getAdminEventById(id: string) {
 
 /** Active funds for the event fee picker. Read directly: EDITORs manage events but can't read Fund. */
 export async function listFeeFunds() {
-  await requireAdmin();
+  await requirePermission("update", "Event");
   return prisma.fund.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
@@ -71,7 +71,7 @@ export async function listFeeFunds() {
 
 /** Other events' registration forms, for "Copy form from…" in the builder. */
 export async function listEventForms(excludeId?: string) {
-  await requireAdmin();
+  await requirePermission("read", "Event");
   return prisma.event.findMany({
     where: { id: { not: excludeId }, registrationEnabled: true },
     orderBy: { date: "desc" },
@@ -83,8 +83,8 @@ export async function listEventForms(excludeId?: string) {
 export async function saveEvent(
   input: EventUpsertInput,
 ): Promise<{ success: true; data: { id: string } } | { success: false; error: string }> {
-  await requireAdmin();
   const data = eventUpsertSchema.parse(input);
+  await requirePermission(data.id ? "update" : "create", "Event");
   // Returned, not thrown: Next masks thrown messages in production.
   const feeError = feeSettingsError(data);
   if (feeError) return { success: false, error: feeError };
@@ -191,7 +191,7 @@ export async function saveEvent(
 }
 
 export async function deleteEvent(id: string) {
-  await requireAdmin();
+  await requirePermission("delete", "Event");
   const event = await prisma.event.delete({ where: { id } });
   revalidatePath("/admin/content/events");
   revalidatePath("/events");
@@ -201,18 +201,18 @@ export async function deleteEvent(id: string) {
 }
 
 export async function getAdminContentPages() {
-  await requireAdmin();
+  await requirePermission("read", "ContentPage");
   return prisma.contentPage.findMany({ orderBy: { updatedAt: "desc" } });
 }
 
 export async function getAdminContentPageById(id: string) {
-  await requireAdmin();
+  await requirePermission("read", "ContentPage");
   return prisma.contentPage.findUnique({ where: { id } });
 }
 
 export async function saveContentPage(input: ContentPageUpsertInput) {
-  await requireAdmin();
   const data = contentPageUpsertSchema.parse(input);
+  await requirePermission(data.id ? "update" : "create", "ContentPage");
   const payload = {
     slug: data.slug,
     title: data.title,
@@ -237,7 +237,7 @@ export async function saveContentPage(input: ContentPageUpsertInput) {
 }
 
 export async function deleteContentPage(id: string) {
-  await requireAdmin();
+  await requirePermission("delete", "ContentPage");
   const page = await prisma.contentPage.delete({ where: { id } });
   revalidatePath("/admin/content/pages");
   revalidatePath(`/${page.slug}`);
@@ -245,13 +245,13 @@ export async function deleteContentPage(id: string) {
 }
 
 export async function getAdminHomepageSections() {
-  await requireAdmin();
+  await requirePermission("read", "HomepageSection");
   return prisma.homepageSection.findMany({ orderBy: { order: "asc" } });
 }
 
 export async function saveHomepageSection(input: HomepageSectionUpsertInput) {
-  await requireAdmin();
   const data = homepageSectionUpsertSchema.parse(input);
+  await requirePermission(data.id ? "update" : "create", "HomepageSection");
   const payload = {
     key: data.key,
     eyebrow: emptyToNull(data.eyebrow),
@@ -280,7 +280,7 @@ export async function saveHomepageSection(input: HomepageSectionUpsertInput) {
 }
 
 export async function deleteHomepageSection(id: string) {
-  await requireAdmin();
+  await requirePermission("delete", "HomepageSection");
   const section = await prisma.homepageSection.delete({ where: { id } });
   revalidatePath("/admin/content/homepage");
   revalidatePath("/");
@@ -288,13 +288,13 @@ export async function deleteHomepageSection(id: string) {
 }
 
 export async function getAdminSermonFeatures() {
-  await requireAdmin();
+  await requirePermission("read", "Sermon");
   return prisma.sermonFeature.findMany({ orderBy: [{ order: "asc" }, { createdAt: "desc" }] });
 }
 
 export async function saveSermonFeature(input: SermonFeatureUpsertInput) {
-  await requireAdmin();
   const data = sermonFeatureUpsertSchema.parse(input);
+  await requirePermission(data.id ? "update" : "create", "Sermon");
   const payload = {
     videoId: data.videoId,
     title: data.title,
@@ -318,7 +318,7 @@ export async function saveSermonFeature(input: SermonFeatureUpsertInput) {
 }
 
 export async function deleteSermonFeature(id: string) {
-  await requireAdmin();
+  await requirePermission("delete", "Sermon");
   const sermon = await prisma.sermonFeature.delete({ where: { id } });
   revalidatePath("/admin/content/sermons");
   revalidatePath("/messages");
@@ -327,7 +327,7 @@ export async function deleteSermonFeature(id: string) {
 }
 
 export async function createMediaAsset(input: MediaAssetCreateInput) {
-  await requireAdmin();
+  await requirePermission("create", "MediaAsset");
   const data = mediaAssetCreateSchema.parse(input);
   const media = await prisma.mediaAsset.upsert({
     where: { publicId: data.publicId },

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/database";
-import { requirePermission } from "@/lib/auth-guard";
+import { requirePermission, requireOrgWide } from "@/lib/auth-guard";
 import {
   householdCreateSchema,
   householdUpdateSchema,
@@ -86,7 +86,7 @@ export async function deleteHousehold(id: string) {
 }
 
 export async function assignMemberToHousehold(memberId: string, householdId: string | null) {
-  const session = await requirePermission("update", "Member");
+  const session = await requireOrgWide("update", "Member");
   const member = await prisma.member.update({
     where: { id: memberId },
     data: { householdId },

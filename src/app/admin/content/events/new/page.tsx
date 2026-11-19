@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { listEventForms, listFeeFunds } from "@/actions/cms";
@@ -5,6 +6,7 @@ import { Button } from "@/app/components/ui/button";
 import { EventForm } from "../_components/event-form";
 
 export default async function NewEventPage() {
+  await requirePermission("create", "Event");
   const [otherForms, funds] = await Promise.all([listEventForms(), listFeeFunds()]);
   return (
     <div className="space-y-6">

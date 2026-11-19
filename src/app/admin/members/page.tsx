@@ -3,6 +3,7 @@ import { listMembers } from "@/actions/members";
 import { getHouseholdById } from "@/actions/households";
 import { getChurchUnits } from "@/actions/church-units";
 import { listTags } from "@/actions/tags";
+import { can } from "@/lib/auth-guard";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -39,11 +40,13 @@ export default async function MembersPage({
     pageSize: query.pageSize,
   };
 
-  const [data, units, tags, household] = await Promise.all([
+  const [data, units, tags, household, canImport, canCreate] = await Promise.all([
     listMembers(filter),
     getChurchUnits(true),
     listTags(),
     householdId ? getHouseholdById(householdId) : null,
+    can("import", "Member"),
+    can("create", "Member"),
   ]);
 
   // Same URL minus the household scope (set by the household page's link).
@@ -64,16 +67,20 @@ export default async function MembersPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/admin/members/import">
-              <Upload className="h-4 w-4 mr-1.5" /> Import
-            </Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/admin/members/new">
-              <Plus className="h-4 w-4 mr-1.5" /> New member
-            </Link>
-          </Button>
+          {canImport && (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/members/import">
+                <Upload className="h-4 w-4 mr-1.5" /> Import
+              </Link>
+            </Button>
+          )}
+          {canCreate && (
+            <Button asChild size="sm">
+              <Link href="/admin/members/new">
+                <Plus className="h-4 w-4 mr-1.5" /> New member
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 

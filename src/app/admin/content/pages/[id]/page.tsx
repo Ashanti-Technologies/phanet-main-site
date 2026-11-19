@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default async function EditContentPagePage({ params }: Props) {
+  await requirePermission("update", "ContentPage");
   const { id } = await params;
   const page = await getAdminContentPageById(id);
   if (!page) notFound();

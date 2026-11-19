@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { subject as casl_subject } from "@casl/ability";
@@ -7,15 +7,14 @@ import { prisma } from "./database";
 import {
   ANONYMOUS_CONTEXT,
   defineAbilityFor,
-  parseRoles,
-  hasAnyAdminRole,
+  hasAdminAccess,
+  isSuperAdmin,
+  scopeOf as scopeOfCtx,
   type AbilityContext,
   type AppAbility,
 } from "./rbac";
+import { loadGrants } from "./rbac/access";
 import type { Action, Subject } from "./rbac/permissions";
-
-/** Legacy alias kept for back-compat with existing call sites. */
-export type UserRole = "user" | "admin";
 
 /**
  * Get the current session or null if not authenticated.
@@ -40,27 +39,38 @@ export async function requireAuth(redirectTo?: string) {
 
 /**
  * Load the RBAC context for the current request (cached per request).
+ * Read from the DB every request, so revoking access takes effect at once.
  * Returns ANONYMOUS_CONTEXT if not signed in.
  */
 export const getAbilityContext = cache(async (): Promise<AbilityContext> => {
   const session = await getServerAuthSession();
   if (!session?.user) return ANONYMOUS_CONTEXT;
+  const real = { userId: session.user.id, grants: await loadGrants(session.user.id) };
 
-  const roles = parseRoles(session.user.role);
-
-  // Only query unit scoping if at least one role needs it.
-  const needsScopes = roles.includes("unit_leader");
-  const scopedUnitIds = needsScopes
-    ? (
-        await prisma.userUnitRole.findMany({
-          where: { userId: session.user.id },
-          select: { unitId: true },
-        })
-      ).map((u) => u.unitId)
-    : [];
-
-  return { userId: session.user.id, roles, scopedUnitIds };
+  // "View as": only honoured for a real Super Admin. Swaps in the target's
+  // grants (never more than the Super Admin already has); writes are blocked.
+  const previewId = (await cookies()).get(PREVIEW_COOKIE)?.value;
+  if (!previewId || previewId === real.userId || !isSuperAdmin(real)) return real;
+  const target = await prisma.user.findUnique({
+    where: { id: previewId },
+    select: { id: true, name: true },
+  });
+  if (!target) return real;
+  return {
+    userId: real.userId,
+    grants: await loadGrants(target.id),
+    preview: { userId: target.id, name: target.name },
+  };
 });
+
+export const PREVIEW_COOKIE = "phanet.preview_as";
+const READ_ONLY_ACTIONS = new Set<Action>(["read", "access"]);
+
+/** Previews are read-only: block anything that would change data. */
+export async function assertNotPreviewing(action: Action = "update") {
+  if (READ_ONLY_ACTIONS.has(action)) return;
+  if ((await getAbilityContext()).preview) redirect("/unauthorized?preview=1");
+}
 
 /**
  * Build a CASL ability for the current request. Cached per render.
@@ -82,10 +92,41 @@ export async function requirePermission<S extends Subject>(
 ) {
   const session = await requireAuth("/admin/login");
   const ability = await getAbility();
-  const allowed = instance
-    ? ability.can(action, casl_subject(subjectName, { ...instance }) as never)
-    : ability.can(action, subjectName);
-  if (!allowed) redirect("/unauthorized");
+  if (!check(ability, action, subjectName, instance)) deny(action, subjectName);
+  await assertNotPreviewing(action);
+  // Anything beyond member self-service needs a fresh, 2FA-backed admin
+  // session — server actions are public endpoints, the layout guard isn't enough.
+  const memberOnly = defineAbilityFor({ userId: session.user.id, grants: [] });
+  if (!check(memberOnly, action, subjectName, instance)) await requireAdmin();
+  return session;
+}
+
+/** Send the user to /unauthorized, saying which permission was missing. */
+function deny(action: Action, subjectName: Subject): never {
+  redirect(`/unauthorized?need=${encodeURIComponent(`${action}:${subjectName}`)}`);
+}
+
+/**
+ * Where the current user may do `action` on `subject`: "all" or the unit ids
+ * they're limited to. Narrow list queries with it, e.g.
+ * `units: { some: { unitId: { in: scope } } }` when scope isn't "all".
+ */
+export async function scopeOf(action: Action, subjectName: Subject) {
+  return scopeOfCtx(await getAbilityContext(), action, subjectName);
+}
+
+/** Like requirePermission, but unit-scoped access isn't enough. */
+export async function requireOrgWide(action: Action, subjectName: Subject) {
+  const session = await requireAdmin();
+  if ((await scopeOf(action, subjectName)) !== "all") deny(action, subjectName);
+  await assertNotPreviewing(action);
+  return session;
+}
+
+/** Managing roles and admin access is reserved for Super Admins. */
+export async function requireSuperAdmin() {
+  const session = await requireAdmin();
+  if (!isSuperAdmin(await getAbilityContext())) deny("manage", "AdminRole");
   return session;
 }
 
@@ -111,7 +152,7 @@ export async function requireAdmin(
 ) {
   const session = await requireAuth("/admin/login");
   const ctx = await getAbilityContext();
-  if (!hasAnyAdminRole(ctx.roles)) redirect("/unauthorized");
+  if (!hasAdminAccess(ctx)) redirect("/unauthorized");
 
   // Force admin re-auth if the session is older than 12h.
   const sessionStart = session.session?.createdAt
@@ -148,19 +189,28 @@ export async function can<S extends Subject>(
   subjectName: S,
   instance?: Record<string, unknown>,
 ): Promise<boolean> {
-  const ability = await getAbility();
-  return instance
-    ? ability.can(action, casl_subject(subjectName, { ...instance }) as never)
-    : ability.can(action, subjectName);
+  return check(await getAbility(), action, subjectName, instance);
 }
 
 /**
- * Check if the current user has a given legacy role. Kept for back-compat.
+ * With an instance, CASL evaluates conditions against it. Without one, CASL
+ * would pass ANY conditional rule — so "may read their own Member record"
+ * would unlock the whole directory. Type-level checks therefore only count
+ * unconditional rules and unit-scoped ones (callers narrow those with
+ * `scopeOf`); self-only rules need the instance.
  */
-export async function hasRole(role: UserRole): Promise<boolean> {
-  const ctx = await getAbilityContext();
-  if (role === "admin") return ctx.roles.includes("super_admin");
-  return ctx.roles.includes("member");
+function check(
+  ability: AppAbility,
+  action: Action,
+  subjectName: Subject,
+  instance?: Record<string, unknown>,
+): boolean {
+  if (instance) {
+    return ability.can(action, casl_subject(subjectName, { ...instance }) as never);
+  }
+  return ability
+    .rulesFor(action, subjectName)
+    .some((r) => !r.inverted && (!r.conditions || "unitIds" in r.conditions));
 }
 
 export async function isAuthenticated(): Promise<boolean> {
@@ -169,6 +219,5 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 export async function isAdmin(): Promise<boolean> {
-  const ctx = await getAbilityContext();
-  return hasAnyAdminRole(ctx.roles);
+  return hasAdminAccess(await getAbilityContext());
 }

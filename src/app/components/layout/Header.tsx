@@ -6,7 +6,6 @@ import { Sheet, SheetTrigger, SheetContent } from "../ui/sheet";
 import { LiquidButton } from "../animate-ui/components/buttons/liquid";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { authClient } from "@/lib/auth-client";
-import { hasAnyAdminRole, parseRoles } from "@/lib/rbac/roles";
 
 const navItems = [
   { label: "New Here?", href: "/new-here" },

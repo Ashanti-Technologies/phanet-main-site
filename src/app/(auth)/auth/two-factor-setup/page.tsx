@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldAlert, ShieldCheck } from "lucide-react";
-import { hasAnyAdminRole, parseRoles } from "@/lib/rbac/roles";
+import { userHasAdminAccess } from "@/lib/rbac/access";
 import { getServerAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/database";
 import {
@@ -23,8 +23,7 @@ export default async function TwoFactorSetupPage() {
     redirect("/admin/login?callbackUrl=/auth/two-factor-setup");
   }
 
-  const roles = parseRoles(session.user.role);
-  if (!hasAnyAdminRole(roles)) {
+  if (!(await userHasAdminAccess(session.user.id))) {
     redirect("/unauthorized");
   }
 

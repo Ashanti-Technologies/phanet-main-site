@@ -27,7 +27,7 @@ function friendly(err: unknown): Result {
 }
 
 // Room setup and allocation both touch people's records → same gate as check-in.
-const guard = () => requirePermission("update", "Member");
+const guard = () => requirePermission("update", "EventRegistration");
 
 export async function createRoomType(eventId: string, input: unknown): Promise<Result> {
   await guard();

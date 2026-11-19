@@ -14,7 +14,17 @@ import { ErrorBox, Field, OptionSelect } from "../../_components/form-bits";
 
 type Opt = { value: string; label: string };
 
-export function ExpenseForm({ categories, funds, units }: { categories: Opt[]; funds: Opt[]; units: Opt[] }) {
+export function ExpenseForm({
+  categories,
+  funds,
+  units,
+  canApprove,
+}: {
+  categories: Opt[];
+  funds: Opt[];
+  units: Opt[];
+  canApprove: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -85,18 +95,20 @@ export function ExpenseForm({ categories, funds, units }: { categories: Opt[]; f
           folder="finance/receipts"
         />
       </Field>
-      <Field label="Status">
-        <OptionSelect
-          value={v.status}
-          onChange={(x) => set("status", x as typeof v.status)}
-          options={[
-            { value: "PENDING", label: "Pending approval" },
-            { value: "APPROVED", label: "Approved, not yet paid" },
-            { value: "PAID", label: "Already paid" },
-          ]}
-          placeholder="Status"
-        />
-      </Field>
+      {canApprove && (
+        <Field label="Status">
+          <OptionSelect
+            value={v.status}
+            onChange={(x) => set("status", x as typeof v.status)}
+            options={[
+              { value: "PENDING", label: "Pending approval" },
+              { value: "APPROVED", label: "Approved, not yet paid" },
+              { value: "PAID", label: "Already paid" },
+            ]}
+            placeholder="Status"
+          />
+        </Field>
+      )}
       <ErrorBox error={error} />
       <div className="flex justify-end gap-2 border-t pt-4">
         <Button type="button" variant="outline" onClick={() => router.back()} disabled={pending}>

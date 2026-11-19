@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth-guard";
 import { listTemplates } from "@/actions/messages";
 import { getChurchUnits } from "@/actions/church-units";
 import { listTags } from "@/actions/tags";
@@ -10,6 +11,7 @@ import {
 import { ComposeForm } from "./_components/compose-form";
 
 export default async function ComposePage() {
+  await requirePermission("send", "Message");
   const [templates, units, tags] = await Promise.all([
     listTemplates(),
     getChurchUnits(true),

@@ -10,7 +10,6 @@ import { getMessagingService } from "@/lib/messaging";
 import { renderEmail } from "@/lib/email-templates/render";
 import { MemberInviteEmail } from "@/lib/email-templates/MemberInviteEmail";
 import { logAudit } from "@/lib/audit";
-import { ROLES, serializeRoles } from "@/lib/rbac/roles";
 import {
   memberInviteAcceptSchema,
   memberInviteSendSchema,
@@ -158,7 +157,7 @@ export async function acceptMemberInvite(input: MemberInviteAcceptInput) {
     prisma.user.update({
       where: { id: userId },
       data: {
-        role: serializeRoles([ROLES.MEMBER]),
+        role: "member",
         emailVerified: true,
       },
     }),

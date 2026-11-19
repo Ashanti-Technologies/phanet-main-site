@@ -14,39 +14,41 @@ datasource db {
 }
 
 model User {
-  id                  String          @id
+  id                  String                @id
   name                String
   email               String
-  emailVerified       Boolean         @default(false)
+  emailVerified       Boolean               @default(false)
   image               String?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   phoneNumber         String?
   phoneNumberVerified Boolean?
-  // Comma-separated list of role keys (e.g. "super_admin,pastor"). See src/lib/rbac/roles.ts.
+  // Better Auth admin-plugin field. NOT used for authorization — admin access
+  // comes from AdminRoleAssignment (see src/lib/rbac). Always "user"/"member".
   role                String?
-  banned              Boolean?        @default(false)
+  banned              Boolean?              @default(false)
   banReason           String?
   banExpires          DateTime?
-  twoFactorEnabled    Boolean         @default(false)
+  twoFactorEnabled    Boolean               @default(false)
   lastLoginMethod     String?
   twoFactors          TwoFactor[]
   sessions            Session[]
   accounts            Account[]
   commitments         Commitment[]
-  unitRoles           UserUnitRole[]
-  auditLogs           AuditLog[]      @relation("AuditActor")
+  adminAccess         AdminRoleAssignment[] @relation("AccessHolder")
+  accessGranted       AdminRoleAssignment[] @relation("AccessGranter")
+  auditLogs           AuditLog[]            @relation("AuditActor")
   member              Member?
   importJobs          ImportJob[]
-  visitations         Visitation[]    @relation("VisitedBy")
-  assignedTasks       FollowUpTask[]  @relation("TaskAssignee")
-  createdTasks        FollowUpTask[]  @relation("TaskCreator")
-  memberNotes         MemberNote[]    @relation("NoteAuthor")
-  createdInvites      MemberInvite[]  @relation("InviteCreator")
-  incomesRecorded     Income[]        @relation("IncomeRecordedBy")
+  visitations         Visitation[]          @relation("VisitedBy")
+  assignedTasks       FollowUpTask[]        @relation("TaskAssignee")
+  createdTasks        FollowUpTask[]        @relation("TaskCreator")
+  memberNotes         MemberNote[]          @relation("NoteAuthor")
+  createdInvites      MemberInvite[]        @relation("InviteCreator")
+  incomesRecorded     Income[]              @relation("IncomeRecordedBy")
   recurringGifts      RecurringGift[]
-  expensesRecorded    Expense[]       @relation("ExpenseRecordedBy")
-  expensesApproved    Expense[]       @relation("ExpenseApprovedBy")
+  expensesRecorded    Expense[]             @relation("ExpenseRecordedBy")
+  expensesApproved    Expense[]             @relation("ExpenseApprovedBy")
 
   @@unique([email])
   @@unique([phoneNumber])
@@ -59,16 +61,41 @@ enum UnitRole {
   ASSISTANT
 }
 
-model UserUnitRole {
-  userId String
-  unitId String
-  role   UnitRole         @default(LEADER)
-  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  unit   ChurchUnitOption @relation(fields: [unitId], references: [id], onDelete: Cascade)
+// A bundle of permission keys from src/lib/rbac/catalog.ts. "*" = everything
+// (only on the system Super Admin role).
+model AdminRole {
+  id          String                @id @default(cuid())
+  name        String                @unique
+  description String?
+  permissions String[]
+  isSystem    Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  assignments AdminRoleAssignment[]
 
-  @@id([userId, unitId])
+  @@map("admin_role")
+}
+
+// Gives a user a role, everywhere (unitId null) or only for one church unit.
+// Uniqueness of (userId, roleId, unitId) is enforced in src/actions/access.ts
+// because Postgres treats NULL unitIds as distinct.
+model AdminRoleAssignment {
+  id          String            @id @default(cuid())
+  userId      String
+  roleId      String
+  unitId      String?
+  expiresAt   DateTime?
+  grantedById String?
+  createdAt   DateTime          @default(now())
+  user        User              @relation("AccessHolder", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy   User?             @relation("AccessGranter", fields: [grantedById], references: [id], onDelete: SetNull)
+  role        AdminRole         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  unit        ChurchUnitOption? @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([roleId])
   @@index([unitId])
-  @@map("user_unit_role")
+  @@map("admin_role_assignment")
 }
 
 model AuditLog {
@@ -747,15 +774,15 @@ model ProjectImage {
 }
 
 model ChurchUnitOption {
-  id        String         @id @default(cuid())
-  name      String         @unique
-  isActive  Boolean        @default(true)
-  order     Int            @default(0)
-  createdAt DateTime       @default(now())
-  userRoles UserUnitRole[]
-  members   MemberUnit[]
-  expenses  Expense[]
-  budgets   Budget[]
+  id          String                @id @default(cuid())
+  name        String                @unique
+  isActive    Boolean               @default(true)
+  order       Int                   @default(0)
+  createdAt   DateTime              @default(now())
+  adminAccess AdminRoleAssignment[]
+  members     MemberUnit[]
+  expenses    Expense[]
+  budgets     Budget[]
 
   @@map("church_unit_option")
 }
