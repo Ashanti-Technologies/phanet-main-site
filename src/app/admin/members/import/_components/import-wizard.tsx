@@ -20,7 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
-import { Badge } from "@/app/components/ui/badge";
+import { StatusBadge, TONE_TEXT } from "@/app/admin/_components/status-badge";
+import { Stat } from "@/app/admin/_components/stat";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -63,7 +65,7 @@ const duplicateColumns = dup.columns([
     header: "Reason",
     filterFn: facetFilterFn,
     cell: ({ getValue }) => (
-      <span className="text-xs text-amber-700 dark:text-amber-400">{getValue()}</span>
+      <span className={cn("text-xs", TONE_TEXT.warning)}>{getValue()}</span>
     ),
   }),
 ]);
@@ -321,21 +323,23 @@ export function ImportWizard() {
       {step === "preview" && preview && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="text-sm py-1 px-3">
-              Total: {preview.total}
-            </Badge>
-            <Badge
-              variant="outline"
-              className="text-sm py-1 px-3 text-emerald-700 border-emerald-500/40 dark:text-emerald-300"
-            >
-              Will import: {preview.importable}
-            </Badge>
-            <Badge
-              variant="outline"
-              className="text-sm py-1 px-3 text-amber-700 border-amber-500/40 dark:text-amber-300"
-            >
-              Skipped (duplicate): {preview.duplicates}
-            </Badge>
+            <StatusBadge
+              status="total"
+              label={`Total: ${preview.total}`}
+              className="text-sm py-1 px-3"
+            />
+            <StatusBadge
+              status="importable"
+              tone="success"
+              label={`Will import: ${preview.importable}`}
+              className="text-sm py-1 px-3"
+            />
+            <StatusBadge
+              status="duplicates"
+              tone="warning"
+              label={`Skipped (duplicate): ${preview.duplicates}`}
+              className="text-sm py-1 px-3"
+            />
           </div>
 
           {preview.sampleDuplicates.length > 0 && (
@@ -369,15 +373,17 @@ export function ImportWizard() {
       )}
 
       {step === "done" && result && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-6 text-center space-y-3">
-          <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto" />
-          <h3 className="text-lg font-semibold">Import finished</h3>
-          <div className="flex justify-center gap-6 text-sm">
-            <Stat label="Created" value={result.created} tone="emerald" />
-            <Stat label="Skipped" value={result.skipped} tone="amber" />
-            <Stat label="Failed" value={result.failed} tone="rose" />
+        <div className="rounded-lg border bg-card p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className={cn("h-5 w-5", TONE_TEXT.success)} />
+            <h3 className="text-base font-medium">Import finished</h3>
           </div>
-          <div className="flex justify-center gap-2 pt-2">
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="Created" value={result.created} tone="success" />
+            <Stat label="Skipped" value={result.skipped} tone="warning" />
+            <Stat label="Failed" value={result.failed} tone="danger" />
+          </div>
+          <div className="flex gap-2">
             <Button variant="outline" onClick={() => location.reload()}>
               Import another file
             </Button>
@@ -428,25 +434,3 @@ function Stepper({ step }: { step: Step }) {
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "emerald" | "amber" | "rose";
-}) {
-  const color =
-    tone === "emerald"
-      ? "text-emerald-700 dark:text-emerald-300"
-      : tone === "amber"
-        ? "text-amber-700 dark:text-amber-300"
-        : "text-rose-700 dark:text-rose-300";
-  return (
-    <div>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
-    </div>
-  );
-}

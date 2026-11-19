@@ -10,6 +10,7 @@ import {
   AvatarImage,
 } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
+import { StatusBadge } from "@/app/admin/_components/status-badge";
 import { Button } from "@/app/components/ui/button";
 import { Switch } from "@/app/components/ui/switch";
 import { Label } from "@/app/components/ui/label";
@@ -75,7 +76,7 @@ function userColumns(onEdit: (user: UserRow) => void) {
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
               {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
-              <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
+              <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                 {initials(user.name)}
               </AvatarFallback>
             </Avatar>
@@ -106,17 +107,12 @@ function userColumns(onEdit: (user: UserRow) => void) {
             <span className="text-xs text-muted-foreground">None</span>
           ) : (
             row.original.roles.map((r) => (
-              <Badge
+              <StatusBadge
                 key={r}
-                variant="outline"
-                className={
-                  ROLE_DEFINITIONS[r].isAdminRole
-                    ? "border-amber-500/40 text-amber-700 dark:text-amber-400"
-                    : ""
-                }
-              >
-                {ROLE_DEFINITIONS[r].label}
-              </Badge>
+                status={r}
+                label={ROLE_DEFINITIONS[r].label}
+                tone={ROLE_DEFINITIONS[r].isAdminRole ? "warning" : "neutral"}
+              />
             ))
           )}
         </div>

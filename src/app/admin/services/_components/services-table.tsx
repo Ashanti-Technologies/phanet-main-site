@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { listServices } from "@/actions/attendance";
 import { Badge } from "@/app/components/ui/badge";
+import { StatusBadge } from "@/app/admin/_components/status-badge";
 import { Button } from "@/app/components/ui/button";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/app/components/data-table/data-table-column-header";
@@ -51,13 +52,9 @@ const columns = col.columns([
     filterFn: facetFilterFn,
     cell: ({ row }) =>
       row.original.when === "upcoming" ? (
-        <Badge variant="outline" className="text-blue-600 border-blue-500/30">
-          Upcoming
-        </Badge>
+        <StatusBadge status="upcoming" label="Upcoming" tone="info" />
       ) : (
-        <Badge variant="outline" className="text-muted-foreground">
-          Past
-        </Badge>
+        <StatusBadge status="past" label="Past" />
       ),
   }),
   col.accessor((s) => s.location ?? "", {

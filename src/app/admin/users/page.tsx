@@ -18,7 +18,7 @@ export default async function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Admin access</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Admin access</h1>
         <p className="text-sm text-muted-foreground">
           Assign admin roles to staff. Members live in the Members directory and
           do not appear here unless they hold an admin role.

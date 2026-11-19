@@ -7,6 +7,7 @@ import type {
   MessageTemplate,
 } from "@/app/generated/prisma/client";
 import { Badge } from "@/app/components/ui/badge";
+import { StatusBadge, humanize } from "@/app/admin/_components/status-badge";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/app/components/data-table/data-table-column-header";
 import {
@@ -19,6 +20,8 @@ const options = (values: string[]): FacetOption[] =>
   values.map((value) => ({ value, label: value }));
 
 const CHANNELS = options(["EMAIL", "SMS"]);
+const statusOptions = (values: string[]): FacetOption[] =>
+  values.map((value) => ({ value, label: humanize(value) }));
 
 // ---------------------------------------------------------------- Templates
 
@@ -68,14 +71,6 @@ export function TemplatesTable({ templates }: { templates: MessageTemplate[] }) 
 
 // ------------------------------------------------------------------ Batches
 
-const BATCH_TONE: Record<string, string> = {
-  QUEUED: "text-muted-foreground",
-  SENDING: "text-blue-600 border-blue-500/30 dark:text-blue-400",
-  SENT: "text-emerald-700 border-emerald-500/40 dark:text-emerald-300",
-  PARTIAL: "text-amber-700 border-amber-500/40 dark:text-amber-300",
-  FAILED: "text-rose-700 border-rose-500/40 dark:text-rose-300",
-};
-
 const batch = columnHelper<MessageBatch>();
 
 const batchColumns = batch.columns([
@@ -110,9 +105,7 @@ const batchColumns = batch.columns([
     header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     filterFn: facetFilterFn,
     cell: ({ row }) => (
-      <Badge variant="outline" className={BATCH_TONE[row.original.status] ?? ""}>
-        {row.original.status}
-      </Badge>
+      <StatusBadge status={row.original.status} />
     ),
   }),
   batch.accessor((b) => b.finishedAt ?? b.createdAt, {
@@ -135,21 +128,13 @@ export function BatchesTable({ batches }: { batches: MessageBatch[] }) {
       emptyMessage="No batches sent yet."
       filters={[
         { id: "channel", title: "Channel", options: CHANNELS },
-        { id: "status", title: "Status", options: options(Object.keys(BATCH_TONE)) },
+        { id: "status", title: "Status", options: statusOptions(["QUEUED", "SENDING", "SENT", "PARTIAL", "FAILED"]) },
       ]}
     />
   );
 }
 
 // ------------------------------------------------------- Per-recipient logs
-
-const DELIVERY_TONE: Record<string, string> = {
-  QUEUED: "text-muted-foreground",
-  SENT: "text-emerald-700 border-emerald-500/40 dark:text-emerald-300",
-  DELIVERED: "text-emerald-700 border-emerald-500/40 dark:text-emerald-300",
-  FAILED: "text-rose-700 border-rose-500/40 dark:text-rose-300",
-  BOUNCED: "text-amber-700 border-amber-500/40 dark:text-amber-300",
-};
 
 const log = columnHelper<MessageLog>();
 
@@ -165,9 +150,7 @@ const logColumns = log.columns([
     header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     filterFn: facetFilterFn,
     cell: ({ row }) => (
-      <Badge variant="outline" className={DELIVERY_TONE[row.original.status] ?? ""}>
-        {row.original.status}
-      </Badge>
+      <StatusBadge status={row.original.status} />
     ),
   }),
   log.accessor((l) => l.providerRef ?? "", {
@@ -185,7 +168,7 @@ const logColumns = log.columns([
     header: "Error",
     enableSorting: false,
     cell: ({ getValue }) => (
-      <div className="text-xs text-rose-700 dark:text-rose-400 max-w-md truncate">
+      <div className="text-xs text-destructive max-w-md truncate">
         {getValue()}
       </div>
     ),
@@ -203,7 +186,7 @@ export function MessageLogsTable({ logs }: { logs: MessageLog[] }) {
         {
           id: "status",
           title: "Status",
-          options: options(Object.keys(DELIVERY_TONE)),
+          options: statusOptions(["QUEUED", "SENT", "DELIVERED", "FAILED", "BOUNCED"]),
         },
       ]}
     />

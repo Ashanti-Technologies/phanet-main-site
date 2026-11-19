@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { MessageLogsTable } from "../../_components/message-tables";
+import { Stat } from "@/app/admin/_components/stat";
 
 export default async function BatchDetailPage({
   params,
@@ -21,7 +22,7 @@ export default async function BatchDetailPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-semibold tracking-tight">
           {batch.name}
         </h1>
         <div className="flex flex-wrap gap-2 mt-2">
@@ -38,9 +39,9 @@ export default async function BatchDetailPage({
         <Stat
           label="Delivered"
           value={batch.successes}
-          tone="emerald"
+          tone="success"
         />
-        <Stat label="Failed" value={batch.failures} tone="rose" />
+        <Stat label="Failed" value={batch.failures} tone="danger" />
         <Stat
           label="Sent at"
           value={
@@ -85,27 +86,3 @@ export default async function BatchDetailPage({
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  tone?: "emerald" | "rose";
-}) {
-  const color =
-    tone === "emerald"
-      ? "text-emerald-700 dark:text-emerald-300"
-      : tone === "rose"
-        ? "text-rose-700 dark:text-rose-300"
-        : "";
-  return (
-    <div className="rounded-lg border p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-base font-semibold tabular-nums mt-1 ${color}`}>
-        {value}
-      </p>
-    </div>
-  );
-}

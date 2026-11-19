@@ -29,7 +29,7 @@ export default async function EditEventPage({ params }: Props) {
           </Button>
         </AnimateIcon>
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Edit {event.title ?? 'Event'}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Edit {event.title ?? 'Event'}</h1>
           {/* <p className="truncate text-muted-foreground">{event.title}</p> */}
         </div>
       </div>

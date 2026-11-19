@@ -2,7 +2,7 @@ import { getProjects } from "@/actions/projects";
 import { requireAdmin } from "@/lib/auth-guard";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
-import { Badge } from "@/app/components/ui/badge";
+import { StatusBadge } from "@/app/admin/_components/status-badge";
 import {
   Card,
   CardContent,
@@ -13,15 +13,9 @@ import {
 import { Plus, Edit, Eye, Users } from "lucide-react";
 import { Progress } from "@/app/components/ui/progress";
 
-const statusColors = {
-  ACTIVE: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-  DISABLED: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
-  FULFILLED: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-};
-
 const fundingModeLabels = {
-  SINGLE_SPONSOR: "Single Sponsor",
-  MULTI_CONTRIBUTOR: "Multi-Contributor",
+  SINGLE_SPONSOR: "Single sponsor",
+  MULTI_CONTRIBUTOR: "Multi-contributor",
 };
 
 export default async function AdminProjectsPage() {
@@ -32,15 +26,15 @@ export default async function AdminProjectsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
+          <p className="text-sm text-muted-foreground">
             Manage your fundraising projects
           </p>
         </div>
         <Button asChild>
           <Link href="/admin/projects/new">
             <Plus className="mr-2 h-4 w-4" />
-            New Project
+            New project
           </Link>
         </Button>
       </div>
@@ -69,12 +63,15 @@ export default async function AdminProjectsPage() {
               <Card key={project.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg line-clamp-1">
-                      {project.title}
+                    <CardTitle className="text-base line-clamp-1">
+                      <Link
+                        href={`/admin/projects/${project.id}`}
+                        className="hover:underline underline-offset-4"
+                      >
+                        {project.title}
+                      </Link>
                     </CardTitle>
-                    <Badge className={statusColors[project.status]}>
-                      {project.status}
-                    </Badge>
+                    <StatusBadge status={project.status} />
                   </div>
                   <CardDescription>
                     {fundingModeLabels[project.fundingMode]}
@@ -84,42 +81,41 @@ export default async function AdminProjectsPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Progress</span>
-                      <span className="font-medium">
+                      <span className="font-mono font-medium tabular-nums">
                         GH₵ {raised.toLocaleString()} / GH₵{" "}
                         {target.toLocaleString()}
                       </span>
                     </div>
                     <Progress value={progress} className="h-2" />
-                    <p className="text-xs text-muted-foreground text-right">
+                    <p className="text-xs text-muted-foreground text-right tabular-nums">
                       {progress.toFixed(0)}% funded
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="flex-1"
-                    >
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" asChild>
                       <Link href={`/admin/projects/${project.id}`}>
-                        <Edit className="mr-1 h-3 w-3" />
+                        <Edit className="mr-1.5 h-3.5 w-3.5" />
                         Edit
                       </Link>
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="flex-1"
-                    >
+                    <Button variant="outline" size="sm" asChild>
                       <Link href={`/admin/projects/${project.id}/commitments`}>
-                        <Users className="mr-1 h-3 w-3" />
+                        <Users className="mr-1.5 h-3.5 w-3.5" />
                         Commitments
                       </Link>
                     </Button>
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/projects/${project.id}`} target="_blank">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      className="ml-auto"
+                    >
+                      <Link
+                        href={`/projects/${project.id}`}
+                        target="_blank"
+                        aria-label={`View ${project.title} on the public site`}
+                      >
                         <Eye className="h-4 w-4" />
                       </Link>
                     </Button>

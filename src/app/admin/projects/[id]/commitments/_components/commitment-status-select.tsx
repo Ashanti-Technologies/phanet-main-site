@@ -10,17 +10,13 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { TONE_TEXT, statusTone } from "@/app/admin/_components/status-badge";
 
 interface CommitmentStatusSelectProps {
   commitmentId: string;
   currentStatus: "PENDING" | "CONFIRMED" | "CANCELLED";
 }
-
-const statusColors = {
-  PENDING: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  CONFIRMED: "bg-green-100 text-green-800 border-green-200",
-  CANCELLED: "bg-red-100 text-red-800 border-red-200",
-};
 
 export function CommitmentStatusSelect({
   commitmentId,
@@ -58,7 +54,7 @@ export function CommitmentStatusSelect({
         onValueChange={handleStatusChange}
         disabled={isUpdating}
       >
-        <SelectTrigger className={`w-32 text-xs ${statusColors[status]}`}>
+        <SelectTrigger className={cn("w-32 text-xs border-current/30", TONE_TEXT[statusTone(status)])}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

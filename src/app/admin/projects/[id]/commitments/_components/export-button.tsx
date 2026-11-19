@@ -62,7 +62,7 @@ export function ExportButton({ projectId, projectTitle }: ExportButtonProps) {
       ) : (
         <Download className="mr-2 h-4 w-4" />
       )}
-      Export Excel
+      Export to Excel
     </Button>
   );
 }

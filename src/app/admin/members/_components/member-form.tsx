@@ -376,7 +376,7 @@ export function MemberForm({
       <Section title="Church units">
         {units.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            No active church units. Create some in Settings → Church Units.
+            No active church units. Create some in Settings → Church units.
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">

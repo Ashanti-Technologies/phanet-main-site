@@ -19,7 +19,7 @@ export default async function ComposePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Compose</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Compose</h1>
         <p className="text-sm text-muted-foreground">
           Pick a channel, target a segment, preview the substituted body, then
           send.

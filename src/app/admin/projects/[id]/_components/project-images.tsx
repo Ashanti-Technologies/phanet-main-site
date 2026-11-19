@@ -76,7 +76,7 @@ export function ProjectImages({ project }: ProjectImagesProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Project Images</CardTitle>
+        <CardTitle>Project images</CardTitle>
         <CardDescription>Add images to showcase your project</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -92,7 +92,7 @@ export function ProjectImages({ project }: ProjectImagesProps) {
                 fill
                 className="object-cover"
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="absolute inset-0 flex items-center justify-center bg-midnight-green/60 opacity-0 transition-opacity group-hover:opacity-100">
                 <Button
                   variant="destructive"
                   size="sm"
@@ -131,7 +131,7 @@ export function ProjectImages({ project }: ProjectImagesProps) {
                   ) : (
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Plus className="h-8 w-8" />
-                      <span className="text-sm">Add Image</span>
+                      <span className="text-sm">Add image</span>
                     </div>
                   )}
                 </button>

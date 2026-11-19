@@ -2,7 +2,8 @@ import { requirePermission } from "@/lib/auth-guard";
 import { getGrowthReport } from "@/lib/reports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { ReportLineChart } from "../_components/report-charts";
-import { MetricCard, ReportHeader } from "../_components/report-shell";
+import { ReportHeader } from "../_components/report-shell";
+import { Stat } from "@/app/admin/_components/stat";
 
 export default async function GrowthReportPage() {
   await requirePermission("read", "Member");
@@ -16,8 +17,8 @@ export default async function GrowthReportPage() {
         exportHref="/admin/reports/growth/export"
       />
       <div className="grid gap-4 sm:grid-cols-2">
-        <MetricCard label="New members" value={report.totalNew} />
-        <MetricCard label="Active new members" value={report.activeNew} />
+        <Stat label="New members" value={report.totalNew} />
+        <Stat label="Active new members" value={report.activeNew} />
       </div>
       <Card>
         <CardHeader>

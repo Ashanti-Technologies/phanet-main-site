@@ -89,7 +89,7 @@ export function ChurchUnitsList({ initialUnits }: ChurchUnitsListProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ministry Family Options</CardTitle>
+        <CardTitle>Ministry family options</CardTitle>
         <CardDescription>
           Define the options available in the commitment form dropdown. Users
           can also enter free text if their unit is not listed.

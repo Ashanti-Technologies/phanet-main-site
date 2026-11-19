@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/app/components/ui/badge";
+import { StatusBadge } from "@/app/admin/_components/status-badge";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/app/components/data-table/data-table-column-header";
 import { columnHelper } from "@/app/components/data-table/features";
@@ -21,12 +21,6 @@ export type CommitmentRow = {
   internalNote: string | null;
   status: "PENDING" | "CONFIRMED" | "CANCELLED";
   createdAt: string;
-};
-
-const statusColors = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  CONFIRMED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-red-100 text-red-800",
 };
 
 const col = columnHelper<CommitmentRow>();
@@ -69,9 +63,7 @@ const columns = col.columns([
     header: "Status",
     enableSorting: false,
     cell: ({ row }) => (
-      <Badge className={statusColors[row.original.status]}>
-        {row.original.status}
-      </Badge>
+      <StatusBadge status={row.original.status} />
     ),
   }),
   col.display({

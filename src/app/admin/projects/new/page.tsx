@@ -65,8 +65,8 @@ export default function NewProjectPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">New Project</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-semibold tracking-tight">New project</h1>
+          <p className="text-sm text-muted-foreground">
             Create a new fundraising project
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function NewProjectPage() {
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Project Details</CardTitle>
+          <CardTitle>Project details</CardTitle>
           <CardDescription>
             Enter the details for your new fundraising project
           </CardDescription>
@@ -88,7 +88,7 @@ export default function NewProjectPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="title">Project Title *</Label>
+              <Label htmlFor="title">Project title *</Label>
               <Input
                 id="title"
                 name="title"
@@ -112,7 +112,7 @@ export default function NewProjectPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="targetAmount">Target Amount (GH₵) *</Label>
+                <Label htmlFor="targetAmount">Target amount (GH₵) *</Label>
                 <Input
                   id="targetAmount"
                   name="targetAmount"
@@ -125,17 +125,17 @@ export default function NewProjectPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="fundingMode">Funding Mode *</Label>
+                <Label htmlFor="fundingMode">Funding mode *</Label>
                 <Select name="fundingMode" defaultValue="MULTI_CONTRIBUTOR">
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MULTI_CONTRIBUTOR">
-                      Multi-Contributor
+                      Multi-contributor
                     </SelectItem>
                     <SelectItem value="SINGLE_SPONSOR">
-                      Single Sponsor
+                      Single sponsor
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -160,7 +160,7 @@ export default function NewProjectPage() {
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Create Project
+                Create project
               </Button>
               <Button type="button" variant="outline" asChild>
                 <Link href="/admin/projects">Cancel</Link>

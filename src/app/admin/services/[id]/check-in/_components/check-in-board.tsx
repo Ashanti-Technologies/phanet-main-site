@@ -11,6 +11,8 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
+import { TONE_TEXT } from "@/app/admin/_components/status-badge";
+import { cn } from "@/lib/utils";
 import {
   Avatar,
   AvatarFallback,
@@ -176,7 +178,7 @@ export function CheckInBoard({
                       {isCheckedIn ? (
                         <Badge
                           variant="outline"
-                          className="text-emerald-700 border-emerald-500/40 dark:text-emerald-300"
+                          className={cn(TONE_TEXT.success, "border-current/30")}
                         >
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Present
                         </Badge>

@@ -9,7 +9,7 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { AttendeesTable } from "./attendees-table";
-import { Stat } from "./stat";
+import { Stat } from "@/app/admin/_components/stat";
 
 export function RegistrationsPanel({
   eventId,

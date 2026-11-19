@@ -15,8 +15,8 @@ export default async function NewEventPage() {
           </Link>
         </Button>
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">New Event</h1>
-          <p className="text-muted-foreground">Create a CMS event.</p>
+          <h1 className="text-3xl font-semibold tracking-tight">New event</h1>
+          <p className="text-sm text-muted-foreground">Create a CMS event.</p>
         </div>
       </div>
       <EventForm otherForms={otherForms} />

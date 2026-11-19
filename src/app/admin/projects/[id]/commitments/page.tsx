@@ -52,15 +52,15 @@ export default async function CommitmentsPage({ params, searchParams }: Props) {
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">Commitments</h1>
-          <p className="text-muted-foreground">{project.title}</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Commitments</h1>
+          <p className="text-sm text-muted-foreground">{project.title}</p>
         </div>
         <ExportButton projectId={id} projectTitle={project.title} />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Commitments ({pagination.total})</CardTitle>
+          <CardTitle>All commitments ({pagination.total})</CardTitle>
           <CardDescription>
             Manage and review all commitments for this project
           </CardDescription>

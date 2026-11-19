@@ -7,8 +7,8 @@ export default async function AdminPrayerRequestsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Prayer Requests</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-semibold tracking-tight">Prayer requests</h1>
+        <p className="text-sm text-muted-foreground">
           Review, pray over, note, and archive requests submitted by Elim.
         </p>
       </div>

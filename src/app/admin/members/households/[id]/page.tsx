@@ -39,7 +39,7 @@ export default async function HouseholdDetailPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-semibold tracking-tight">
           {household.name}
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -89,7 +89,7 @@ export default async function HouseholdDetailPage({
                       {m.photoUrl ? (
                         <AvatarImage src={m.photoUrl} alt={m.fullName} />
                       ) : null}
-                      <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
+                      <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                         {initials(m.fullName)}
                       </AvatarFallback>
                     </Avatar>

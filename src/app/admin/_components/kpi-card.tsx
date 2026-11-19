@@ -3,6 +3,7 @@
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TONE_TEXT } from "./status-badge";
 import {
   Card,
   CardContent,
@@ -33,7 +34,7 @@ export function KpiCard({
   delta,
   deltaLabel = "vs. previous period",
   series,
-  positiveColor = "var(--chart-1)",
+  positiveColor = "var(--primary)",
 }: Props) {
   const direction = delta > 0.5 ? "up" : delta < -0.5 ? "down" : "flat";
   const Icon =
@@ -52,15 +53,14 @@ export function KpiCard({
       </CardHeader>
       <CardContent className="px-5">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-2xl font-semibold tracking-tight">{value}</p>
+          <p className="font-mono text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
           <span
             className={cn(
-              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium",
-              direction === "up" &&
-                "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-              direction === "down" &&
-                "bg-red-500/10 text-red-600 dark:text-red-400",
-              direction === "flat" && "bg-muted text-muted-foreground",
+              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums",
+              "bg-current/10",
+              direction === "up" && TONE_TEXT.success,
+              direction === "down" && TONE_TEXT.danger,
+              direction === "flat" && TONE_TEXT.neutral,
             )}
             aria-label={`${formatDelta(delta)} ${deltaLabel}`}
           >
@@ -82,24 +82,13 @@ export function KpiCard({
             data={series}
             margin={{ top: 4, right: 0, left: 0, bottom: 0 }}
           >
-            <defs>
-              <linearGradient
-                id={`spark-${title.replace(/\s+/g, "-")}`}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor={positiveColor} stopOpacity={0.4} />
-                <stop offset="100%" stopColor={positiveColor} stopOpacity={0} />
-              </linearGradient>
-            </defs>
             <Area
               type="monotone"
               dataKey="y"
               stroke={positiveColor}
               strokeWidth={1.5}
-              fill={`url(#spark-${title.replace(/\s+/g, "-")})`}
+              fill={positiveColor}
+              fillOpacity={0.08}
               isAnimationActive={false}
             />
           </AreaChart>

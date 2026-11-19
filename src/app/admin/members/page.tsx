@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from "@/app/components/ui/card";
 import { Plus, Upload, X } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
@@ -58,7 +57,7 @@ export default async function MembersPage({
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Members</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Members</h1>
           <p className="text-sm text-muted-foreground">
             {data.total.toLocaleString()} member{data.total === 1 ? "" : "s"} in
             the directory.
@@ -79,9 +78,8 @@ export default async function MembersPage({
       </div>
 
       <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Directory</CardTitle>
-          {householdId && (
+        {householdId && (
+          <CardHeader className="pb-4">
             <Badge variant="secondary" className="w-fit gap-1.5">
               Household: {household?.name ?? "Unknown"}
               <Link
@@ -91,8 +89,8 @@ export default async function MembersPage({
                 <X className="h-3 w-3" />
               </Link>
             </Badge>
-          )}
-        </CardHeader>
+          </CardHeader>
+        )}
         <CardContent>
           <MembersTable
             items={data.items}

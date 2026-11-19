@@ -10,7 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
+import { StatusBadge, TONE_TEXT } from "./_components/status-badge";
+import { Stat } from "./_components/stat";
+import { cn } from "@/lib/utils";
 import { Button } from "@/app/components/ui/button";
 import {
   Avatar,
@@ -326,15 +328,6 @@ function relTime(date: Date | string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-const statusBadgeVariant: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  CONFIRMED: "default",
-  PENDING: "secondary",
-  CANCELLED: "destructive",
-};
-
 type SearchParams = Promise<{ from?: string; to?: string }>;
 
 function formatRangeLabel(range: DateRange): string {
@@ -360,16 +353,12 @@ export default async function AdminDashboardPage({
       {/* Page header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             Overview of activity across the network — {formatRangeLabel(range)}.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="w-fit gap-1.5 px-2.5 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Live
-          </Badge>
           <DateRangePicker />
         </div>
       </div>
@@ -384,28 +373,24 @@ export default async function AdminDashboardPage({
             x: r.date,
             y: r.count,
           }))}
-          positiveColor="var(--chart-1)"
         />
         <KpiCard
           title="Total raised"
           value={`GH₵ ${Math.round(data.raised30).toLocaleString()}`}
           delta={data.raisedDelta}
           series={data.raisedSeries.map((r) => ({ x: r.date, y: r.count }))}
-          positiveColor="var(--chart-3)"
         />
         <KpiCard
           title="Prayer requests"
           value={data.prayers30Count.toLocaleString()}
           delta={data.prayersDelta}
           series={data.prayersSeries.map((r) => ({ x: r.date, y: r.count }))}
-          positiveColor="var(--chart-2)"
         />
         <KpiCard
           title="New members"
           value={data.users30Count.toLocaleString()}
           delta={data.usersDelta}
           series={data.usersSeries.map((r) => ({ x: r.date, y: r.count }))}
-          positiveColor="var(--chart-4)"
         />
       </div>
 
@@ -478,14 +463,7 @@ export default async function AdminDashboardPage({
                   </>
                 }
                 badge={
-                  <Badge
-                    variant={
-                      statusBadgeVariant[c.status as string] ?? "secondary"
-                    }
-                    className="text-[10px] uppercase tracking-wider"
-                  >
-                    {c.status}
-                  </Badge>
+<StatusBadge status={c.status} />
                 }
                 when={relTime(c.createdAt)}
               />
@@ -562,7 +540,7 @@ export default async function AdminDashboardPage({
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-foreground/85 transition-all"
+                      className="h-full rounded-full bg-primary transition-[width]"
                       style={{ width: `${p.progress}%` }}
                     />
                   </div>
@@ -613,7 +591,7 @@ export default async function AdminDashboardPage({
                     {b.photoUrl ? (
                       <AvatarImage src={b.photoUrl} alt={b.fullName} />
                     ) : null}
-                    <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                    <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                       {initials(b.preferredName ?? b.fullName)}
                     </AvatarFallback>
                   </Avatar>
@@ -641,7 +619,7 @@ export default async function AdminDashboardPage({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTriangle className={cn("h-4 w-4", TONE_TEXT.warning)} />
                 Drop-off alerts
               </CardTitle>
               <CardDescription>
@@ -675,7 +653,7 @@ export default async function AdminDashboardPage({
                     {d.photoUrl ? (
                       <AvatarImage src={d.photoUrl} alt={d.fullName} />
                     ) : null}
-                    <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                    <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                       {initials(d.preferredName ?? d.fullName)}
                     </AvatarFallback>
                   </Avatar>
@@ -701,26 +679,16 @@ export default async function AdminDashboardPage({
       </Card>
 
       {/* Footer stats strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <FooterStat
+      <div className="grid grid-cols-2 gap-3">
+        <Stat
           label="Total users"
           value={data.totalUsers.toLocaleString()}
           icon={<Users className="h-3.5 w-3.5" />}
         />
-        <FooterStat
+        <Stat
           label="Active projects"
           value={`${data.activeProjects} / ${data.totalProjects}`}
           icon={<FolderKanban className="h-3.5 w-3.5" />}
-        />
-        <FooterStat
-          label="Prayer requests"
-          value={data.prayers30Count.toLocaleString()}
-          icon={<HeartHandshake className="h-3.5 w-3.5" />}
-        />
-        <FooterStat
-          label="Raised in window"
-          value={`GH₵ ${Math.round(data.raised30).toLocaleString()}`}
-          icon={<HandCoins className="h-3.5 w-3.5" />}
         />
       </div>
     </div>
@@ -750,7 +718,7 @@ function ActivityRow({
             {avatar.image ? (
               <AvatarImage src={avatar.image} alt={avatar.name} />
             ) : null}
-            <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+            <AvatarFallback className="text-xs bg-muted text-muted-foreground">
               {initials(avatar.name)}
             </AvatarFallback>
           </Avatar>
@@ -774,25 +742,6 @@ function ActivityRow({
   );
 }
 
-function FooterStat({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      <p className="mt-1 text-base font-semibold tabular-nums">{value}</p>
-    </div>
-  );
-}
 
 function EmptyHint({
   icon,

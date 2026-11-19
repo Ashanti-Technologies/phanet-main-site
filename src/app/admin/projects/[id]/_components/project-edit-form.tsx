@@ -93,7 +93,7 @@ export function ProjectEditForm({ project }: ProjectEditFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Project Details</CardTitle>
+        <CardTitle>Project details</CardTitle>
         <CardDescription>Update your project information</CardDescription>
       </CardHeader>
       <CardContent>
@@ -105,7 +105,7 @@ export function ProjectEditForm({ project }: ProjectEditFormProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="title">Project Title *</Label>
+            <Label htmlFor="title">Project title *</Label>
             <Input
               id="title"
               name="title"
@@ -129,7 +129,7 @@ export function ProjectEditForm({ project }: ProjectEditFormProps) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="targetAmount">Target Amount (GH₵) *</Label>
+              <Label htmlFor="targetAmount">Target amount (GH₵) *</Label>
               <Input
                 id="targetAmount"
                 name="targetAmount"
@@ -142,16 +142,16 @@ export function ProjectEditForm({ project }: ProjectEditFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fundingMode">Funding Mode *</Label>
+              <Label htmlFor="fundingMode">Funding mode *</Label>
               <Select name="fundingMode" defaultValue={project.fundingMode}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MULTI_CONTRIBUTOR">
-                    Multi-Contributor
+                    Multi-contributor
                   </SelectItem>
-                  <SelectItem value="SINGLE_SPONSOR">Single Sponsor</SelectItem>
+                  <SelectItem value="SINGLE_SPONSOR">Single sponsor</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -176,12 +176,12 @@ export function ProjectEditForm({ project }: ProjectEditFormProps) {
               <DialogTrigger asChild>
                 <Button type="button" variant="destructive" size="sm">
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Project
+                  Delete project
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Delete Project</DialogTitle>
+                  <DialogTitle>Delete project</DialogTitle>
                   <DialogDescription>
                     Are you sure you want to delete this project? This action
                     cannot be undone. All commitments and images will also be
@@ -213,7 +213,7 @@ export function ProjectEditForm({ project }: ProjectEditFormProps) {
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save Changes
+              Save changes
             </Button>
           </div>
         </form>

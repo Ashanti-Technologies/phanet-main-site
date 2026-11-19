@@ -8,6 +8,7 @@ import {
   AvatarImage,
 } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
+import { StatusBadge } from "@/app/admin/_components/status-badge";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/app/components/data-table/data-table-column-header";
 import { columnHelper } from "@/app/components/data-table/features";
@@ -34,16 +35,6 @@ const STATUS_LABEL: Record<string, string> = {
   INACTIVE: "Inactive",
   TRANSFERRED: "Transferred",
   DECEASED: "Deceased",
-};
-
-const STATUS_TONE: Record<string, string> = {
-  VISITOR: "text-blue-600 border-blue-500/30 dark:text-blue-400",
-  PENDING_APPROVAL: "text-amber-600 border-amber-500/30 dark:text-amber-400",
-  REGULAR: "text-emerald-600 border-emerald-500/30 dark:text-emerald-400",
-  MEMBER: "text-emerald-700 border-emerald-600/40 dark:text-emerald-300",
-  INACTIVE: "text-muted-foreground",
-  TRANSFERRED: "text-muted-foreground",
-  DECEASED: "text-muted-foreground",
 };
 
 const AGE_LABEL: Record<string, string> = {
@@ -74,7 +65,7 @@ const columns = col.columns([
         >
           <Avatar className="h-9 w-9">
             {m.photoUrl ? <AvatarImage src={m.photoUrl} alt={m.fullName} /> : null}
-            <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
+            <AvatarFallback className="text-xs bg-muted text-muted-foreground">
               {initials(m.fullName)}
             </AvatarFallback>
           </Avatar>
@@ -144,9 +135,10 @@ const columns = col.columns([
     header: "Status",
     enableSorting: false,
     cell: ({ row }) => (
-      <Badge variant="outline" className={STATUS_TONE[row.original.status] ?? ""}>
-        {STATUS_LABEL[row.original.status]}
-      </Badge>
+      <StatusBadge
+        status={row.original.status}
+        label={STATUS_LABEL[row.original.status]}
+      />
     ),
   }),
   col.accessor("joinDate", {

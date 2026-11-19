@@ -141,7 +141,7 @@ export default async function MemberDetailPage({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-tight">
             {member.preferredName || member.fullName}
           </h1>
           {member.preferredName && (

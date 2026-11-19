@@ -13,8 +13,8 @@ export default function NewContentPagePage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">New Page</h1>
-          <p className="text-muted-foreground">Create a CMS page.</p>
+          <h1 className="text-3xl font-semibold tracking-tight">New page</h1>
+          <p className="text-sm text-muted-foreground">Create a CMS page.</p>
         </div>
       </div>
       <ContentPageForm />

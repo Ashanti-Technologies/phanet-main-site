@@ -5,8 +5,6 @@ import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/app/components/ui/card";
 import { ServicesTable } from "./_components/services-table";
 
@@ -22,7 +20,7 @@ export default async function ServicesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Services</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Services</h1>
           <p className="text-sm text-muted-foreground">
             Track attendance for Sunday services, midweek gatherings, and
             special events.
@@ -36,9 +34,6 @@ export default async function ServicesPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">All services</CardTitle>
-        </CardHeader>
         <CardContent>
           <ServicesTable services={services} />
         </CardContent>

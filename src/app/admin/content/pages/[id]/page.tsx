@@ -23,8 +23,8 @@ export default async function EditContentPagePage({ params }: Props) {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Edit Page</h1>
-          <p className="text-muted-foreground">{page.title}</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Edit page</h1>
+          <p className="text-sm text-muted-foreground">{page.title}</p>
         </div>
       </div>
       <ContentPageForm page={page} />

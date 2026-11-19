@@ -2,7 +2,8 @@ import { requirePermission } from "@/lib/auth-guard";
 import { getEngagementReport } from "@/lib/reports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { ReportBarChart } from "../_components/report-charts";
-import { MetricCard, ReportHeader } from "../_components/report-shell";
+import { ReportHeader } from "../_components/report-shell";
+import { Stat } from "@/app/admin/_components/stat";
 
 export default async function EngagementReportPage() {
   await requirePermission("read", "Attendance");
@@ -15,7 +16,7 @@ export default async function EngagementReportPage() {
         description="Attendance averages and recent retention."
         exportHref="/admin/reports/engagement/export"
       />
-      <MetricCard
+      <Stat
         label="Average attendance"
         value={Math.round(report.averageAttendance).toLocaleString()}
       />

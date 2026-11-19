@@ -92,7 +92,7 @@ const navigation: NavGroup[] = [
         icon: "tasks",
       },
       {
-        name: "Prayer Requests",
+        name: "Prayer requests",
         href: "/admin/prayer-requests",
         icon: "prayerRequests",
       },
@@ -125,7 +125,7 @@ const navigation: NavGroup[] = [
         icon: "users",
       },
       {
-        name: "Church Units",
+        name: "Church units",
         href: "/admin/settings/church-units",
         icon: "churchUnits",
       },
@@ -141,7 +141,7 @@ function Brand() {
       className="flex items-center gap-2"
       aria-label="PHANET Admin"
     >
-      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background text-xs font-bold tracking-tight">
+      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-midnight-green text-mikado-yellow text-xs font-bold tracking-tight dark:bg-mikado-yellow dark:text-midnight-green">
         P
       </span>
       <span className="text-sm font-semibold tracking-tight">PHANET</span>
@@ -160,7 +160,7 @@ function SidebarBody() {
         <div className="space-y-6">
           {navigation.map((group) => (
             <div key={group.label}>
-              <p className="px-2.5 mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50">
+              <p className="px-2.5 mb-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
                 {group.label}
               </p>
               <ul className="space-y-0.5">
@@ -180,7 +180,7 @@ function SidebarBody() {
         </div>
       </nav>
       <div className="border-t border-sidebar-border p-4">
-        <p className="text-[11px] text-sidebar-foreground/50">
+        <p className="text-xs text-sidebar-foreground/50">
           v1.0 · Phanerosis Network
         </p>
       </div>

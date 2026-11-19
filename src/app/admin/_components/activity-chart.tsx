@@ -41,16 +41,6 @@ export function ActivityChart({ data }: Props) {
           data={data}
           margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
         >
-          <defs>
-            <linearGradient id="actCommit" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
-              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="actPrayer" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
-            </linearGradient>
-          </defs>
           <CartesianGrid
             strokeDasharray="3 3"
             vertical={false}
@@ -97,7 +87,8 @@ export function ActivityChart({ data }: Props) {
             name="Commitments"
             stroke="var(--chart-1)"
             strokeWidth={1.75}
-            fill="url(#actCommit)"
+            fill="var(--chart-1)"
+            fillOpacity={0.08}
             isAnimationActive={false}
           />
           <Area
@@ -106,7 +97,8 @@ export function ActivityChart({ data }: Props) {
             name="Prayer requests"
             stroke="var(--chart-2)"
             strokeWidth={1.75}
-            fill="url(#actPrayer)"
+            fill="var(--chart-2)"
+            fillOpacity={0.08}
             isAnimationActive={false}
           />
         </AreaChart>

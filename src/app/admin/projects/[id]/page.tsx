@@ -36,8 +36,8 @@ export default async function EditProjectPage({ params }: Props) {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Edit Project</h1>
-          <p className="text-muted-foreground">{project.title}</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Edit project</h1>
+          <p className="text-sm text-muted-foreground">{project.title}</p>
         </div>
       </div>
 
@@ -45,7 +45,7 @@ export default async function EditProjectPage({ params }: Props) {
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="images">Images</TabsTrigger>
-          <TabsTrigger value="progress">Progress Updates</TabsTrigger>
+          <TabsTrigger value="progress">Progress updates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details">

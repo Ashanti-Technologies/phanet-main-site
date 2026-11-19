@@ -18,8 +18,8 @@ export default async function ChurchUnitsSettingsPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Church Units</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-semibold tracking-tight">Church units</h1>
+          <p className="text-sm text-muted-foreground">
             Manage ministry family options for the commitment form
           </p>
         </div>

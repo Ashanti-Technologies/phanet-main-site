@@ -7,8 +7,8 @@ export default async function AdminSermonsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Sermons</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-semibold tracking-tight">Sermons</h1>
+        <p className="text-sm text-muted-foreground">
           Curate featured YouTube messages without changing the YouTube feed.
         </p>
       </div>

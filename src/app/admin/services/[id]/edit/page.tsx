@@ -24,7 +24,7 @@ export default async function EditServicePage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-semibold tracking-tight">
           Edit service
         </h1>
       </div>

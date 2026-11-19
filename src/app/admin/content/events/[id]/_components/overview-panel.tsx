@@ -5,7 +5,7 @@ import { CATEGORY_LABELS, formatEventDate, type EventCategory } from "@/lib/even
 import { Badge } from "@/app/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Progress } from "@/app/components/ui/progress";
-import { Stat } from "./stat";
+import { Stat } from "@/app/admin/_components/stat";
 
 export function OverviewPanel({
   event,

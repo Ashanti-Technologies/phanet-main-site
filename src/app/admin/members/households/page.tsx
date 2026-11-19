@@ -4,8 +4,6 @@ import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/app/components/ui/card";
 import { HouseholdsList } from "./_components/households-list";
 
@@ -16,7 +14,7 @@ export default async function HouseholdsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Households</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Households</h1>
           <p className="text-sm text-muted-foreground">
             Group related members for pastoral care and communications.
           </p>
@@ -27,9 +25,6 @@ export default async function HouseholdsPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">All households</CardTitle>
-        </CardHeader>
         <CardContent>
           <HouseholdsList
             initial={households.map((h) => ({

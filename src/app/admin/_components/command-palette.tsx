@@ -110,7 +110,7 @@ export function CommandPalette() {
           keywords: ["follow up", "pastoral"],
         },
         {
-          label: "Prayer Requests",
+          label: "Prayer requests",
           icon: <HeartHandshake className="h-4 w-4" />,
           onSelect: go("/admin/prayer-requests"),
           keywords: ["prayers", "requests"],
@@ -146,7 +146,7 @@ export function CommandPalette() {
           keywords: ["members", "people"],
         },
         {
-          label: "Church Units",
+          label: "Church units",
           icon: <Settings className="h-4 w-4" />,
           onSelect: go("/admin/settings/church-units"),
           keywords: ["settings"],
@@ -236,7 +236,7 @@ export function CommandPalette() {
           placeholder="Type a command or search…"
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
-        <kbd className="hidden sm:inline-flex h-5 select-none items-center rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+        <kbd className="hidden sm:inline-flex h-5 select-none items-center rounded border bg-muted px-1.5 font-mono text-xs font-medium text-muted-foreground">
           ESC
         </kbd>
       </div>
@@ -248,7 +248,7 @@ export function CommandPalette() {
           <Command.Group
             key={group.heading}
             heading={group.heading}
-            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.08em] [&_[cmdk-group-heading]]:text-muted-foreground/70"
+            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-muted-foreground/70"
           >
             {group.items.map((item) => (
               <Command.Item
@@ -260,7 +260,7 @@ export function CommandPalette() {
                 <span className="text-muted-foreground">{item.icon}</span>
                 <span className="flex-1 truncate">{item.label}</span>
                 {item.shortcut && (
-                  <kbd className="text-[10px] font-mono text-muted-foreground">
+                  <kbd className="text-xs font-mono text-muted-foreground">
                     {item.shortcut}
                   </kbd>
                 )}
@@ -269,7 +269,7 @@ export function CommandPalette() {
           </Command.Group>
         ))}
       </Command.List>
-      <div className="flex items-center justify-between border-t px-3 py-2 text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between border-t px-3 py-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <kbd className="rounded border bg-muted px-1 py-0.5 font-mono">↑↓</kbd>
           navigate
@@ -307,7 +307,7 @@ export function CommandTrigger() {
     >
       <Search className="h-3.5 w-3.5" aria-hidden />
       <span className="flex-1 text-left">Search…</span>
-      <kbd className="inline-flex h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+      <kbd className="inline-flex h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-xs font-medium text-muted-foreground">
         <span>⌘</span>
         <span>K</span>
       </kbd>

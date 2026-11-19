@@ -53,7 +53,7 @@ export default async function EventPage({ params }: Props) {
           </Link>
         </Button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-3xl font-bold tracking-tight">{event.title}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>{formatEventDate(event.date.toISOString(), event.endDate?.toISOString())}</span>
             <span>·</span>

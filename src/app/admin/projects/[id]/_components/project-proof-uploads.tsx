@@ -65,7 +65,7 @@ export function ProjectProofUploads({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Progress Updates</CardTitle>
+        <CardTitle>Progress updates</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <form action={handleCreate} className="space-y-3 rounded-md border p-4">
