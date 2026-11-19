@@ -50,4 +50,7 @@ export function fillShareMessage(template: string | null | undefined, vars: Shar
   return text.includes(vars.link) ? text : `${text}\n${vars.link}`;
 }
 
-export const whatsappShareUrl = (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`;
+// Not wa.me: its redirect to api.whatsapp.com replaces every emoji with U+FFFD (shown as "?"),
+// and WhatsApp then drops the garbled text, leaving only the link.
+export const whatsappShareUrl = (text: string) =>
+  `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
