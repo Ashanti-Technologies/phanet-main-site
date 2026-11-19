@@ -26,15 +26,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Loader2, Trash2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/app/components/ui/dialog";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 
 interface ProjectEditFormProps {
   project: {
@@ -50,9 +42,7 @@ interface ProjectEditFormProps {
 export function ProjectEditForm({ project }: ProjectEditFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   async function handleSubmit(formData: FormData) {
     setIsSubmitting(true);
@@ -79,16 +69,6 @@ export function ProjectEditForm({ project }: ProjectEditFormProps) {
     }
   }
 
-  async function handleDelete() {
-    setIsDeleting(true);
-    try {
-      await deleteProject(project.id);
-      router.push("/admin/projects");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete project");
-      setIsDeleting(false);
-    }
-  }
 
   return (
     <Card>
@@ -172,42 +152,21 @@ export function ProjectEditForm({ project }: ProjectEditFormProps) {
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t">
-            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-              <DialogTrigger asChild>
+            <ConfirmDelete
+              trigger={
                 <Button type="button" variant="destructive" size="sm">
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete project
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Delete project</DialogTitle>
-                  <DialogDescription>
-                    Are you sure you want to delete this project? This action
-                    cannot be undone. All commitments and images will also be
-                    deleted.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowDeleteDialog(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Delete
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              }
+              title="Delete this project?"
+              description="All of its commitments and images will be deleted too."
+              confirmLabel="Delete project"
+              onConfirm={async () => {
+                await deleteProject(project.id);
+                router.push("/admin/projects");
+              }}
+            />
 
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && (

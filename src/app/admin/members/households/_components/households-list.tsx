@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { deleteHousehold } from "@/actions/households";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 
@@ -11,18 +12,10 @@ type Row = { id: string; name: string; memberCount: number };
 
 export function HouseholdsList({ initial }: { initial: Row[] }) {
   const [rows, setRows] = useState(initial);
-  const [busy, setBusy] = useState<string | null>(null);
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this household? Members stay but become unassigned."))
-      return;
-    setBusy(id);
-    try {
-      await deleteHousehold(id);
-      setRows(rows.filter((r) => r.id !== id));
-    } finally {
-      setBusy(null);
-    }
+    await deleteHousehold(id);
+    setRows((rs) => rs.filter((r) => r.id !== id));
   }
 
   if (rows.length === 0) {
@@ -49,18 +42,17 @@ export function HouseholdsList({ initial }: { initial: Row[] }) {
           <Badge variant="outline">
             {row.memberCount} member{row.memberCount === 1 ? "" : "s"}
           </Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleDelete(row.id)}
-            disabled={busy === row.id}
-          >
-            {busy === row.id ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-            )}
-          </Button>
+          <ConfirmDelete
+            trigger={
+              <Button variant="ghost" size="icon" aria-label={`Delete ${row.name}`}>
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+              </Button>
+            }
+            title={`Delete the ${row.name} household?`}
+            description="Its members are kept but become unassigned."
+            confirmLabel="Delete household"
+            onConfirm={() => handleDelete(row.id)}
+          />
         </div>
       ))}
     </div>

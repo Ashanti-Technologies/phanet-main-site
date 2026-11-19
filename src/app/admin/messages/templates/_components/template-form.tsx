@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trash2 } from "lucide-react";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -33,7 +34,6 @@ export function TemplateForm({ initial }: { initial: TemplateFormValues }) {
   const [values, setValues] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [deleting, setDeleting] = useState(false);
 
   function set<K extends keyof TemplateFormValues>(
     key: K,
@@ -69,16 +69,9 @@ export function TemplateForm({ initial }: { initial: TemplateFormValues }) {
 
   async function handleDelete() {
     if (!values.id) return;
-    if (!confirm("Delete this template?")) return;
-    setDeleting(true);
-    try {
-      await deleteTemplate(values.id);
-      router.push("/admin/messages/templates");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete");
-      setDeleting(false);
-    }
+    await deleteTemplate(values.id);
+    router.push("/admin/messages/templates");
+    router.refresh();
   }
 
   return (
@@ -151,20 +144,22 @@ export function TemplateForm({ initial }: { initial: TemplateFormValues }) {
 
       <div className="flex justify-between gap-2 border-t pt-4">
         {values.id ? (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleDelete}
-            disabled={deleting || pending}
-            className="text-destructive hover:text-destructive"
-          >
-            {deleting ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4 mr-1.5" />
-            )}
-            Delete
-          </Button>
+          <ConfirmDelete
+            trigger={
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={pending}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Delete
+              </Button>
+            }
+            title="Delete this template?"
+            confirmLabel="Delete template"
+            onConfirm={handleDelete}
+          />
         ) : (
           <span />
         )}

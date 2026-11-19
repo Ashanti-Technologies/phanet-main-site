@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trash2 } from "lucide-react";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -26,7 +27,6 @@ export function ServiceForm({ initial }: { initial: ServiceFormValues }) {
   const [values, setValues] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [deleting, setDeleting] = useState(false);
 
   function set<K extends keyof ServiceFormValues>(
     key: K,
@@ -56,16 +56,9 @@ export function ServiceForm({ initial }: { initial: ServiceFormValues }) {
 
   async function handleDelete() {
     if (!values.id) return;
-    if (!confirm("Delete this service and its attendance records?")) return;
-    setDeleting(true);
-    try {
-      await deleteService(values.id);
-      router.push("/admin/services");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete");
-      setDeleting(false);
-    }
+    await deleteService(values.id);
+    router.push("/admin/services");
+    router.refresh();
   }
 
   return (
@@ -112,20 +105,23 @@ export function ServiceForm({ initial }: { initial: ServiceFormValues }) {
 
       <div className="flex justify-between gap-2 border-t pt-4">
         {values.id ? (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleDelete}
-            disabled={deleting || pending}
-            className="text-destructive hover:text-destructive"
-          >
-            {deleting ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4 mr-1.5" />
-            )}
-            Delete
-          </Button>
+          <ConfirmDelete
+            trigger={
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={pending}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Delete
+              </Button>
+            }
+            title="Delete this service?"
+            description="Its attendance records are deleted too."
+            confirmLabel="Delete service"
+            onConfirm={handleDelete}
+          />
         ) : (
           <span />
         )}

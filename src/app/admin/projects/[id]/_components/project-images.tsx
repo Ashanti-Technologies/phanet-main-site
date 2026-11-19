@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { CldUploadWidgetProps } from "next-cloudinary";
 import { addProjectImage, deleteProjectImage } from "@/actions/images";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -38,7 +39,6 @@ interface ProjectImagesProps {
 export function ProjectImages({ project }: ProjectImagesProps) {
   const [images, setImages] = useState(project.images);
   const [isUploading, setIsUploading] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleUploadSuccess(result: {
     info: { secure_url: string; public_id: string };
@@ -62,15 +62,8 @@ export function ProjectImages({ project }: ProjectImagesProps) {
   }
 
   async function handleDelete(imageId: string) {
-    setDeletingId(imageId);
-    try {
-      await deleteProjectImage(imageId);
-      setImages(images.filter((img) => img.id !== imageId));
-    } catch (error) {
-      console.error("Failed to delete image:", error);
-    } finally {
-      setDeletingId(null);
-    }
+    await deleteProjectImage(imageId);
+    setImages((imgs) => imgs.filter((img) => img.id !== imageId));
   }
 
   return (
@@ -93,18 +86,16 @@ export function ProjectImages({ project }: ProjectImagesProps) {
                 className="object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-midnight-green/60 opacity-0 transition-opacity group-hover:opacity-100">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(image.id)}
-                  disabled={deletingId === image.id}
-                >
-                  {deletingId === image.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
+                <ConfirmDelete
+                  trigger={
+                    <Button variant="destructive" size="sm" aria-label="Delete image">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  }
+                  title="Delete this image?"
+                  confirmLabel="Delete image"
+                  onConfirm={() => handleDelete(image.id)}
+                />
               </div>
             </div>
           ))}

@@ -9,6 +9,7 @@ import {
   deleteRoomType,
   updateRoom,
 } from "@/actions/event-rooms";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -126,9 +127,7 @@ function RoomTypeBlock({ type }: { type: RoomType }) {
         <DeleteButton
           title={`Delete ${type.name}?`}
           description="All its rooms are removed and anyone in them goes back to unassigned."
-          onDelete={async () => {
-            await deleteRoomType(type.id);
-          }}
+          onDelete={() => deleteRoomType(type.id)}
         />
       </div>
 
@@ -186,8 +185,6 @@ function RoomTypeBlock({ type }: { type: RoomType }) {
 
 function RoomRow({ room }: { room: RoomOption }) {
   const save = useAction();
-  const del = useAction();
-  const [confirming, setConfirming] = useState(false);
   const floor = room.used - room.beds;
 
   return (
@@ -219,24 +216,23 @@ function RoomRow({ room }: { room: RoomOption }) {
           {save.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
           Save
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={del.isPending}
-          onClick={() =>
-            room.used && !confirming
-              ? setConfirming(true)
-              : del.run(() => deleteRoom(room.id))
+        <ConfirmDelete
+          trigger={
+            <Button type="button" size="sm" variant="ghost">
+              Remove
+            </Button>
           }
-          onBlur={() => setConfirming(false)}
-        >
-          {confirming ? `Remove and unassign ${room.used}?` : "Remove"}
-        </Button>
+          title={`Remove ${room.name}?`}
+          description={
+            room.used > 0
+              ? `${room.used} ${room.used === 1 ? "person goes" : "people go"} back to unassigned.`
+              : undefined
+          }
+          confirmLabel="Remove room"
+          onConfirm={() => deleteRoom(room.id)}
+        />
       </div>
-      {(save.error || del.error) && (
-        <p role="alert" className="w-full text-sm text-destructive">{save.error || del.error}</p>
-      )}
+      {save.error && <p role="alert" className="w-full text-sm text-destructive">{save.error}</p>}
     </form>
   );
 }

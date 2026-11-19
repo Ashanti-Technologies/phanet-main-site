@@ -158,7 +158,7 @@ export function RegistrationsPanel({
                     started {relTime(p.createdAt)}
                   </p>
                 </div>
-                <ClearPendingButton registrationId={p.id} />
+                <ClearPendingButton registrationId={p.id} name={p.bookedBy} />
               </li>
             ))}
           </ul>

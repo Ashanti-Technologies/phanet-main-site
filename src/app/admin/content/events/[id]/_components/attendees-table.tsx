@@ -8,14 +8,20 @@ import { DataTableColumnHeader } from "@/app/components/data-table/data-table-co
 import { columnHelper, facetFilterFn } from "@/app/components/data-table/features";
 import type { AttendeeRow } from "@/lib/event-registration";
 import { TONE_TEXT } from "@/app/admin/_components/status-badge";
-import { RecordPaymentDialog } from "./payment-actions";
+import { DeleteBookingButton, RecordPaymentDialog } from "./payment-actions";
 import {
   answerText,
   fieldAnswer,
   type RegistrationField,
 } from "@/lib/schemas/event-registration.schema";
 
-type Row = AttendeeRow & { checkedInLabel: string; paymentLabel: string; leadsBooking: boolean };
+type Row = AttendeeRow & {
+  checkedInLabel: string;
+  paymentLabel: string;
+  leadsBooking: boolean;
+  /** Everyone on this person's booking (for the delete confirmation). */
+  bookingPeople: string[];
+};
 
 const col = columnHelper<Row>();
 
@@ -157,6 +163,23 @@ const roomColumn = col.accessor("room", {
     row.original.room || <span className={TONE_TEXT.warning}>Unassigned</span>,
 });
 
+/** Delete the whole booking, shown once per booking (on its first person). */
+const actionsColumn = col.display({
+  id: "actions",
+  header: () => <span className="sr-only">Actions</span>,
+  cell: ({ row }) =>
+    row.original.leadsBooking ? (
+      <DeleteBookingButton
+        registrationId={row.original.registrationId}
+        bookedBy={row.original.bookedBy}
+        people={row.original.bookingPeople}
+        amountPaid={row.original.payment.amountPaid}
+      />
+    ) : null,
+  enableSorting: false,
+  enableHiding: false,
+});
+
 const uniq = (values: string[]) =>
   [...new Set(values.filter(Boolean))].sort().map((v) => ({ value: v, label: v }));
 
@@ -173,8 +196,11 @@ export function AttendeesTable({
   showFees: boolean;
 }) {
   const seen = new Set<string>();
+  const peopleByBooking = new Map<string, string[]>();
+  for (const r of rows) peopleByBooking.set(r.registrationId, [...(peopleByBooking.get(r.registrationId) ?? []), r.name]);
   const data: Row[] = rows.map((r) => ({
     ...r,
+    bookingPeople: peopleByBooking.get(r.registrationId) ?? [r.name],
     leadsBooking: !seen.has(r.registrationId) && !!seen.add(r.registrationId),
     checkedInLabel: r.checkedIn ? "Checked in" : "Not yet",
     paymentLabel: PAYMENT_LABEL[r.payment.state],
@@ -186,6 +212,7 @@ export function AttendeesTable({
         ...(showFees ? feeColumns : []),
         ...fields.map(fieldColumn),
         ...(showRoom ? [roomColumn] : []),
+        actionsColumn,
       ]),
     [fields, showRoom, showFees],
   );

@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { cancelPendingRegistration, recordEventPayment } from "@/actions/event-registrations";
+import { Loader2, Trash2 } from "lucide-react";
+import { deleteEventRegistration, recordEventPayment } from "@/actions/event-registrations";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
+import { formatMoney } from "@/lib/format";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -149,40 +151,76 @@ export function RecordPaymentDialog({
 }
 
 /** Remove an abandoned "awaiting payment" booking so its people can book again. */
-export function ClearPendingButton({ registrationId }: { registrationId: string }) {
+export function ClearPendingButton({ registrationId, name }: { registrationId: string; name: string }) {
   const router = useRouter();
-  const [confirm, setConfirm] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  if (!confirm) {
-    return (
-      <Button type="button" variant="ghost" size="sm" onClick={() => setConfirm(true)}>
-        Clear
-      </Button>
-    );
-  }
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      <Button
-        type="button"
-        variant="destructive"
-        size="sm"
-        disabled={isPending}
-        onClick={() =>
-          startTransition(async () => {
-            const res = await cancelPendingRegistration(registrationId);
-            if (!res.success) return setError(res.error);
-            router.refresh();
-          })
-        }
-      >
-        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Yes, clear booking
-      </Button>
-      <Button type="button" variant="ghost" size="sm" onClick={() => setConfirm(false)}>
-        Keep
-      </Button>
-      {error && <span className="text-sm text-destructive">{error}</span>}
-    </span>
+    <ConfirmDelete
+      trigger={
+        <Button type="button" variant="ghost" size="sm">
+          Clear
+        </Button>
+      }
+      title="Clear this unpaid booking?"
+      description={<p>{name}&apos;s booking is still awaiting payment. Clearing it lets these people book again.</p>}
+      confirmLabel="Clear booking"
+      onConfirm={async () => {
+        const res = await deleteEventRegistration(registrationId);
+        if (res.success) router.refresh();
+        return res;
+      }}
+    />
+  );
+}
+
+/** Delete a confirmed booking (everyone on it). Refused while money is recorded against it. */
+export function DeleteBookingButton({
+  registrationId,
+  bookedBy,
+  people,
+  amountPaid,
+}: {
+  registrationId: string;
+  bookedBy: string;
+  people: string[];
+  amountPaid: number;
+}) {
+  const router = useRouter();
+  const paid = amountPaid > 0;
+  return (
+    <ConfirmDelete
+      trigger={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          aria-label={`Delete ${bookedBy}'s booking`}
+          title={paid ? "Has a payment recorded: ask finance to void it first" : "Delete booking"}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      }
+      title={`Delete ${bookedBy}'s booking?`}
+      description={
+        <>
+          <p>
+            This removes the whole booking ({people.length} {people.length === 1 ? "person" : "people"}:{" "}
+            {people.join(", ")}), including room assignments and check-ins. Member records are kept.
+          </p>
+          {paid && (
+            <p className="font-medium text-foreground">
+              {formatMoney(amountPaid)} has been paid on this booking, so it can&apos;t be deleted until finance
+              voids or refunds the payment.
+            </p>
+          )}
+        </>
+      }
+      confirmLabel="Delete booking"
+      onConfirm={async () => {
+        const res = await deleteEventRegistration(registrationId);
+        if (res.success) router.refresh();
+        return res;
+      }}
+    />
   );
 }

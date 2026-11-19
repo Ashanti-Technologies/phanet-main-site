@@ -22,6 +22,7 @@ import { syncRegistrationPayment } from "@/lib/finance-ledger";
 import { checkout, CheckoutError } from "@/lib/payments/checkout";
 import { resolveMemberLocation } from "@/lib/member-location";
 import { settlePaymentIntent } from "@/lib/payments/settle";
+import { formatMoney } from "@/lib/format";
 import {
   createEventAccountSchema,
   parseRegistrationFields,
@@ -589,14 +590,31 @@ export async function recordEventPayment(
 }
 
 /** Clear an abandoned online booking so the people on it can book again. */
-export async function cancelPendingRegistration(registrationId: string): Promise<Result> {
+/**
+ * Admin: delete a whole booking and its attendees. Bookings with money
+ * against them are refused (deleting would orphan ledger incomes); finance
+ * voids or refunds first. Open checkouts are settled first, and the delete
+ * is guarded on amountPaid = 0 so a payment landing mid-delete is kept.
+ */
+export async function deleteEventRegistration(registrationId: string): Promise<Result> {
   const session = await requirePermission("update", "Member");
   const reg = await prisma.eventRegistration.findUnique({
     where: { id: String(registrationId) },
-    select: { id: true, status: true, amountPaid: true, eventId: true },
+    select: {
+      id: true,
+      status: true,
+      amountPaid: true,
+      eventId: true,
+      registrant: { select: { fullName: true } },
+      _count: { select: { attendees: true } },
+    },
   });
-  if (!reg || reg.status !== "PENDING_PAYMENT") return fail("Only bookings awaiting payment can be cleared here.");
-  if (pesewas(reg.amountPaid) > 0) return fail("This booking has a payment against it — ask finance to review it.");
+  if (!reg) return fail("That booking no longer exists.");
+  if (pesewas(reg.amountPaid) > 0) {
+    return fail(
+      `This booking has ${formatMoney(reg.amountPaid)} paid against it. Ask finance to void or refund the payment first.`,
+    );
+  }
   // A checkout may have completed since the page loaded.
   const open = await prisma.paymentIntent.findMany({
     where: { eventRegistrationId: reg.id, status: { in: ["PENDING", "PROCESSING"] } },
@@ -604,15 +622,20 @@ export async function cancelPendingRegistration(registrationId: string): Promise
   });
   for (const i of open) await settlePaymentIntent(i.reference).catch(() => undefined);
   const { count } = await prisma.eventRegistration.deleteMany({
-    where: { id: reg.id, status: "PENDING_PAYMENT", amountPaid: 0 },
+    where: { id: reg.id, amountPaid: 0 },
   });
   if (count === 0) return fail("This booking was just paid, so it was kept.");
   await logAudit({
-    action: "event_registration.clear_pending",
+    action: "event_registration.delete",
     subject: "EventRegistration",
     subjectId: reg.id,
     actorId: session.user.id,
-    meta: { eventId: reg.eventId },
+    meta: {
+      eventId: reg.eventId,
+      status: reg.status,
+      registrant: reg.registrant.fullName,
+      attendees: reg._count.attendees,
+    },
   });
   revalidatePath(`/admin/content/events/${reg.eventId}`);
   return { success: true, data: undefined };

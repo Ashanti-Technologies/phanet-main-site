@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { CldUploadWidgetProps } from "next-cloudinary";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { createProofUpload, deleteProofUpload } from "@/actions/proof-uploads";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -39,7 +40,6 @@ export function ProjectProofUploads({
     publicId: string;
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleCreate(formData: FormData) {
     if (!pendingUpload) return;
@@ -56,10 +56,8 @@ export function ProjectProofUploads({
   }
 
   async function handleDelete(id: string) {
-    setDeletingId(id);
     await deleteProofUpload(id);
-    setItems(items.filter((item) => item.id !== id));
-    setDeletingId(null);
+    setItems((its) => its.filter((item) => item.id !== id));
   }
 
   return (
@@ -136,20 +134,16 @@ export function ProjectProofUploads({
               {proof.note && <p className="text-sm">{proof.note}</p>}
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{new Date(proof.createdAt).toLocaleDateString()}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(proof.id)}
-                  disabled={deletingId === proof.id}
-                  aria-label="Delete progress update"
-                >
-                  {deletingId === proof.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
+                <ConfirmDelete
+                  trigger={
+                    <Button type="button" variant="ghost" size="icon" aria-label="Delete progress update">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  }
+                  title="Delete this progress update?"
+                  confirmLabel="Delete update"
+                  onConfirm={() => handleDelete(proof.id)}
+                />
               </div>
             </div>
           ))}

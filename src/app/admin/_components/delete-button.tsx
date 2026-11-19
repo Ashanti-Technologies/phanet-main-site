@@ -1,71 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/app/components/ui/dialog";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 
 type DeleteButtonProps = {
   title: string;
   description: string;
-  onDelete: () => Promise<void>;
+  onDelete: () => Promise<unknown>;
 };
 
-export function DeleteButton({
-  title,
-  description,
-  onDelete,
-}: DeleteButtonProps) {
-  const [open, setOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  async function handleDelete() {
-    setIsDeleting(true);
-    await onDelete();
-    setIsDeleting(false);
-    setOpen(false);
-  }
-
+/** The standard admin "Delete" button: opens the type-"delete me" confirmation. */
+export function DeleteButton({ title, description, onDelete }: DeleteButtonProps) {
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ConfirmDelete
+      trigger={
         <Button type="button" variant="destructive">
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={isDeleting}
-            onClick={handleDelete}
-          >
-            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Delete
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      }
+      title={title}
+      description={description}
+      onConfirm={onDelete}
+    />
   );
 }

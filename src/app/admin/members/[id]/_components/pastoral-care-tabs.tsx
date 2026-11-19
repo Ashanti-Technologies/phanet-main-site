@@ -15,6 +15,7 @@ import {
   updateVisitation,
 } from "@/actions/pastoral";
 import { Badge } from "@/app/components/ui/badge";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -218,15 +219,19 @@ export function PastoralCareTabs({
                   <Button type="submit" size="sm" variant="outline" disabled={isPending}>
                     Save
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    disabled={isPending}
-                    onClick={() => run(() => deleteVisitation(visit.id))}
-                  >
-                    <Trash2 className="mr-1.5 h-4 w-4" /> Delete
-                  </Button>
+                  <ConfirmDelete
+                    trigger={
+                      <Button type="button" size="sm" variant="destructive" disabled={isPending}>
+                        <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+                      </Button>
+                    }
+                    title="Delete this visit?"
+                    confirmLabel="Delete visit"
+                    onConfirm={async () => {
+                      await deleteVisitation(visit.id);
+                      router.refresh();
+                    }}
+                  />
                 </div>
               </form>
             ))
@@ -332,15 +337,19 @@ export function PastoralCareTabs({
                   <Button type="submit" size="sm" variant="outline" disabled={isPending}>
                     Save
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    disabled={isPending}
-                    onClick={() => run(() => deleteFollowUpTask(task.id))}
-                  >
-                    <Trash2 className="mr-1.5 h-4 w-4" /> Delete
-                  </Button>
+                  <ConfirmDelete
+                    trigger={
+                      <Button type="button" size="sm" variant="destructive" disabled={isPending}>
+                        <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+                      </Button>
+                    }
+                    title="Delete this follow-up task?"
+                    confirmLabel="Delete follow-up task"
+                    onConfirm={async () => {
+                      await deleteFollowUpTask(task.id);
+                      router.refresh();
+                    }}
+                  />
                 </div>
               </form>
             ))
@@ -442,15 +451,19 @@ export function PastoralCareTabs({
                   <Button type="submit" size="sm" variant="outline" disabled={isPending}>
                     Save
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    disabled={isPending}
-                    onClick={() => run(() => deleteMemberNote(note.id))}
-                  >
-                    <Trash2 className="mr-1.5 h-4 w-4" /> Delete
-                  </Button>
+                  <ConfirmDelete
+                    trigger={
+                      <Button type="button" size="sm" variant="destructive" disabled={isPending}>
+                        <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+                      </Button>
+                    }
+                    title="Delete this note?"
+                    confirmLabel="Delete note"
+                    onConfirm={async () => {
+                      await deleteMemberNote(note.id);
+                      router.refresh();
+                    }}
+                  />
                 </div>
               </form>
             ))

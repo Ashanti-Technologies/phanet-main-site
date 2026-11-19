@@ -6,6 +6,7 @@ import {
   updateChurchUnit,
   deleteChurchUnit,
 } from "@/actions/church-units";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -35,7 +36,6 @@ export function ChurchUnitsList({ initialUnits }: ChurchUnitsListProps) {
   const [newName, setNewName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleAdd() {
     if (!newName.trim()) return;
@@ -75,15 +75,8 @@ export function ChurchUnitsList({ initialUnits }: ChurchUnitsListProps) {
   }
 
   async function handleDelete(id: string) {
-    setDeletingId(id);
-    try {
-      await deleteChurchUnit(id);
-      setUnits(units.filter((u) => u.id !== id));
-    } catch (error) {
-      console.error("Failed to delete:", error);
-    } finally {
-      setDeletingId(null);
-    }
+    await deleteChurchUnit(id);
+    setUnits((us) => us.filter((u) => u.id !== id));
   }
 
   return (
@@ -141,18 +134,16 @@ export function ChurchUnitsList({ initialUnits }: ChurchUnitsListProps) {
                     disabled={updatingIds.has(unit.id)}
                   />
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(unit.id)}
-                  disabled={deletingId === unit.id}
-                >
-                  {deletingId === unit.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                  )}
-                </Button>
+                <ConfirmDelete
+                  trigger={
+                    <Button variant="ghost" size="icon" aria-label={`Delete ${unit.name}`}>
+                      <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                    </Button>
+                  }
+                  title={`Delete "${unit.name}"?`}
+                  confirmLabel="Delete option"
+                  onConfirm={() => handleDelete(unit.id)}
+                />
               </div>
             ))
           )}

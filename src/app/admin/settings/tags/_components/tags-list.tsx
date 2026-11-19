@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { createTag, updateTag, deleteTag } from "@/actions/tags";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Badge } from "@/app/components/ui/badge";
@@ -53,15 +54,8 @@ export function TagsList({ initial }: { initial: TagRow[] }) {
   }
 
   async function handleDelete(id: string) {
-    setBusyId(id);
-    try {
-      await deleteTag(id);
-      setTags(tags.filter((t) => t.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete");
-    } finally {
-      setBusyId(null);
-    }
+    await deleteTag(id);
+    setTags((ts) => ts.filter((t) => t.id !== id));
   }
 
   return (
@@ -107,18 +101,17 @@ export function TagsList({ initial }: { initial: TagRow[] }) {
               <Badge variant="outline">
                 {tag.memberCount} member{tag.memberCount === 1 ? "" : "s"}
               </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(tag.id)}
-                disabled={busyId === tag.id}
-              >
-                {busyId === tag.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                )}
-              </Button>
+              <ConfirmDelete
+                trigger={
+                  <Button variant="ghost" size="icon" aria-label={`Delete ${tag.label}`} disabled={busyId === tag.id}>
+                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                }
+                title={`Delete the "${tag.label}" tag?`}
+                description={`It's removed from ${tag.memberCount} member${tag.memberCount === 1 ? "" : "s"}.`}
+                confirmLabel="Delete tag"
+                onConfirm={() => handleDelete(tag.id)}
+              />
             </div>
           ))
         )}

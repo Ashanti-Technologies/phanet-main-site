@@ -1,33 +1,30 @@
 "use client";
 
-import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { deleteBudget, type BudgetWithActuals } from "@/actions/finance";
+import { ConfirmDelete } from "@/app/components/confirm-delete";
 import { Button } from "@/app/components/ui/button";
 import { BudgetProgress } from "../../_components/budget-progress";
 import { BudgetDialog, type BudgetOptions } from "./budget-dialog";
 
 function DeleteBudget({ id, name }: { id: string; name: string }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      aria-label={`Delete ${name}`}
-      className="text-destructive hover:text-destructive"
-      disabled={pending}
-      onClick={() => {
-        if (!confirm(`Delete the budget "${name}"? Expenses are not affected.`)) return;
-        startTransition(async () => {
-          await deleteBudget(id);
-          router.refresh();
-        });
+    <ConfirmDelete
+      trigger={
+        <Button variant="ghost" size="icon" aria-label={`Delete ${name}`} className="text-destructive hover:text-destructive">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      }
+      title={`Delete the budget "${name}"?`}
+      description="Expenses are not affected."
+      confirmLabel="Delete budget"
+      onConfirm={async () => {
+        await deleteBudget(id);
+        router.refresh();
       }}
-    >
-      {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-    </Button>
+    />
   );
 }
 
