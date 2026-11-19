@@ -28,6 +28,7 @@ export const OPTION_FIELD_TYPES: readonly RegistrationFieldType[] = ["select", "
  * label edits (and carry across events when a form is copied).
  * `scope` = asked once per booking, or for each attendee.
  * `summary` = show a breakdown / list on the admin Registrations tab.
+ * `inPersonOnly` = skip for people following online (travel, food, …).
  */
 export const registrationFieldSchema = z
   .object({
@@ -42,6 +43,7 @@ export const registrationFieldSchema = z
     required: z.boolean().default(false),
     scope: z.enum(["booking", "person"]).default("booking"),
     summary: z.boolean().default(false),
+    inPersonOnly: z.boolean().optional(),
   })
   .refine((f) => !OPTION_FIELD_TYPES.includes(f.type) || f.options.length > 0, {
     message: "Choice questions need at least one option",
@@ -87,8 +89,8 @@ export const DIETARY_OPTIONS = [
  * from earlier events by id. Keep them in sync with that migration.
  */
 export const DEFAULT_REGISTRATION_FIELDS: RegistrationField[] = [
-  { id: "arrival_date", label: "Arrival date", type: "date", required: true, scope: "booking", summary: true, options: [] },
-  { id: "arrival_time", label: "Arrival time", type: "time", required: false, scope: "booking", summary: false, options: [] },
+  { id: "arrival_date", inPersonOnly: true, label: "Arrival date", type: "date", required: true, scope: "booking", summary: true, options: [] },
+  { id: "arrival_time", inPersonOnly: true, label: "Arrival time", type: "time", required: false, scope: "booking", summary: false, options: [] },
   {
     id: "travel_mode",
     label: "Travelling by",
@@ -96,11 +98,11 @@ export const DEFAULT_REGISTRATION_FIELDS: RegistrationField[] = [
     required: false,
     scope: "booking",
     summary: true,
+    inPersonOnly: true,
     options: ["Private car", "Public transport", "Church / organised transport", "Flight", "Other"],
   },
-  { id: "from_location", label: "Coming from", type: "location", required: false, scope: "booking", summary: true, options: [] },
-  { id: "food", label: "Food preference", type: "select", required: false, scope: "person", summary: true, options: [...DIETARY_OPTIONS] },
-  { id: "allergies", label: "Allergies", type: "text", placeholder: "e.g. peanuts, shellfish", required: false, scope: "person", summary: true, options: [] },
+  { id: "food", inPersonOnly: true, label: "Food preference", type: "select", required: false, scope: "person", summary: true, options: [...DIETARY_OPTIONS] },
+  { id: "allergies", inPersonOnly: true, label: "Allergies", type: "text", placeholder: "e.g. peanuts, shellfish", required: false, scope: "person", summary: true, options: [] },
   { id: "notes", label: "Notes for the organisers", type: "textarea", required: false, scope: "booking", summary: false, options: [] },
   { id: "contact_consent", label: "PHANET may stay in touch with me after the event.", type: "checkbox", required: false, scope: "booking", summary: false, options: [] },
 ];
@@ -175,16 +177,26 @@ export function checkAnswer(
 }
 
 /**
+ * Questions asked for one scope. `inPerson` = the person (or, for booking
+ * questions, anyone on the booking) is attending in person.
+ */
+export function fieldsFor(fields: RegistrationField[], scope: RegistrationField["scope"], inPerson: boolean) {
+  return fields.filter((f) => f.scope === scope && (inPerson || !f.inPersonOnly));
+}
+
+/**
  * Check answers against the event's questions for one scope. Unknown keys
- * are dropped; returns the first problem, prefixed with the question label.
+ * (and skipped in-person-only answers) are dropped; returns the first
+ * problem, prefixed with the question label.
  */
 export function validateAnswers(
   fields: RegistrationField[],
   scope: RegistrationField["scope"],
   answers: Answers,
+  inPerson = true,
 ): { ok: true; value: Answers } | { ok: false; error: string } {
   const value: Answers = {};
-  for (const f of fields.filter((f) => f.scope === scope)) {
+  for (const f of fieldsFor(fields, scope, inPerson)) {
     const res = checkAnswer(f, answers[f.id]);
     if (!res.ok) return { ok: false, error: `${f.label}: ${res.error}` };
     if (res.value !== undefined) value[f.id] = res.value;
@@ -231,10 +243,25 @@ const answersSchema = z
   )
   .default({});
 
+const idText = z.string().trim().max(64).optional().nullable().transform((v) => v || null);
+
+/** Where a person is. Ids are re-checked on the server (resolveMemberLocation). */
+export const attendeeLocationSchema = z.object({
+  countryId: z.string().trim().min(1, "Pick a country").max(64),
+  regionId: idText,
+  cityId: idText,
+  city: z.string().trim().min(1, "Enter a town or city").max(100),
+});
+
+export const ATTENDANCE_MODES = ["IN_PERSON", "ONLINE"] as const;
+export type AttendanceMode = (typeof ATTENDANCE_MODES)[number];
+
 const attendeeDetails = {
   ageGroup: z.enum(["ADULT", "TEEN", "CHILD", "INFANT"]).optional(),
   /** Event price tier; re-priced on the server, never trusted for the amount. */
   priceTierId: z.string().min(1).optional(),
+  attendance: z.enum(ATTENDANCE_MODES).default("IN_PERSON"),
+  location: attendeeLocationSchema,
   answers: answersSchema,
 };
 

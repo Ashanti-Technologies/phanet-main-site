@@ -80,6 +80,7 @@ export const eventUpsertSchema = richTextSchema.extend({
   status: publishStatusSchema.default("DRAFT"),
   type: eventTypeSchema.default("MEETING"),
   registrationEnabled: z.boolean().default(false),
+  allowOnline: z.boolean().default(false),
   registrationClosesAt: z.coerce.date().optional().nullable(),
   registrationFields: eventRegistrationFieldsSchema.default([]),
   paymentMode: eventPaymentModeSchema.default("FREE"),

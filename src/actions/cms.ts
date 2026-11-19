@@ -111,6 +111,7 @@ export async function saveEvent(
     status: data.status,
     type: data.type,
     registrationEnabled: data.registrationEnabled,
+    allowOnline: data.allowOnline,
     registrationClosesAt: data.registrationClosesAt ?? null,
     registrationFields: data.registrationFields,
     paymentMode: data.paymentMode,

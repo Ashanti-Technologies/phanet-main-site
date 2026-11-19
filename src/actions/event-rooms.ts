@@ -112,7 +112,7 @@ export async function assignRoom(attendeeIds: string[], roomId: string | null): 
 
   const attendees = await prisma.eventAttendee.findMany({
     where: { id: { in: ids } },
-    select: { id: true, eventId: true, ageGroup: true, member: { select: { fullName: true, gender: true } } },
+    select: { id: true, eventId: true, ageGroup: true, attendance: true, member: { select: { fullName: true, gender: true } } },
   });
   if (attendees.length !== ids.length) return fail("Someone on this list no longer exists.");
   const eventId = attendees[0].eventId;
@@ -126,6 +126,8 @@ export async function assignRoom(attendeeIds: string[], roomId: string | null): 
       select: { gender: true, roomType: { select: { eventId: true } } },
     });
     if (!room || room.roomType.eventId !== eventId) return fail("Room not found for this event.");
+    const online = attendees.find((a) => a.attendance === "ONLINE");
+    if (online) return fail(`${online.member.fullName} is following online and doesn't need a room.`);
     const wrongGender = attendees.find(
       (a) =>
         room.gender &&

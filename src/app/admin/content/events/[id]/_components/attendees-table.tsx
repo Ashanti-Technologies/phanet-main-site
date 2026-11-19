@@ -118,6 +118,24 @@ const baseColumns = [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Age" />,
     filterFn: facetFilterFn,
   }),
+  col.accessor("attendance", {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Attending" />,
+    cell: ({ getValue }) =>
+      getValue() === "Online" ? <span className={`font-medium ${TONE_TEXT.info}`}>Online</span> : getValue(),
+    filterFn: facetFilterFn,
+  }),
+  col.accessor("country", {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Location" />,
+    cell: ({ row }) => (
+      <div>
+        <p>{row.original.city || "—"}</p>
+        <p className="text-xs text-muted-foreground">
+          {[row.original.region, row.original.country].filter(Boolean).join(", ")}
+        </p>
+      </div>
+    ),
+    filterFn: facetFilterFn,
+  }),
 ];
 
 /** One column per form field; dropdown fields also get a facet filter. */

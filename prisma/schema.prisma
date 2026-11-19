@@ -160,33 +160,35 @@ enum PhanetChapterRole {
 }
 
 model Country {
-  id           String   @id
-  code         String   @unique
-  name         String
-  dialCode     String?
-  currency     String?
-  translations Json?
-  isActive     Boolean  @default(true)
-  regions      Region[]
-  cities       City[]
-  members      Member[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String          @id
+  code           String          @unique
+  name           String
+  dialCode       String?
+  currency       String?
+  translations   Json?
+  isActive       Boolean         @default(true)
+  regions        Region[]
+  cities         City[]
+  members        Member[]
+  eventAttendees EventAttendee[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([name])
   @@map("country")
 }
 
 model Region {
-  id        String   @id
-  countryId String
-  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  name      String
-  isActive  Boolean  @default(true)
-  cities    City[]
-  members   Member[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String          @id
+  countryId      String
+  country        Country         @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  name           String
+  isActive       Boolean         @default(true)
+  cities         City[]
+  members        Member[]
+  eventAttendees EventAttendee[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([countryId])
   @@index([name])
@@ -197,22 +199,23 @@ model Region {
 /// (CC BY 4.0) by scripts/import-geonames-cities.ts; coordinates are the
 /// place's, never a person's.
 model City {
-  id         String   @id @default(cuid())
-  geonameId  Int?     @unique
-  countryId  String
-  country    Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  regionId   String?
-  region     Region?  @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  name       String
+  id             String          @id @default(cuid())
+  geonameId      Int?            @unique
+  countryId      String
+  country        Country         @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  regionId       String?
+  region         Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  name           String
   /// Lowercased name + Latin-script alternate names (Obuasi → "Obuase").
-  searchText String
-  lat        Float
-  lng        Float
-  population Int      @default(0)
-  isActive   Boolean  @default(true)
-  members    Member[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  searchText     String
+  lat            Float
+  lng            Float
+  population     Int             @default(0)
+  isActive       Boolean         @default(true)
+  members        Member[]
+  eventAttendees EventAttendee[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([countryId])
   @@index([regionId])
@@ -1051,6 +1054,8 @@ model Event {
   registrationClosesAt DateTime?
   /// Admin-built registration form; shape: eventRegistrationFieldsSchema
   registrationFields   Json?
+  /// People may register to follow online instead of attending in person
+  allowOnline          Boolean             @default(false)
   paymentMode          EventPaymentMode    @default(FREE)
   /// Ledger fund for this event's fees (PAY_AT_EVENT / ONLINE)
   feeFundId            String?
@@ -1135,6 +1140,11 @@ enum AttendeeRelationship {
   GUEST
 }
 
+enum AttendanceMode {
+  IN_PERSON
+  ONLINE
+}
+
 enum AgeGroup {
   ADULT
   TEEN
@@ -1189,12 +1199,24 @@ model EventAttendee {
   roomId         String?
   room           EventRoom?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
   checkedInAt    DateTime?
+  attendance     AttendanceMode       @default(IN_PERSON)
+  /// Where the person is, as given at booking time (snapshot for analytics)
+  countryId      String?
+  country        Country?             @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  regionId       String?
+  region         Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  cityId         String?
+  cityRef        City?                @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  /// City name (also set when the town wasn't in our list)
+  city           String?
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 
   @@unique([eventId, memberId])
   @@index([registrationId])
   @@index([roomId])
+  @@index([eventId, attendance])
+  @@index([countryId])
   @@map("event_attendee")
 }
 

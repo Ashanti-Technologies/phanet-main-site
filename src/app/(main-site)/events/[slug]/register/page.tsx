@@ -15,6 +15,7 @@ import {
 } from "@/lib/schemas/event-registration.schema";
 import { AccountGate } from "./_components/account-gate";
 import { RegistrationForm, type FormRow } from "./_components/registration-form";
+import type { LocationValue } from "@/app/components/location-input";
 import { CompletePaymentButton } from "./_components/complete-payment-button";
 import { settlePaymentIntent } from "@/lib/payments/settle";
 import { balanceMinor, chargesFees, pesewas } from "@/lib/event-fees";
@@ -194,7 +195,11 @@ async function SignedIn({
         include: {
           attendees: {
             orderBy: { createdAt: "asc" },
-            include: { member: { select: { id: true, fullName: true } } },
+            include: {
+              member: { select: { id: true, fullName: true } },
+              country: { select: { name: true } },
+              region: { select: { name: true } },
+            },
           },
         },
       })
@@ -247,6 +252,29 @@ async function SignedIn({
   const ids = [member?.id, ...household.map((h) => h.id)].filter(
     (id): id is string => !!id,
   );
+  const profiles = ids.length
+    ? await prisma.member.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          countryId: true,
+          regionId: true,
+          cityId: true,
+          city: true,
+          countryRef: { select: { name: true } },
+          regionRef: { select: { name: true } },
+        },
+      })
+    : [];
+  const locations: Record<string, LocationValue> = Object.fromEntries(
+    profiles
+      .filter((p) => p.countryId)
+      .map((p) => [
+        p.id,
+        toLocation({ ...p, country: p.countryRef, region: p.regionRef }),
+      ]),
+  );
+
   const previous = ids.length && personFieldIds.size
     ? await prisma.eventAttendee.findMany({
         where: { memberId: { in: ids }, eventId: { not: event.id } },
@@ -265,6 +293,8 @@ async function SignedIn({
         relationship: a.relationship,
         ageGroup: a.ageGroup ?? undefined,
         priceTierId: a.priceTierId ?? undefined,
+        attendance: a.attendance,
+        location: a.countryId ? toLocation(a) : (locations[a.memberId] ?? toLocation(a)),
         booked: { priceTierId: a.priceTierId, amount: a.amount?.toNumber() ?? null },
         answers: (a.answers as Answers) ?? {},
       }))
@@ -282,6 +312,7 @@ async function SignedIn({
         slug: event.slug,
         type: event.type,
         fields,
+        allowOnline: event.allowOnline,
         paymentMode: event.paymentMode,
         tiers: charges
           ? event.priceTiers.map((t) => ({
@@ -314,6 +345,7 @@ async function SignedIn({
       }
       sessionUser={{ name: sessionUser.name, email: sessionUser.email }}
       household={household}
+      locations={locations}
       previous={Object.fromEntries(
         previous.map((p) => [
           p.memberId,
@@ -332,6 +364,24 @@ async function SignedIn({
     />
     </>
   );
+}
+
+function toLocation(p: {
+  countryId: string | null;
+  regionId: string | null;
+  cityId: string | null;
+  city: string | null;
+  country: { name: string } | null;
+  region: { name: string } | null;
+}): LocationValue {
+  return {
+    countryId: p.countryId,
+    country: p.country?.name ?? "",
+    regionId: p.regionId,
+    region: p.region?.name ?? "",
+    cityId: p.cityId,
+    city: p.city ?? "",
+  };
 }
 
 function Closed() {

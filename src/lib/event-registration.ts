@@ -3,8 +3,9 @@ import { prisma } from "@/lib/database";
 import type { Answers } from "@/lib/schemas/event-registration.schema";
 import { balanceMinor, paymentState } from "@/lib/event-fees";
 
-/** Attendees who need a bed. Infants share with a parent; unknown age counts. */
+/** Attendees who need a bed: in person, and not infants (they share with a parent; unknown age counts). */
 export const takesBed = {
+  attendance: "IN_PERSON",
   OR: [{ ageGroup: null }, { ageGroup: { not: "INFANT" } }],
 } satisfies Prisma.EventAttendeeWhereInput;
 
@@ -123,6 +124,8 @@ export async function getEventAttendeeRows(eventId: string) {
     include: {
       member: { select: { fullName: true, phone: true, email: true, gender: true, status: true } },
       room: { select: { name: true, roomType: { select: { name: true } } } },
+      country: { select: { name: true } },
+      region: { select: { name: true } },
       registration: {
         include: { registrant: { select: { fullName: true, phone: true, email: true } } },
       },
@@ -143,6 +146,10 @@ export async function getEventAttendeeRows(eventId: string) {
       bookedBy: r.registrant.fullName,
       bookedByContact: r.registrant.phone || r.registrant.email || "",
       ageGroup: a.ageGroup ? AGE_LABELS[a.ageGroup] : "",
+      attendance: a.attendance === "ONLINE" ? "Online" : "In person",
+      country: a.country?.name ?? "",
+      region: a.region?.name ?? "",
+      city: a.city ?? "",
       room: a.room ? `${a.room.roomType.name} · ${a.room.name}` : "",
       checkedIn: !!a.checkedInAt,
       tierName: a.tierName ?? "",
@@ -231,6 +238,8 @@ export async function getEventRooms(eventId: string) {
         id: true,
         registrant: { select: { fullName: true } },
         attendees: {
+          // Online people don't need a room.
+          where: { attendance: "IN_PERSON" },
           orderBy: { createdAt: "asc" },
           select: {
             id: true,
@@ -267,7 +276,7 @@ export async function getEventRooms(eventId: string) {
       description: t.description,
       rooms: rooms.filter((r) => r.typeId === t.id),
     })),
-    bookings: registrations.map((r) => ({
+    bookings: registrations.filter((r) => r.attendees.length > 0).map((r) => ({
       id: r.id,
       registrant: r.registrant.fullName,
       attendees: r.attendees.map((a) => ({

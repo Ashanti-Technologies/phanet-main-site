@@ -14,10 +14,13 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { RegistrationFieldInput } from "@/app/components/registration-field";
+import { EMPTY_LOCATION, LocationInput, type LocationValue } from "@/app/components/location-input";
 import {
   checkAnswer,
+  fieldsFor,
   type AnswerValue,
   type Answers,
+  type AttendanceMode,
   type AttendeeInput,
   type RegistrationField,
 } from "@/lib/schemas/event-registration.schema";
@@ -38,6 +41,8 @@ export type FormRow = {
   email?: string;
   ageGroup?: AgeGroup;
   priceTierId?: string;
+  attendance: AttendanceMode;
+  location: LocationValue;
   /** What this person already owes on the saved booking (kept while their tier is unchanged). */
   booked?: { priceTierId: string | null; amount: number | null };
   answers: Answers;
@@ -51,6 +56,8 @@ type Props = {
     slug: string;
     type: "MEETING" | "CAMP";
     fields: RegistrationField[];
+    /** People may choose to follow online (free, no travel/food questions). */
+    allowOnline: boolean;
     paymentMode: "FREE" | "DISPLAY_ONLY" | "PAY_AT_EVENT" | "ONLINE";
     /** Only for events that charge (PAY_AT_EVENT / ONLINE). */
     tiers: PriceTier[];
@@ -72,6 +79,8 @@ type Props = {
   household: { id: string; fullName: string; relationship: Exclude<Relationship, "SELF"> }[];
   /** Person answers from each member's latest booking, to pre-fill. */
   previous: Record<string, Answers>;
+  /** Profile location per member id, to pre-fill. */
+  locations: Record<string, LocationValue>;
   existing: { rows: FormRow[]; answers: Answers } | null;
 };
 
@@ -88,13 +97,21 @@ const GENDERS: [string, string][] = [
 const cedis = (n: number) =>
   n === 0 ? "Free" : `GH₵${n.toLocaleString("en-GH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
-/** Mirrors the server: people keep their booked price while their tier is unchanged. */
+/** Mirrors the server: online is free; people keep their booked price while their tier is unchanged. */
 function rowPrice(row: FormRow, tiers: PriceTier[]) {
+  if (row.attendance === "ONLINE") return 0;
   if (row.booked && row.booked.priceTierId === row.priceTierId && row.booked.amount != null) {
     return row.booked.amount;
   }
   return tiers.find((t) => t.id === row.priceTierId)?.amount ?? 0;
 }
+
+const ATTENDANCE: [AttendanceMode, string][] = [
+  ["IN_PERSON", "In person"],
+  ["ONLINE", "Online"],
+];
+
+const locationDone = (l: LocationValue) => !!l.countryId && !!l.city.trim();
 
 const AGE_GROUPS: [AgeGroup, string][] = [
   ["ADULT", "Adult (18+)"],
@@ -104,7 +121,7 @@ const AGE_GROUPS: [AgeGroup, string][] = [
 ];
 
 export function RegistrationForm(props: Props) {
-  const { event, open, me, household, previous, existing } = props;
+  const { event, open, me, household, previous, locations, existing } = props;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -112,8 +129,12 @@ export function RegistrationForm(props: Props) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [confirmCancel, setConfirmCancel] = useState(false);
 
+  // New people start from the registrant's location (families usually live together).
+  const homeLocation = (me && locations[me.id]) || EMPTY_LOCATION;
   const blank = (memberId?: string) => ({
     answers: (memberId && previous[memberId]) || {},
+    attendance: "IN_PERSON" as const,
+    location: (memberId && locations[memberId]) || homeLocation,
   });
 
   const [self, setSelf] = useState({
@@ -159,8 +180,10 @@ export function RegistrationForm(props: Props) {
   const total = rows.reduce((sum, r) => sum + Math.round(rowPrice(r, event.tiers) * 100), 0) / 100;
   const toPay = Math.max(0, Math.round((total - event.amountPaid) * 100) / 100);
   const paysOnline = event.paymentMode === "ONLINE" && toPay > 0;
-  const bookingFields = event.fields.filter((f) => f.scope === "booking");
-  const personFields = event.fields.filter((f) => f.scope === "person");
+  const anyoneInPerson = rows.length === 0 || rows.some((r) => r.attendance === "IN_PERSON");
+  const onlineCount = rows.filter((r) => r.attendance === "ONLINE").length;
+  const bookingFields = fieldsFor(event.fields, "booking", anyoneInPerson);
+  const personFieldsFor = (r: FormRow) => fieldsFor(event.fields, "person", r.attendance === "IN_PERSON");
   const addableHousehold = household.filter(
     (h) => !rows.some((r) => r.memberId === h.id),
   );
@@ -183,7 +206,8 @@ export function RegistrationForm(props: Props) {
     };
     for (const f of bookingFields) check(`booking-${f.id}`, f, answers[f.id]);
     for (const r of rows) {
-      for (const f of personFields) check(`${r.key}-${f.id}`, f, r.answers[f.id]);
+      for (const f of personFieldsFor(r)) check(`${r.key}-${f.id}`, f, r.answers[f.id]);
+      if (!locationDone(r.location)) errors[`${r.key}-location`] = "Pick a country and town or city";
     }
     return errors;
   }
@@ -222,7 +246,7 @@ export function RegistrationForm(props: Props) {
         return setError("Each person you add needs a name, gender and age group.");
       }
     }
-    if (charges && rows.some((r) => !r.priceTierId)) {
+    if (charges && rows.some((r) => r.attendance === "IN_PERSON" && !r.priceTierId)) {
       return setError("Pick a price for everyone on the booking.");
     }
     const errors = findFieldErrors();
@@ -238,7 +262,15 @@ export function RegistrationForm(props: Props) {
     }
 
     const attendees: AttendeeInput[] = rows.map((r) => {
-      const details = { ageGroup: r.ageGroup, priceTierId: charges ? r.priceTierId : undefined, answers: r.answers };
+      const online = r.attendance === "ONLINE";
+      const { countryId, regionId, cityId, city } = r.location;
+      const details = {
+        ageGroup: r.ageGroup,
+        priceTierId: charges && !online ? r.priceTierId : undefined,
+        attendance: r.attendance,
+        location: { countryId: countryId ?? "", regionId, cityId, city },
+        answers: r.answers,
+      };
       const rel = r.relationship as Exclude<Relationship, "SELF">;
       switch (r.kind) {
         case "self":
@@ -367,14 +399,18 @@ export function RegistrationForm(props: Props) {
                 key={row.key}
                 row={row}
                 selfName={me?.fullName ?? (self.fullName || "You")}
-                personFields={personFields}
+                personFields={personFieldsFor(row)}
+                allowOnline={event.allowOnline}
                 tiers={event.tiers}
                 fieldErrors={fieldErrors}
                 onAnswer={(fieldId, v) => {
                   updateRow(row.key, { answers: { ...row.answers, [fieldId]: v } });
                   clearFieldError(`${row.key}-${fieldId}`);
                 }}
-                onChange={(patch) => updateRow(row.key, patch)}
+                onChange={(patch) => {
+                  updateRow(row.key, patch);
+                  if (patch.location) clearFieldError(`${row.key}-location`);
+                }}
                 onRemove={() =>
                   row.kind === "self"
                     ? toggleSelf(false)
@@ -551,6 +587,7 @@ export function RegistrationForm(props: Props) {
                   {rows.length}
                 </span>{" "}
                 {rows.length === 1 ? "person" : "people"}
+                {onlineCount > 0 && <> ({onlineCount} online)</>}
                 {charges && (
                   <>
                     {" · "}
@@ -613,6 +650,7 @@ function PersonCard({
   row,
   selfName,
   personFields,
+  allowOnline,
   tiers,
   fieldErrors,
   onAnswer,
@@ -622,6 +660,7 @@ function PersonCard({
   row: FormRow;
   selfName: string;
   personFields: RegistrationField[];
+  allowOnline: boolean;
   tiers: PriceTier[];
   fieldErrors: Record<string, string>;
   onAnswer: (fieldId: string, value: AnswerValue) => void;
@@ -709,7 +748,35 @@ function PersonCard({
           columns={2}
         />
       </Field>
-      {tiers.length > 0 && (
+      {allowOnline && (
+        <Field label="Attending" id={`${k}-attendance`}>
+          <Pick
+            id={`${k}-attendance`}
+            value={row.attendance}
+            onChange={(v) => onChange({ attendance: v as AttendanceMode })}
+            options={ATTENDANCE}
+            columns={2}
+          />
+          {row.attendance === "ONLINE" && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Free. We&apos;ll share the stream links before each session.
+            </p>
+          )}
+        </Field>
+      )}
+      <div className="space-y-2" data-field-id={`${k}-location`}>
+        <Label htmlFor={`${k}-location`}>Where {row.kind === "self" ? "are you" : "are they"} based? *</Label>
+        <LocationInput
+          id={`${k}-location`}
+          value={row.location}
+          invalid={!!fieldErrors[`${k}-location`]}
+          onChange={(location) => onChange({ location })}
+        />
+        {fieldErrors[`${k}-location`] && (
+          <p className="text-sm text-destructive">{fieldErrors[`${k}-location`]}</p>
+        )}
+      </div>
+      {tiers.length > 0 && row.attendance === "IN_PERSON" && (
         <Field label="Price *" id={`${k}-price`}>
           <Pick
             id={`${k}-price`}

@@ -62,6 +62,7 @@ type EventFormProps = {
     status: "DRAFT" | "PUBLISHED";
     type: "MEETING" | "CAMP";
     registrationEnabled: boolean;
+    allowOnline: boolean;
     registrationClosesAt: Date | string | null;
     registrationFields: unknown;
     paymentMode: PaymentMode;
@@ -122,6 +123,7 @@ export function EventForm({ event: initialEvent, otherForms, funds }: EventFormP
   const [registrationEnabled, setRegistrationEnabled] = useState(
     !!initialEvent?.registrationEnabled
   );
+  const [allowOnline, setAllowOnline] = useState(!!initialEvent?.allowOnline);
   const [registrationFields, setRegistrationFields] = useState<
     RegistrationField[]
   >(() =>
@@ -232,6 +234,7 @@ export function EventForm({ event: initialEvent, otherForms, funds }: EventFormP
         status,
         type,
         registrationEnabled,
+        allowOnline,
         registrationClosesAt: formData.get("registrationClosesAt")
           ? new Date(String(formData.get("registrationClosesAt"))).toISOString()
           : null,
@@ -445,6 +448,16 @@ export function EventForm({ event: initialEvent, otherForms, funds }: EventFormP
                     />
                     <p className="text-xs text-muted-foreground">
                       Leave empty to keep registration open until the event starts.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <Switch id="allowOnline" checked={allowOnline} onCheckedChange={setAllowOnline} />
+                      <Label htmlFor="allowOnline">People can also follow online</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Each person picks In person or Online. Online is free and skips
+                      questions marked &ldquo;Only ask in-person attendees&rdquo;.
                     </p>
                   </div>
                   <RegistrationFormBuilder

@@ -33,7 +33,7 @@ export async function sendRegistrationConfirmation({
         },
         attendees: {
           orderBy: { createdAt: "asc" },
-          select: { tierName: true, amount: true, member: { select: { fullName: true } } },
+          select: { tierName: true, amount: true, attendance: true, member: { select: { fullName: true } } },
         },
       },
     });
@@ -45,9 +45,13 @@ export async function sendRegistrationConfirmation({
     const people = reg.attendees
       .map((a) => {
         const fee = charges && a.tierName ? ` — ${escapeHtml(a.tierName)} · ${formatMoney(a.amount ?? 0)}` : "";
-        return `<li>${escapeHtml(a.member.fullName)}${fee}</li>`;
+        const online = a.attendance === "ONLINE" ? " (online)" : "";
+        return `<li>${escapeHtml(a.member.fullName)}${online}${fee}</li>`;
       })
       .join("");
+    const streams = reg.attendees.some((a) => a.attendance === "ONLINE")
+      ? "<p>We'll send the stream links for following online before each session.</p>"
+      : "";
     const balance = balanceMinor(reg.amountDue, reg.amountPaid) / 100;
     const fees = !charges
       ? ""
@@ -72,6 +76,7 @@ export async function sendRegistrationConfirmation({
       <p>${escapeHtml(date)} · ${escapeHtml(event.time)}<br>${escapeHtml(event.location)}</p>
       <p><strong>On this booking:</strong></p>
       <ul>${people}</ul>
+      ${streams}
       ${fees}
       <p>You can view or change your registration until registration closes:<br>
       <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`;

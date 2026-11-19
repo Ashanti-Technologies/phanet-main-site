@@ -37,6 +37,7 @@ export function RegistrationsPanel({
   const fees = showFees ? feeTotals(rows) : null;
   const bookings = new Set(rows.map((r) => r.registrationId)).size;
   const checkedIn = rows.filter((r) => r.checkedIn).length;
+  const online = rows.filter((r) => r.attendance === "Online").length;
   const summaryFields = fields.filter((f) => f.summary);
   // Free-text answers are listed by name (e.g. allergies for the kitchen);
   // everything else is counted.
@@ -50,6 +51,8 @@ export function RegistrationsPanel({
     });
 
   const breakdowns: [string, [string, number][]][] = [
+    ...(online ? [["Attending", tally(rows, (r) => r.attendance)] as [string, [string, number][]]] : []),
+    ["Countries", tally(rows, (r) => r.country)],
     ["Age groups", tally(rows, (r) => r.ageGroup)],
     ...(showFees ? [["Prices", tally(rows, (r) => r.tierName, "No price")] as [string, [string, number][]]] : []),
     ...summaryFields
@@ -69,6 +72,11 @@ export function RegistrationsPanel({
           {rows.length === 1 ? "person" : "people"} in{" "}
           <span className="font-mono font-medium tabular-nums text-foreground">{bookings}</span>{" "}
           {bookings === 1 ? "booking" : "bookings"} ·{" "}
+          {online > 0 && (
+            <>
+              <span className="font-mono font-medium tabular-nums text-foreground">{online}</span> online ·{" "}
+            </>
+          )}
           <span className="font-mono font-medium tabular-nums text-foreground">{checkedIn}</span> checked in
           {fees && (
             <>

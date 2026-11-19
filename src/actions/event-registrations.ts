@@ -20,6 +20,7 @@ import { registerEmailUrl, registerLocation } from "@/lib/event-subdomain";
 import { balanceMinor, chargesFees, pesewas, priceAttendees } from "@/lib/event-fees";
 import { syncRegistrationPayment } from "@/lib/finance-ledger";
 import { checkout, CheckoutError } from "@/lib/payments/checkout";
+import { resolveMemberLocation } from "@/lib/member-location";
 import { settlePaymentIntent } from "@/lib/payments/settle";
 import {
   createEventAccountSchema,
@@ -51,6 +52,7 @@ const eventSelect = {
   registrationEnabled: true,
   registrationClosesAt: true,
   registrationFields: true,
+  allowOnline: true,
   paymentMode: true,
   feeFundId: true,
   priceTiers: { select: { id: true, name: true, amount: true } },
@@ -135,7 +137,12 @@ export async function submitEventRegistration(
   if (!event || !isRegistrationOpen(event)) return fail("Registration is closed.");
 
   const fields = parseRegistrationFields(event.registrationFields);
-  const bookingAnswers = validateAnswers(fields, "booking", data.answers);
+  const isOnline = (a: { attendance: string }) => a.attendance === "ONLINE";
+  if (!event.allowOnline && data.attendees.some(isOnline)) {
+    return fail("This event can only be attended in person.");
+  }
+  const anyoneInPerson = data.attendees.some((a) => !isOnline(a));
+  const bookingAnswers = validateAnswers(fields, "booking", data.answers, anyoneInPerson);
   if (!bookingAnswers.ok) return fail(bookingAnswers.error);
 
   let me = await prisma.member.findUnique({
@@ -143,6 +150,13 @@ export async function submitEventRegistration(
     select: { id: true, fullName: true, email: true, householdId: true },
   });
   if (!me && !data.self) return fail("Please fill in your details.");
+
+  // Ids re-checked against our tables; one lookup per distinct place.
+  const places = new Map<string, Awaited<ReturnType<typeof resolveMemberLocation>>>();
+  for (const a of data.attendees) {
+    const key = JSON.stringify(a.location);
+    if (!places.has(key)) places.set(key, await resolveMemberLocation(a.location));
+  }
 
   const existing = me
     ? await prisma.eventRegistration.findUnique({
@@ -166,13 +180,25 @@ export async function submitEventRegistration(
     relationship: "SELF" | "SPOUSE" | "CHILD" | "RELATIVE" | "GUEST";
     ageGroup?: "ADULT" | "TEEN" | "CHILD" | "INFANT";
     priceTierId?: string;
+    attendance: "IN_PERSON" | "ONLINE";
+    location: Awaited<ReturnType<typeof resolveMemberLocation>>;
     answers: Answers;
   };
   const resolved: Resolved[] = [];
   for (const a of data.attendees) {
-    const answers = validateAnswers(fields, "person", a.answers);
+    const online = isOnline(a);
+    const answers = validateAnswers(fields, "person", a.answers, !online);
     if (!answers.ok) return fail(answers.error);
-    const base = { ageGroup: a.ageGroup, priceTierId: a.priceTierId, answers: answers.value };
+    const location = places.get(JSON.stringify(a.location))!;
+    if (!location.countryId) return fail("Pick a country for everyone on the booking.");
+    const base = {
+      ageGroup: a.ageGroup,
+      // Following online is free.
+      priceTierId: online ? undefined : a.priceTierId,
+      attendance: a.attendance,
+      location,
+      answers: answers.value,
+    };
     if (a.kind === "self") {
       resolved.push({ ...base, memberId: me?.id ?? null, isSelf: true, relationship: "SELF" });
     } else if (a.kind === "known") {
@@ -211,7 +237,7 @@ export async function submitEventRegistration(
   // Fees are priced here from the DB, never from the client. People who keep
   // the tier they booked keep their price even if the admin changed it since.
   const charges = chargesFees(event.paymentMode) && event.priceTiers.length > 0;
-  if (charges && resolved.some((r) => !r.priceTierId)) {
+  if (charges && resolved.some((r) => r.attendance === "IN_PERSON" && !r.priceTierId)) {
     return fail("Pick a price for everyone on the booking.");
   }
   const previous = new Map(existing?.attendees.map((a) => [a.memberId, a]));
@@ -277,10 +303,17 @@ export async function submitEventRegistration(
               phone: p.phone,
               email: p.email,
               householdId: inHousehold(r) ? householdId : null,
+              ...r.location,
             },
             select: { id: true },
           });
           r.memberId = created.id;
+        } else {
+          // Fill in profiles that have no location yet; never overwrite one.
+          await tx.member.updateMany({
+            where: { id: r.memberId!, countryId: null, cityId: null },
+            data: r.location,
+          });
         }
       }
 
@@ -301,12 +334,19 @@ export async function submitEventRegistration(
         const details = {
           relationship: r.relationship,
           ageGroup: r.ageGroup ?? null,
+          attendance: r.attendance,
+          countryId: r.location.countryId,
+          regionId: r.location.regionId,
+          cityId: r.location.cityId,
+          city: r.location.city,
+          // Online people don't take a bed.
+          ...(r.attendance === "ONLINE" ? { roomId: null } : {}),
           answers: r.answers,
           priceTierId: p.priceTierId,
           tierName: p.tierName,
           amount: charges ? money(p.amountMinor) : null,
         };
-        // update keeps admin-owned roomId / checkedInAt intact
+        // update keeps admin-owned roomId (unless now online) / checkedInAt intact
         await tx.eventAttendee.upsert({
           where: { eventId_memberId: { eventId: event.id, memberId: r.memberId! } },
           create: {

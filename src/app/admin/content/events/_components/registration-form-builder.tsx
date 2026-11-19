@@ -482,6 +482,12 @@ function FieldCard({
               checked={f.summary}
               onChange={(summary) => onChange({ summary })}
             />
+            <ToggleRow
+              id={id("inPersonOnly")}
+              label="Only ask in-person attendees"
+              checked={!!f.inPersonOnly}
+              onChange={(inPersonOnly) => onChange({ inPersonOnly })}
+            />
           </div>
         </div>
       </AccordionContent>
