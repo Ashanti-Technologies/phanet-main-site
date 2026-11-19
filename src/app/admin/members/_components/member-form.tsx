@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { CloudinaryImageField } from "@/app/admin/_components/cloudinary-image-field";
+import { LocationInput } from "@/app/components/location-input";
 import { createMember, updateMember } from "@/actions/members";
 import { PROFILE_PICS_FOLDER } from "@/constants";
 
@@ -36,6 +37,9 @@ export type MemberFormValues = {
   whatsapp: string;
   addressLine: string;
   city: string;
+  cityId: string | null;
+  countryId: string | null;
+  regionId: string | null;
   region: string;
   country: string;
   occupation: string;
@@ -72,6 +76,9 @@ export const emptyMemberValues: MemberFormValues = {
   whatsapp: "",
   addressLine: "",
   city: "",
+  cityId: null,
+  countryId: null,
+  regionId: null,
   region: "",
   country: "Ghana",
   occupation: "",
@@ -271,24 +278,20 @@ export function MemberForm({
               onChange={(e) => set("addressLine", e.target.value)}
             />
           </Field>
-          <Field label="City">
-            <Input
-              value={values.city}
-              onChange={(e) => set("city", e.target.value)}
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs">Location</Label>
+            <LocationInput
+              value={{
+                countryId: values.countryId,
+                country: values.country,
+                regionId: values.regionId,
+                region: values.region,
+                cityId: values.cityId,
+                city: values.city,
+              }}
+              onChange={(v) => setValues((prev) => ({ ...prev, ...v }))}
             />
-          </Field>
-          <Field label="Region">
-            <Input
-              value={values.region}
-              onChange={(e) => set("region", e.target.value)}
-            />
-          </Field>
-          <Field label="Country">
-            <Input
-              value={values.country}
-              onChange={(e) => set("country", e.target.value)}
-            />
-          </Field>
+          </div>
         </Grid>
       </Section>
 

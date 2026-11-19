@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
+import { resolveMemberLocation } from "@/lib/member-location";
 import { requirePermission } from "@/lib/auth-guard";
 import { z } from "zod";
 import {
@@ -111,18 +112,15 @@ export async function getMemberById(id: string) {
   return member;
 }
 
-function memberWriteData(input: ReturnType<typeof memberCreateSchema.parse>) {
-  const { unitIds: _u, tagIds: _t, country, ...rest } = input;
-  return {
-    ...rest,
-    country: country ?? "Ghana",
-  };
+async function memberWriteData(input: ReturnType<typeof memberCreateSchema.parse>) {
+  const { unitIds: _u, tagIds: _t, ...rest } = input;
+  return { ...rest, ...(await resolveMemberLocation(rest)) };
 }
 
 export async function createMember(input: MemberCreateInput) {
   const session = await requirePermission("create", "Member");
   const data = memberCreateSchema.parse(input);
-  const writeData = memberWriteData(data);
+  const writeData = await memberWriteData(data);
 
   const member = await prisma.member.create({
     data: {
@@ -151,7 +149,7 @@ export async function createMember(input: MemberCreateInput) {
 export async function updateMember(input: MemberUpdateInput) {
   const session = await requirePermission("update", "Member");
   const data = memberUpdateSchema.parse(input);
-  const writeData = memberWriteData(data);
+  const writeData = await memberWriteData(data);
 
   const member = await prisma.$transaction(async (tx) => {
     await tx.memberUnit.deleteMany({ where: { memberId: data.id } });

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/database";
 import { requirePermission } from "@/lib/auth-guard";
 import { logAudit } from "@/lib/audit";
 import { getCurrentMemberForPortal } from "@/lib/member-portal";
+import { resolveMemberLocation } from "@/lib/member-location";
 import {
   eventRsvpSchema,
   memberNotificationsUpdateSchema,
@@ -27,39 +28,7 @@ async function applyProfileUpdate(
   data: ReturnType<typeof memberProfileUpdateSchema.parse>,
   options: { confirm?: boolean } = {},
 ) {
-  // Resolve text fallbacks for country/region from the FK selection so both
-  // representations stay in sync (admin views still read the text columns).
-  let countryName: string | null | undefined = data.country;
-  let regionName: string | null | undefined = data.region;
-  if (data.countryId) {
-    const c = await prisma.country.findUnique({
-      where: { id: data.countryId },
-      select: { name: true },
-    });
-    if (c) countryName = c.name;
-  }
-  // A picked city must belong to the picked country; it also fixes the region.
-  let cityId: string | null = null;
-  let regionId = data.regionId;
-  let cityName = data.city;
-  if (data.cityId && data.countryId) {
-    const city = await prisma.city.findUnique({
-      where: { id: data.cityId },
-      select: { id: true, name: true, countryId: true, regionId: true },
-    });
-    if (city && city.countryId === data.countryId) {
-      cityId = city.id;
-      cityName = city.name;
-      regionId = city.regionId ?? regionId;
-    }
-  }
-  if (regionId) {
-    const r = await prisma.region.findUnique({
-      where: { id: regionId },
-      select: { name: true },
-    });
-    if (r) regionName = r.name;
-  }
+  const location = await resolveMemberLocation(data);
 
   return prisma.$transaction(async (tx) => {
     const member = await tx.member.update({
@@ -74,12 +43,7 @@ async function applyProfileUpdate(
         phone: data.phone,
         whatsapp: data.whatsapp,
         addressLine: data.addressLine,
-        city: cityName,
-        cityId,
-        countryId: data.countryId,
-        regionId,
-        country: countryName ?? "Ghana",
-        region: regionName,
+        ...location,
       },
     });
 
