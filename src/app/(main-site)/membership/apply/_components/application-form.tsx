@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { submitMembershipApplication } from "@/actions/member-applications";
 import { Button } from "@/app/components/ui/button";
+import { SuccessCelebration } from "@/app/components/success-celebration";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
@@ -43,12 +44,9 @@ export function MembershipApplicationForm({ units }: { units: Unit[] }) {
 
   if (submitted) {
     return (
-      <div className="rounded-md border bg-muted/40 p-6 text-center">
-        <h2 className="font-semibold">Application received</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          A PHANET leader will review it and follow up with your signup invite.
-        </p>
-      </div>
+      <SuccessCelebration title={<h2>Application received!</h2>}>
+        <p>A PHANET leader will review it and follow up with your signup invite.</p>
+      </SuccessCelebration>
     );
   }
 

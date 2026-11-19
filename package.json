@@ -11,7 +11,8 @@
     "import:phanet-members-2024": "tsx scripts/import-phanet-members-2024.ts",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
-    "import:cities": "tsx scripts/import-geonames-cities.ts"
+    "import:cities": "tsx scripts/import-geonames-cities.ts",
+    "report:unmatched-towns": "tsx scripts/unmatched-towns.ts"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.6",
@@ -23,6 +24,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@lottiefiles/dotlottie-react": "^0.22.3",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/react-avatar": "^1.1.11",

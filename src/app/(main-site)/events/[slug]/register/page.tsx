@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, CheckCircle2, Clock, MapPin, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, MapPin, XCircle } from "lucide-react";
 import { prisma } from "@/lib/database";
 import { getServerAuthSession } from "@/lib/auth";
 import { getCurrentMemberForPortal } from "@/lib/member-portal";
@@ -16,6 +16,7 @@ import {
 import { AccountGate } from "./_components/account-gate";
 import { RegistrationForm, type FormRow } from "./_components/registration-form";
 import type { LocationValue } from "@/app/components/location-input";
+import { SuccessCelebration } from "@/app/components/success-celebration";
 import { CompletePaymentButton } from "./_components/complete-payment-button";
 import { settlePaymentIntent } from "@/lib/payments/settle";
 import { balanceMinor, chargesFees, pesewas } from "@/lib/event-fees";
@@ -104,29 +105,21 @@ export default async function EventRegisterPage({ params, searchParams }: Props)
         </header>
 
         {sp.done && (
-          <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-emerald-800 dark:text-emerald-300">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-            <div className="space-y-1">
-              <p className="font-semibold">You&apos;re registered.</p>
-              <p>
-                We&apos;ve emailed you a confirmation. You can change your
-                booking below until registration closes, or see it any time in{" "}
-                <Link href="/me" className="underline underline-offset-4">
-                  your portal
-                </Link>
-                .
-              </p>
-            </div>
-          </div>
+          <SuccessCelebration title="You're registered!">
+            <p>
+              We&apos;ve emailed you a confirmation. You can change your
+              booking below until registration closes, or see it any time in{" "}
+              <Link href="/me" className="underline underline-offset-4">
+                your portal
+              </Link>
+              .
+            </p>
+          </SuccessCelebration>
         )}
         {payment?.status === "completed" && (
-          <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm text-emerald-800 dark:text-emerald-300">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-            <div className="space-y-1">
-              <p className="font-semibold">Payment received — you&apos;re registered.</p>
-              <p>We received {formatMoney(payment.amount)} and emailed you a confirmation.</p>
-            </div>
-          </div>
+          <SuccessCelebration title="Payment received, you're registered!">
+            <p>We received {formatMoney(payment.amount)} and emailed you a confirmation.</p>
+          </SuccessCelebration>
         )}
         {payment?.status === "pending" && (
           <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-900 dark:text-amber-200">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { SuccessCelebration } from "@/app/components/success-celebration";
 import { settlePaymentIntent } from "@/lib/payments/settle";
 import { formatMoney } from "@/lib/format";
 
@@ -59,9 +60,17 @@ export default async function ThankYouPage({
   return (
     <main className="bg-white pt-32 pb-24">
       <div className="container mx-auto max-w-xl px-4 text-center">
-        <div className="flex justify-center">{view.icon}</div>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">{view.title}</h1>
-        <p className="mt-3 text-gray-700">{view.body}</p>
+        {result.status === "completed" ? (
+          <SuccessCelebration title={<h1 className="text-2xl font-bold">{view.title}</h1>}>
+            <p>{view.body}</p>
+          </SuccessCelebration>
+        ) : (
+          <>
+            <div className="flex justify-center">{view.icon}</div>
+            <h1 className="mt-4 text-3xl font-bold text-gray-900">{view.title}</h1>
+            <p className="mt-3 text-gray-700">{view.body}</p>
+          </>
+        )}
         {reference && <p className="mt-2 text-xs text-gray-500">Reference: {reference}</p>}
         <div className="mt-8 flex justify-center gap-3">
           <Link href="/give" className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-medium hover:border-gray-500">

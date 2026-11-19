@@ -30,6 +30,7 @@ import {
   AvatarImage,
 } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
+import { SuccessCelebration } from "@/app/components/success-celebration";
 import { Progress } from "@/app/components/ui/progress";
 import {
   GENDER_LABELS,
@@ -55,11 +56,12 @@ function initials(name: string) {
 export default async function MemberProfilePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ claimed?: string }>;
+  searchParams?: Promise<{ claimed?: string; confirmed?: string }>;
 }) {
   const { member } = await getCurrentMemberOrRedirect();
   const params = (await searchParams) ?? {};
   const justClaimed = params.claimed === "1";
+  const justConfirmed = params.confirmed === "1" && !!member.phanetProfile?.formSubmittedAt;
   const needsConfirmation = !member.phanetProfile?.formSubmittedAt;
   const completeness = computeProfileCompleteness(member);
   const p = member.phanetProfile;
@@ -100,6 +102,11 @@ export default async function MemberProfilePage({
 
   return (
     <div className="space-y-6">
+      {justConfirmed && (
+        <SuccessCelebration title="Thanks, your details are confirmed!">
+          <p>You can update them any time from this page.</p>
+        </SuccessCelebration>
+      )}
       {justClaimed || needsConfirmation ? (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-mikado-yellow/50 bg-mikado-yellow/10 p-4 sm:p-5">
           <div className="flex items-start gap-3">

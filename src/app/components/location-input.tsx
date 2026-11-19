@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { MapPin } from "lucide-react";
 import { listCountries, listRegions, searchCities, type CityHit } from "@/actions/locations";
 import {
   Combobox,
@@ -10,7 +11,7 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/app/components/ui/combobox";
-import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 
 export type LocationValue = {
   countryId: string | null;
@@ -32,15 +33,25 @@ export const EMPTY_LOCATION: LocationValue = {
 
 type Country = { id: string; name: string; code: string };
 type Option = { id: string; name: string };
+/** Picked when someone's region isn't in our list, so they can still enter their town. */
+const REGION_NOT_LISTED: Option = { id: "__not_listed__", name: "My region isn't listed" };
+/** A search hit, or (typed) the town exactly as the person wrote it. */
+type CityOption = CityHit & { typed?: boolean };
 
-// Countries rarely change; load once per page.
+// Reference data rarely changes; load once per page.
 let countriesPromise: Promise<Country[]> | null = null;
 const loadCountries = () => (countriesPromise ??= listCountries());
+const regionCache = new Map<string, Promise<Option[]>>();
+const loadRegions = (countryId: string) => {
+  if (!regionCache.has(countryId)) regionCache.set(countryId, listRegions(countryId));
+  return regionCache.get(countryId)!;
+};
 
 /**
- * Country → town search (towns come with their region). "Can't find your
- * town?" falls back to a region pick + free text. Names are always filled;
- * ids only when the place came from our tables.
+ * Country (Ghana by default) → Region / State → Town / City, in that order,
+ * with a line underneath confirming exactly what will be saved. A town that
+ * isn't in our list can still be used as typed; scripts/unmatched-towns.ts
+ * lists those so we can add them.
  */
 export function LocationInput({
   id,
@@ -54,10 +65,10 @@ export function LocationInput({
   invalid?: boolean;
 }) {
   const [countries, setCountries] = useState<Country[]>([]);
-  const [manual, setManual] = useState(false);
-  const [regions, setRegions] = useState<Option[]>([]);
+  const [regions, setRegions] = useState<{ countryId: string; list: Option[] } | null>(null);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<CityHit[]>([]);
+  const [regionNotListed, setRegionNotListed] = useState(false);
 
   useEffect(() => {
     loadCountries().then(setCountries);
@@ -71,82 +82,136 @@ export function LocationInput({
       null,
     [countries, value.countryId, value.country],
   );
-  const cityValue: CityHit | null = value.city
-    ? { id: value.cityId ?? "", name: value.city, regionId: value.regionId, regionName: value.region || null }
-    : null;
+
+  useEffect(() => {
+    if (!country) return;
+    let stale = false;
+    loadRegions(country.id).then((list) => !stale && setRegions({ countryId: country.id, list }));
+    return () => {
+      stale = true;
+    };
+  }, [country]);
+
+  const regionList = regions && regions.countryId === country?.id ? regions.list : null; // null = loading
+  const hasRegions = !!regionList?.length;
+  const region =
+    regionList?.find((r) => r.id === value.regionId) ??
+    regionList?.find((r) => r.name === value.region) ??
+    null;
+  const cityReady = !!country && regionList !== null && (!hasRegions || !!region || regionNotListed);
 
   useEffect(() => {
     const q = query.trim();
-    if (!country || q.length < 2 || q === value.city) return;
+    if (!country || !cityReady || q.length < 2 || q === value.city) return;
     let stale = false;
     const t = setTimeout(async () => {
-      const res = await searchCities(country.id, q);
+      const res = await searchCities(country.id, q, region?.id);
       if (!stale) setHits(res);
     }, 250);
     return () => {
       stale = true;
       clearTimeout(t);
     };
-  }, [query, country, value.city]);
+  }, [query, country, region?.id, cityReady, value.city]);
 
-  useEffect(() => {
-    if (!manual || !country) return;
-    let stale = false;
-    listRegions(country.id).then((r) => !stale && setRegions(r));
-    return () => {
-      stale = true;
-    };
-  }, [manual, country]);
+  const typed = query.trim();
+  const cityItems: CityOption[] =
+    typed.length >= 2 && typed !== value.city && !hits.some((h) => h.name.toLowerCase() === typed.toLowerCase())
+      ? [...hits, { id: `typed:${typed}`, name: typed, regionId: region?.id ?? null, regionName: region?.name ?? null, typed: true }]
+      : hits;
+  const cityValue: CityOption | null = value.city
+    ? { id: value.cityId ?? `typed:${value.city}`, name: value.city, regionId: value.regionId, regionName: value.region || null }
+    : null;
 
-  const base = { countryId: country?.id ?? null, country: country?.name ?? "" };
+  const base = {
+    countryId: country?.id ?? null,
+    country: country?.name ?? "",
+    regionId: region?.id ?? null,
+    region: region?.name ?? "",
+  };
+  const summary = [value.city, region?.name ?? value.region, country?.name].filter(Boolean).join(", ");
 
   return (
     <div className="space-y-2">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Combobox<Country>
-          items={countries}
-          value={country}
-          itemToStringLabel={(c) => c.name}
-          isItemEqualToValue={(a, b) => a.id === b.id}
-          onValueChange={(c) => {
-            setHits([]);
-            onChange(c ? { ...EMPTY_LOCATION, countryId: c.id, country: c.name } : EMPTY_LOCATION);
-          }}
-        >
-          <ComboboxInput className="h-12 w-full" placeholder="Country" aria-label="Country" />
-          <ComboboxContent>
-            <ComboboxEmpty>No matches.</ComboboxEmpty>
-            <ComboboxList>
-              {(c: Country) => (
-                <ComboboxItem key={c.id} value={c}>
-                  {c.name}
-                </ComboboxItem>
-              )}
-            </ComboboxList>
-          </ComboboxContent>
-        </Combobox>
+      <div className={`grid gap-3 ${hasRegions || regionList === null ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Country</Label>
+          <Combobox<Country>
+            items={countries}
+            value={country}
+            itemToStringLabel={(c) => c.name}
+            isItemEqualToValue={(a, b) => a.id === b.id}
+            onValueChange={(c) => {
+              setHits([]);
+              setRegionNotListed(false);
+              onChange(c ? { ...EMPTY_LOCATION, countryId: c.id, country: c.name } : EMPTY_LOCATION);
+            }}
+          >
+            <ComboboxInput className="h-12 w-full" placeholder="Country" aria-label="Country" />
+            <ComboboxContent>
+              <ComboboxEmpty>No matches.</ComboboxEmpty>
+              <ComboboxList>
+                {(c: Country) => (
+                  <ComboboxItem key={c.id} value={c}>
+                    {c.name}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>
 
-        {manual ? (
-          <Input
-            id={id}
-            className="h-12"
-            placeholder="Town / city"
-            aria-invalid={invalid}
-            value={value.city}
-            onChange={(e) => onChange({ ...value, ...base, cityId: null, city: e.target.value })}
-          />
-        ) : (
-          <Combobox<CityHit>
-            items={hits}
+        {(hasRegions || regionList === null) && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Region / State</Label>
+            <Combobox<Option>
+              items={regionList ? [...regionList, REGION_NOT_LISTED] : []}
+              value={region ?? (regionNotListed ? REGION_NOT_LISTED : null)}
+              itemToStringLabel={(r) => r.name}
+              isItemEqualToValue={(a, b) => a.id === b.id}
+              onValueChange={(r) => {
+                setHits([]);
+                const notListed = r?.id === REGION_NOT_LISTED.id;
+                setRegionNotListed(notListed);
+                const picked = r && !notListed ? r : null;
+                onChange({ ...EMPTY_LOCATION, ...base, regionId: picked?.id ?? null, region: picked?.name ?? "" });
+              }}
+            >
+              <ComboboxInput
+                className="h-12 w-full"
+                placeholder={regionList === null ? "Loading…" : "Pick a region"}
+                aria-label="Region or state"
+                disabled={!regionList}
+              />
+              <ComboboxContent>
+                <ComboboxEmpty>No matches.</ComboboxEmpty>
+                <ComboboxList>
+                  {(r: Option) => (
+                    <ComboboxItem key={r.id} value={r}>
+                      {r.name}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor={id} className="text-xs text-muted-foreground">
+            Town / City
+          </Label>
+          <Combobox<CityOption>
+            items={cityItems}
             value={cityValue}
             filter={null}
             itemToStringLabel={(c) => c.name}
-            isItemEqualToValue={(a, b) => a.id === b.id && a.name === b.name}
+            isItemEqualToValue={(a, b) => a.id === b.id}
             onInputValueChange={setQuery}
             onValueChange={(c) =>
               onChange(
                 c
-                  ? { ...base, regionId: c.regionId, region: c.regionName ?? "", cityId: c.id, city: c.name }
+                  ? { ...base, cityId: c.typed ? null : c.id, city: c.name }
                   : { ...EMPTY_LOCATION, ...base },
               )
             }
@@ -154,60 +219,41 @@ export function LocationInput({
             <ComboboxInput
               id={id}
               className="h-12 w-full"
-              placeholder="Search your town or city"
+              placeholder={cityReady ? "Start typing your town" : "Pick a region first"}
               aria-invalid={invalid}
               showClear={!!value.city}
-              disabled={!country}
+              disabled={!cityReady}
             />
             <ComboboxContent>
-              <ComboboxEmpty>
-                {query.trim().length < 2 ? "Type at least 2 letters" : "Not found — use “Can't find your town?”"}
-              </ComboboxEmpty>
+              <ComboboxEmpty>Type at least 2 letters</ComboboxEmpty>
               <ComboboxList>
-                {(c: CityHit) => (
+                {(c: CityOption) => (
                   <ComboboxItem key={c.id} value={c}>
-                    <span>{c.name}</span>
-                    {c.regionName && <span className="text-xs text-muted-foreground">{c.regionName}</span>}
+                    {c.typed ? (
+                      <span>
+                        Use &ldquo;{c.name}&rdquo;{" "}
+                        <span className="text-xs text-muted-foreground">(not in our list yet)</span>
+                      </span>
+                    ) : (
+                      <span>{c.name}</span>
+                    )}
                   </ComboboxItem>
                 )}
               </ComboboxList>
             </ComboboxContent>
           </Combobox>
-        )}
+        </div>
       </div>
 
-      {manual && (
-        <Combobox<Option>
-          items={regions}
-          value={regions.find((r) => r.id === value.regionId) ?? null}
-          itemToStringLabel={(r) => r.name}
-          isItemEqualToValue={(a, b) => a.id === b.id}
-          onValueChange={(r) => onChange({ ...value, ...base, regionId: r?.id ?? null, region: r?.name ?? "" })}
-        >
-          <ComboboxInput className="h-12 w-full" placeholder="Region / state" aria-label="Region or state" />
-          <ComboboxContent>
-            <ComboboxEmpty>No matches.</ComboboxEmpty>
-            <ComboboxList>
-              {(r: Option) => (
-                <ComboboxItem key={r.id} value={r}>
-                  {r.name}
-                </ComboboxItem>
-              )}
-            </ComboboxList>
-          </ComboboxContent>
-        </Combobox>
+      {value.city && (
+        <p className="flex items-center gap-1.5 text-sm" aria-live="polite">
+          <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+          <span className="font-medium">{summary}</span>
+          {!value.cityId && (
+            <span className="text-xs text-muted-foreground">(new town, we&apos;ll add it to our list)</span>
+          )}
+        </p>
       )}
-
-      <button
-        type="button"
-        className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
-        onClick={() => {
-          setManual((m) => !m);
-          onChange({ ...EMPTY_LOCATION, ...base });
-        }}
-      >
-        {manual ? "Search the list instead" : "Can't find your town?"}
-      </button>
     </div>
   );
 }

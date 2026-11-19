@@ -143,7 +143,7 @@ export function ProfileForm({
     startTransition(async () => {
       try {
         await confirmMyProfile(buildPayload());
-        router.push("/me/profile");
+        router.push("/me/profile?confirmed=1");
       } catch (err) {
         setMessage({
           type: "error",
