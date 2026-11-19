@@ -61,3 +61,17 @@ export function formatDateShort(date: Date): string {
     year: "numeric",
   });
 }
+
+/** Short relative time: "just now", "5m ago", "3h ago", "2d ago", then "Nov 3". */
+export function relTime(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const diff = Date.now() - d.getTime();
+  const min = Math.floor(diff / 60_000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const dy = Math.floor(hr / 24);
+  if (dy < 7) return `${dy}d ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}

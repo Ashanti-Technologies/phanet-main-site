@@ -7,6 +7,7 @@ import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumnHeader } from "@/app/components/data-table/data-table-column-header";
 import { columnHelper, facetFilterFn } from "@/app/components/data-table/features";
 import type { AttendeeRow } from "@/lib/event-registration";
+import { TONE_TEXT } from "@/app/admin/_components/status-badge";
 import {
   answerText,
   fieldAnswer,
@@ -79,7 +80,7 @@ const fieldColumn = (f: RegistrationField) =>
 const roomColumn = col.accessor("room", {
   header: ({ column }) => <DataTableColumnHeader column={column} title="Room" />,
   cell: ({ row }) =>
-    row.original.room || <span className="text-muted-foreground">Unassigned</span>,
+    row.original.room || <span className={TONE_TEXT.warning}>Unassigned</span>,
 });
 
 const uniq = (values: string[]) =>

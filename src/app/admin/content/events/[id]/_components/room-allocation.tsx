@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { assignRoom } from "@/actions/event-rooms";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { GENDER_LABEL, type RoomOption } from "./room-setup";
 
@@ -30,10 +29,10 @@ export function RoomAllocation({ rooms, bookings }: { rooms: RoomOption[]; booki
     : bookings;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+    <section className="rounded-xl border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <div>
-          <CardTitle>Allocate rooms</CardTitle>
+          <h2 className="text-base font-medium">Allocate rooms</h2>
           <p className="text-sm text-muted-foreground">
             Families stay together on one booking. Full rooms can&apos;t be picked.
           </p>
@@ -42,19 +41,19 @@ export function RoomAllocation({ rooms, bookings }: { rooms: RoomOption[]; booki
           <Checkbox checked={onlyUnassigned} onCheckedChange={(v) => setOnlyUnassigned(v === true)} />
           Only bookings that still need rooms
         </label>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {rooms.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Add some rooms above first.</p>
-        ) : shown.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {bookings.length ? "Everyone has a room." : "No one has registered yet."}
-          </p>
-        ) : (
-          shown.map((b) => <BookingBlock key={b.id} booking={b} rooms={rooms} />)
-        )}
-      </CardContent>
-    </Card>
+      </div>
+      {shown.length === 0 ? (
+        <p className="border-t px-5 py-6 text-sm text-muted-foreground">
+          {bookings.length ? "Everyone has a room." : "No one has registered yet."}
+        </p>
+      ) : (
+        <div className="divide-y border-t">
+          {shown.map((b) => (
+            <BookingBlock key={b.id} booking={b} rooms={rooms} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -72,7 +71,7 @@ function BookingBlock({ booking, rooms }: { booking: Booking; rooms: RoomOption[
   const allIds = booking.attendees.map((a) => a.id);
 
   return (
-    <section className="space-y-2 rounded-md border p-3" aria-busy={isPending}>
+    <section className="space-y-1 px-5 py-4" aria-busy={isPending}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-medium">
           {booking.registrant}
@@ -97,7 +96,7 @@ function BookingBlock({ booking, rooms }: { booking: Booking; rooms: RoomOption[
         )}
       </div>
 
-      <ul className="divide-y">
+      <ul className="divide-y divide-dashed">
         {booking.attendees.map((a) => (
           <li key={a.id} className="grid items-center gap-2 py-2 sm:grid-cols-[1fr_16rem]">
             <div className="text-sm">

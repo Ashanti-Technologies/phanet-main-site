@@ -73,6 +73,31 @@ export function formatEventDate(date: string, endDate?: string): string {
   return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`;
 }
 
+/** Where an event sits relative to today, in whole UTC days (Ghana is UTC+0). */
+export function eventTiming(
+  date: Date,
+  endDate: Date | null,
+  now: Date = new Date(),
+): { phase: "upcoming" | "live" | "ended"; label: string } {
+  const day = (d: Date) => Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86_400_000);
+  const start = day(date);
+  const end = Math.max(start, day(endDate ?? date));
+  const today = day(now);
+  if (today < start) {
+    const n = start - today;
+    return { phase: "upcoming", label: n === 1 ? "Starts tomorrow" : `Starts in ${n} days` };
+  }
+  if (today > end) {
+    const n = today - end;
+    return { phase: "ended", label: n === 1 ? "Ended yesterday" : `Ended ${n} days ago` };
+  }
+  const total = end - start + 1;
+  return {
+    phase: "live",
+    label: total > 1 ? `Happening now · day ${today - start + 1} of ${total}` : "Happening today",
+  };
+}
+
 export function formatEventDateShort(date: string): { month: string; day: string } {
   const d = new Date(date);
   return {

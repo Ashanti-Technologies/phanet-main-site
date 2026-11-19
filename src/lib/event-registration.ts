@@ -87,6 +87,7 @@ export async function getEventAttendeeRows(eventId: string) {
       ageGroup: a.ageGroup ? AGE_LABELS[a.ageGroup] : "",
       room: a.room ? `${a.room.roomType.name} · ${a.room.name}` : "",
       checkedIn: !!a.checkedInAt,
+      registeredAt: r.createdAt,
       personAnswers: (a.answers ?? {}) as Answers,
       bookingAnswers: (r.answers ?? {}) as Answers,
     };

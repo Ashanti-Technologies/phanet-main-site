@@ -12,7 +12,6 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { DeleteButton } from "@/app/admin/_components/delete-button";
 
 export type RoomOption = {
@@ -73,15 +72,11 @@ export function RoomSetup({ eventId, roomTypes }: { eventId: string; roomTypes: 
   const add = useAction();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Room setup</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Group rooms by type (e.g. &ldquo;Dormitory&rdquo;, &ldquo;Family room&rdquo;), then add
-          the rooms and how many beds each has.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-6">
+      <p className="text-muted-foreground">
+        Group rooms by type (e.g. &ldquo;Dormitory&rdquo;, &ldquo;Family room&rdquo;), then add
+        the rooms and how many beds each has.
+      </p>
         {roomTypes.map((t) => (
           <RoomTypeBlock key={t.id} type={t} />
         ))}
@@ -109,8 +104,7 @@ export function RoomSetup({ eventId, roomTypes }: { eventId: string; roomTypes: 
           </Button>
           {add.error && <p role="alert" className="w-full text-sm text-destructive">{add.error}</p>}
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -120,10 +114,10 @@ function RoomTypeBlock({ type }: { type: RoomType }) {
   const used = type.rooms.reduce((n, r) => n + r.used, 0);
 
   return (
-    <section className="space-y-3 rounded-md border p-4">
+    <section className="space-y-3 border-b pb-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold">{type.name}</h3>
+          <h3 className="font-medium">{type.name}</h3>
           <p className="text-sm text-muted-foreground">
             {type.description ? `${type.description} · ` : ""}
             {type.rooms.length} rooms · {used}/{beds} beds used

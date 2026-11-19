@@ -13,6 +13,7 @@ import {
 import { StatusBadge, TONE_TEXT } from "./_components/status-badge";
 import { Stat } from "./_components/stat";
 import { cn } from "@/lib/utils";
+import { relTime } from "@/lib/format";
 import { Button } from "@/app/components/ui/button";
 import {
   Avatar,
@@ -313,19 +314,6 @@ function initials(name: string) {
       .join("")
       .toUpperCase() || "?"
   );
-}
-
-function relTime(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  const diff = Date.now() - d.getTime();
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const dy = Math.floor(hr / 24);
-  if (dy < 7) return `${dy}d ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 type SearchParams = Promise<{ from?: string; to?: string }>;
