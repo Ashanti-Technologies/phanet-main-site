@@ -14,6 +14,7 @@ import { ROLES, serializeRoles } from "@/lib/rbac/roles";
 import { escapeHtml } from "@/lib/rich-text";
 import {
   findMemberByContact,
+  getKnownPeople,
   isRegistrationOpen,
   maskName,
 } from "@/lib/event-registration";
@@ -144,16 +145,7 @@ export async function submitEventRegistration(
       })
     : null;
   const onBooking = new Set(existing?.attendees.map((a) => a.memberId));
-  const household = me?.householdId
-    ? new Set(
-        (
-          await prisma.member.findMany({
-            where: { householdId: me.householdId },
-            select: { id: true },
-          })
-        ).map((m) => m.id),
-      )
-    : new Set<string>();
+  const known = new Set(me ? (await getKnownPeople(me)).map((p) => p.id) : []);
 
   // Resolve every attendee to a verified memberId, or a new person to create.
   type Resolved = {
@@ -172,7 +164,7 @@ export async function submitEventRegistration(
     if (a.kind === "self") {
       resolved.push({ ...base, memberId: me?.id ?? null, isSelf: true, relationship: "SELF" });
     } else if (a.kind === "known") {
-      if (!household.has(a.memberId) && !onBooking.has(a.memberId)) {
+      if (!known.has(a.memberId) && !onBooking.has(a.memberId)) {
         return fail("We couldn't verify one of the people on this booking.");
       }
       resolved.push({ ...base, memberId: a.memberId, isSelf: false, relationship: a.relationship });

@@ -6,7 +6,7 @@ import { ArrowLeft, CalendarDays, CheckCircle2, MapPin } from "lucide-react";
 import { prisma } from "@/lib/database";
 import { getServerAuthSession } from "@/lib/auth";
 import { getCurrentMemberForPortal } from "@/lib/member-portal";
-import { isRegistrationOpen } from "@/lib/event-registration";
+import { getKnownPeople, isRegistrationOpen } from "@/lib/event-registration";
 import { registerLocation } from "@/lib/event-subdomain";
 import { formatEventDate } from "@/lib/events";
 import {
@@ -157,13 +157,7 @@ async function SignedIn({
 
   if (!open && !registration) return <Closed />;
 
-  const household = member?.householdId
-    ? await prisma.member.findMany({
-        where: { householdId: member.householdId, id: { not: member.id } },
-        select: { id: true, fullName: true },
-        orderBy: { fullName: "asc" },
-      })
-    : [];
+  const household = member ? await getKnownPeople(member) : [];
 
   const fields = parseRegistrationFields(event.registrationFields);
 

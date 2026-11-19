@@ -5,6 +5,7 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import { requirePermission } from "@/lib/auth-guard";
 import { logAudit } from "@/lib/audit";
+import { takesBed } from "@/lib/event-registration";
 import {
   roomInputSchema,
   roomTypeInputSchema,
@@ -78,7 +79,10 @@ export async function updateRoom(roomId: string, input: unknown): Promise<Result
   if (!parsed.success) return fail(parsed.error.issues[0].message);
   const room = await prisma.eventRoom.findUnique({
     where: { id: roomId },
-    select: { roomType: { select: { eventId: true } }, _count: { select: { attendees: true } } },
+    select: {
+      roomType: { select: { eventId: true } },
+      _count: { select: { attendees: { where: takesBed } } },
+    },
   });
   if (!room) return fail("Room not found.");
   if (parsed.data.beds < room._count.attendees) {
@@ -105,8 +109,10 @@ export async function deleteRoom(roomId: string): Promise<Result> {
 
 /**
  * Put people in a room (or take them out with roomId = null). Fails if the
- * room would go over its bed count. The room row is locked for the duration,
- * so two admins can't both fill the last bed.
+ * room would go over its bed count (infants don't take a bed), or if an
+ * adult/teen doesn't match a single-gender room — children may stay with a
+ * parent of either gender. The room row is locked for the duration, so two
+ * admins can't both fill the last bed.
  */
 export async function assignRoom(attendeeIds: string[], roomId: string | null): Promise<Result> {
   const session = await guard();
@@ -115,7 +121,7 @@ export async function assignRoom(attendeeIds: string[], roomId: string | null): 
 
   const attendees = await prisma.eventAttendee.findMany({
     where: { id: { in: ids } },
-    select: { id: true, eventId: true },
+    select: { id: true, eventId: true, ageGroup: true, member: { select: { fullName: true, gender: true } } },
   });
   if (attendees.length !== ids.length) return fail("Someone on this list no longer exists.");
   const eventId = attendees[0].eventId;
@@ -125,19 +131,31 @@ export async function assignRoom(attendeeIds: string[], roomId: string | null): 
     await prisma.eventAttendee.updateMany({ where: { id: { in: ids } }, data: { roomId: null } });
   } else {
     const result = await prisma.$transaction(async (tx) => {
-      const locked = await tx.$queryRaw<{ beds: number; eventId: string }[]>`
-        SELECT r.beds, t."eventId" FROM event_room r
+      const locked = await tx.$queryRaw<{ beds: number; gender: string | null; eventId: string }[]>`
+        SELECT r.beds, r.gender::text AS gender, t."eventId" FROM event_room r
         JOIN event_room_type t ON t.id = r."roomTypeId"
         WHERE r.id = ${roomId}
         FOR UPDATE OF r`;
       const room = locked[0];
       if (!room || room.eventId !== eventId) return fail("Room not found for this event.");
+      const wrongGender = attendees.find(
+        (a) =>
+          room.gender &&
+          a.member.gender &&
+          a.member.gender !== room.gender &&
+          a.ageGroup !== "CHILD" &&
+          a.ageGroup !== "INFANT",
+      );
+      if (wrongGender) {
+        return fail(`${wrongGender.member.fullName} can't go in a ${room.gender!.toLowerCase()}-only room.`);
+      }
+      const needed = attendees.filter((a) => a.ageGroup !== "INFANT").length;
       const others = await tx.eventAttendee.count({
-        where: { roomId, id: { notIn: ids } },
+        where: { roomId, id: { notIn: ids }, ...takesBed },
       });
-      if (others + ids.length > room.beds) {
+      if (others + needed > room.beds) {
         const free = Math.max(room.beds - others, 0);
-        return fail(`Not enough beds: ${free} free, ${ids.length} needed.`);
+        return fail(`Not enough beds: ${free} free, ${needed} needed.`);
       }
       await tx.eventAttendee.updateMany({ where: { id: { in: ids } }, data: { roomId } });
       return ok;

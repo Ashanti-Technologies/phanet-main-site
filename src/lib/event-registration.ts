@@ -1,5 +1,41 @@
+import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import type { Answers } from "@/lib/schemas/event-registration.schema";
+
+/** Attendees who need a bed. Infants share with a parent; unknown age counts. */
+export const takesBed = {
+  OR: [{ ageGroup: null }, { ageGroup: { not: "INFANT" } }],
+} satisfies Prisma.EventAttendeeWhereInput;
+
+/**
+ * People a member may add to a booking by id: their household plus anyone
+ * they've booked before. Guests have no household, so without the second
+ * part they'd be re-created as new people every event.
+ */
+export async function getKnownPeople(member: { id: string; householdId: string | null }) {
+  const [household, past] = await Promise.all([
+    member.householdId
+      ? prisma.member.findMany({
+          where: { householdId: member.householdId, id: { not: member.id } },
+          select: { id: true, fullName: true },
+        })
+      : [],
+    prisma.eventAttendee.findMany({
+      where: { registration: { registrantId: member.id }, memberId: { not: member.id } },
+      orderBy: { createdAt: "desc" },
+      distinct: ["memberId"],
+      select: { relationship: true, member: { select: { id: true, fullName: true } } },
+    }),
+  ]);
+  const people = new Map<string, { id: string; fullName: string; relationship: "SPOUSE" | "CHILD" | "GUEST" }>();
+  for (const h of household) people.set(h.id, { ...h, relationship: "CHILD" });
+  for (const p of past) {
+    // SELF can't occur (memberId ≠ registrant), but keep the type honest
+    const relationship = p.relationship === "SELF" ? "GUEST" : p.relationship;
+    people.set(p.member.id, { ...p.member, relationship });
+  }
+  return [...people.values()].sort((a, b) => a.fullName.localeCompare(b.fullName));
+}
 
 /** Open = switched on, published, and before the closing time (or event start). */
 export function isRegistrationOpen(event: {
@@ -112,7 +148,9 @@ export async function getEventRooms(eventId: string) {
     prisma.eventRoomType.findMany({
       where: { eventId },
       orderBy: { createdAt: "asc" },
-      include: { rooms: { include: { _count: { select: { attendees: true } } } } },
+      include: {
+        rooms: { include: { _count: { select: { attendees: { where: takesBed } } } } },
+      },
     }),
     prisma.eventRegistration.findMany({
       where: { eventId, status: "CONFIRMED" },

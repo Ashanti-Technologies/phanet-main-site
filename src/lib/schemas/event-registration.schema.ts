@@ -228,7 +228,7 @@ const attendeeDetails = {
 
 /**
  * How the client identifies each attendee. The server never trusts a raw
- * memberId unless it can re-verify it (self, household, already on booking);
+ * memberId unless it can re-verify it (self, household, past bookings, already on booking);
  * looked-up people are re-resolved from the contact the user typed.
  */
 export const attendeeInputSchema = z.discriminatedUnion("kind", [

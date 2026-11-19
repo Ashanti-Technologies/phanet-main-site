@@ -52,7 +52,8 @@ type Props = {
   registerPath: string;
   me: { id: string; fullName: string; email: string; phone: string | null } | null;
   sessionUser: { name: string; email: string };
-  household: { id: string; fullName: string }[];
+  /** Household plus anyone booked before, with their last relationship. */
+  household: { id: string; fullName: string; relationship: Exclude<Relationship, "SELF"> }[];
   /** Person answers from each member's latest booking, to pre-fill. */
   previous: Record<string, Answers>;
   existing: { rows: FormRow[]; answers: Answers } | null;
@@ -337,7 +338,7 @@ export function RegistrationForm(props: Props) {
 
             {addableHousehold.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">From your household</p>
+                <p className="text-xs text-muted-foreground">Your household and past guests</p>
                 <div className="flex flex-wrap gap-2">
                   {addableHousehold.map((h) => (
                     <Button
@@ -350,7 +351,7 @@ export function RegistrationForm(props: Props) {
                           kind: "known",
                           memberId: h.id,
                           label: h.fullName,
-                          relationship: "CHILD",
+                          relationship: h.relationship,
                           ...blank(h.id),
                         })
                       }

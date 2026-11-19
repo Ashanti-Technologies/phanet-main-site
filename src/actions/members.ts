@@ -71,7 +71,15 @@ export async function listMembers(input: Record<string, unknown> = {}) {
   if (filter.tags.length)
     and.push({ tags: { some: { tagId: { in: filter.tags } } } });
   if (filter.age.length)
-    and.push({ OR: filter.age.map((b) => ({ dob: ageBucketCondition(b) })) });
+    and.push({
+      OR: filter.age.flatMap((b): Prisma.MemberWhereInput[] => [
+        { dob: ageBucketCondition(b) },
+        // Children added on event bookings have no dob; their age group stands in.
+        ...(b === "under18"
+          ? [{ dob: null, eventAttendances: { some: { ageGroup: { in: ["INFANT", "CHILD", "TEEN"] } } } } satisfies Prisma.MemberWhereInput]
+          : []),
+      ]),
+    });
   const where: Prisma.MemberWhereInput = { AND: and };
 
   const dir = filter.sort?.desc ? "desc" : "asc";

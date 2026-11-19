@@ -34,7 +34,7 @@ export function RoomAllocation({ rooms, bookings }: { rooms: RoomOption[]; booki
         <div>
           <h2 className="text-base font-medium">Allocate rooms</h2>
           <p className="text-sm text-muted-foreground">
-            Families stay together on one booking. Full rooms can&apos;t be picked.
+            Families stay together on one booking. Infants share a parent&apos;s bed.
           </p>
         </div>
         <label className="flex items-center gap-2 text-sm">
@@ -126,9 +126,10 @@ function BookingBlock({ booking, rooms }: { booking: Booking; rooms: RoomOption[
 }
 
 /**
- * Rooms grouped by type. A room is disabled when the incoming people don't
- * fit (people already in it don't count twice). Gender limits are shown,
- * not enforced — e.g. a baby boy staying with his mother in a women's room.
+ * Rooms grouped by type. Mirrors assignRoom: a room is disabled when the
+ * incoming people don't fit (infants and people already in it don't count),
+ * or an adult/teen doesn't match its gender. Children of the other gender are
+ * allowed with a ⚠ — e.g. a baby boy staying with his mother.
  */
 function RoomOptions({ rooms, incoming }: { rooms: RoomOption[]; incoming: Attendee[] }) {
   const types = [...new Map(rooms.map((r) => [r.typeId, r.typeName])).entries()];
@@ -137,16 +138,15 @@ function RoomOptions({ rooms, incoming }: { rooms: RoomOption[]; incoming: Atten
       {rooms
         .filter((r) => r.typeId === typeId)
         .map((r) => {
-          const moving = incoming.filter((a) => a.roomId !== r.id);
-          const free = r.beds - r.used;
-          const fits = moving.length <= free;
-          const mismatch =
-            r.gender && incoming.some((a) => a.gender && a.gender !== r.gender);
+          const moving = incoming.filter((a) => a.roomId !== r.id && a.ageGroup !== "INFANT");
+          const fits = moving.length <= r.beds - r.used;
+          const mismatched = incoming.filter((a) => r.gender && a.gender && a.gender !== r.gender);
+          const blocked = mismatched.some((a) => a.ageGroup !== "CHILD" && a.ageGroup !== "INFANT");
           return (
-            <option key={r.id} value={r.id} disabled={!fits && moving.length > 0}>
+            <option key={r.id} value={r.id} disabled={(!fits && moving.length > 0) || blocked}>
               {r.name} — {r.used}/{r.beds}
               {r.gender ? ` · ${GENDER_LABEL[r.gender]}` : ""}
-              {mismatch ? " ⚠" : ""}
+              {mismatched.length ? " ⚠" : ""}
             </option>
           );
         })}
