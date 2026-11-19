@@ -9,6 +9,9 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
+import { DEFAULT_SHARE_MESSAGE, SHARE_PLACEHOLDERS } from "@/lib/share-message";
+import { DEFAULT_REMINDERS, REMINDER_CHOICES } from "@/lib/event-calendar";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -63,6 +66,8 @@ type EventFormProps = {
     type: "MEETING" | "CAMP";
     registrationEnabled: boolean;
     allowOnline: boolean;
+    shareMessage: string | null;
+    calendarReminders: number[];
     registrationClosesAt: Date | string | null;
     registrationFields: unknown;
     paymentMode: PaymentMode;
@@ -124,6 +129,7 @@ export function EventForm({ event: initialEvent, otherForms, funds }: EventFormP
     !!initialEvent?.registrationEnabled
   );
   const [allowOnline, setAllowOnline] = useState(!!initialEvent?.allowOnline);
+  const [reminders, setReminders] = useState<number[]>(initialEvent?.calendarReminders ?? DEFAULT_REMINDERS);
   const [registrationFields, setRegistrationFields] = useState<
     RegistrationField[]
   >(() =>
@@ -235,6 +241,8 @@ export function EventForm({ event: initialEvent, otherForms, funds }: EventFormP
         type,
         registrationEnabled,
         allowOnline,
+        shareMessage: String(formData.get("shareMessage") || ""),
+        calendarReminders: reminders,
         registrationClosesAt: formData.get("registrationClosesAt")
           ? new Date(String(formData.get("registrationClosesAt"))).toISOString()
           : null,
@@ -333,6 +341,28 @@ export function EventForm({ event: initialEvent, otherForms, funds }: EventFormP
                 </Select>
               </div>
             </div>
+
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Calendar reminders</legend>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {REMINDER_CHOICES.map(([minutes, label]) => (
+                  <label key={minutes} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={reminders.includes(minutes)}
+                      onCheckedChange={(on) =>
+                        setReminders((r) => (on ? [...r, minutes] : r.filter((m) => m !== minutes)))
+                      }
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Added to the calendar file in the confirmation email and the &ldquo;Add to calendar&rdquo; button.
+                Apple Calendar and Outlook use these; Google Calendar uses each person&apos;s own default reminders.
+                The start time is read from the Time field (e.g. &ldquo;6:00 PM&rdquo;); without one the event is all-day.
+              </p>
+            </fieldset>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -458,6 +488,24 @@ export function EventForm({ event: initialEvent, otherForms, funds }: EventFormP
                     <p className="text-xs text-muted-foreground">
                       Each person picks In person or Online. Online is free and skips
                       questions marked &ldquo;Only ask in-person attendees&rdquo;.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shareMessage">WhatsApp share message</Label>
+                    <Textarea
+                      id="shareMessage"
+                      name="shareMessage"
+                      rows={11}
+                      maxLength={1000}
+                      className="font-mono text-sm"
+                      defaultValue={initialEvent?.shareMessage ?? DEFAULT_SHARE_MESSAGE}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Shown on the &ldquo;You&apos;re registered&rdquo; screen so people can invite friends on
+                      WhatsApp. Placeholders are filled in from this event: {SHARE_PLACEHOLDERS.join(", ")}.
+                      A line whose details are empty (e.g. no deadline set) is left out, *text* shows in
+                      bold on WhatsApp, and the registration link is always included. Clear the box to go
+                      back to the default.
                     </p>
                   </div>
                   <RegistrationFormBuilder

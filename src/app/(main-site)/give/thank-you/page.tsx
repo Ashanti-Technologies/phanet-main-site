@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
-import { SuccessCelebration } from "@/app/components/success-celebration";
+import { SuccessScreen } from "@/app/components/success-celebration";
+import { Button } from "@/app/components/ui/button";
 import { settlePaymentIntent } from "@/lib/payments/settle";
 import { formatMoney } from "@/lib/format";
 
@@ -57,20 +58,37 @@ export default async function ThankYouPage({
               body: "If you were charged, please contact us with your payment reference.",
             };
 
+  if (result.status === "completed") {
+    return (
+      <main className="bg-background pt-20 sm:pt-28">
+        <div className="mx-auto w-full max-w-2xl px-4">
+          <SuccessScreen
+            title={view.title}
+            actions={
+              <>
+                <Button asChild size="lg" className="h-12 w-full">
+                  <Link href="/">Back home</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="h-12 w-full">
+                  <Link href="/give">Give again</Link>
+                </Button>
+              </>
+            }
+          >
+            <p>{view.body}</p>
+            {reference && <p className="text-xs">Reference: {reference}</p>}
+          </SuccessScreen>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="bg-white pt-32 pb-24">
       <div className="container mx-auto max-w-xl px-4 text-center">
-        {result.status === "completed" ? (
-          <SuccessCelebration title={<h1 className="text-2xl font-bold">{view.title}</h1>}>
-            <p>{view.body}</p>
-          </SuccessCelebration>
-        ) : (
-          <>
-            <div className="flex justify-center">{view.icon}</div>
-            <h1 className="mt-4 text-3xl font-bold text-gray-900">{view.title}</h1>
-            <p className="mt-3 text-gray-700">{view.body}</p>
-          </>
-        )}
+        <div className="flex justify-center">{view.icon}</div>
+        <h1 className="mt-4 text-3xl font-bold text-gray-900">{view.title}</h1>
+        <p className="mt-3 text-gray-700">{view.body}</p>
         {reference && <p className="mt-2 text-xs text-gray-500">Reference: {reference}</p>}
         <div className="mt-8 flex justify-center gap-3">
           <Link href="/give" className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-medium hover:border-gray-500">

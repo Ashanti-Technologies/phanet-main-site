@@ -81,6 +81,9 @@ export const eventUpsertSchema = richTextSchema.extend({
   type: eventTypeSchema.default("MEETING"),
   registrationEnabled: z.boolean().default(false),
   allowOnline: z.boolean().default(false),
+  shareMessage: z.string().trim().max(1000).optional().nullable(),
+  /** Minutes before the start; empty = no reminders in the calendar file. */
+  calendarReminders: z.array(z.number().int().min(1).max(43200)).max(6).default([10080, 1440]),
   registrationClosesAt: z.coerce.date().optional().nullable(),
   registrationFields: eventRegistrationFieldsSchema.default([]),
   paymentMode: eventPaymentModeSchema.default("FREE"),

@@ -12,6 +12,8 @@ export interface SendMessageInput {
   from?: string;
   /** Per-message metadata recorded with the provider. */
   meta?: Record<string, unknown>;
+  /** EMAIL only. */
+  attachments?: { filename: string; content: Buffer; contentType?: string }[];
 }
 
 export interface SendResult {

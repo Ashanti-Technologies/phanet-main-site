@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/database";
+import Link from "next/link";
 import { MembershipApplicationForm } from "./_components/application-form";
+import { SuccessScreen } from "@/app/components/success-celebration";
+import { Button } from "@/app/components/ui/button";
 
 export const metadata = {
   title: "Apply for Membership | PHANET",
@@ -8,7 +11,30 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function MembershipApplyPage() {
+export default async function MembershipApplyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ submitted?: string }>;
+}) {
+  if ((await searchParams).submitted) {
+    return (
+      <main className="bg-background pt-20 text-foreground sm:pt-28">
+        <div className="mx-auto w-full max-w-2xl px-4">
+          <SuccessScreen
+            title="Application received!"
+            actions={
+              <Button asChild size="lg" className="h-12 w-full">
+                <Link href="/">Back home</Link>
+              </Button>
+            }
+          >
+            <p>A PHANET leader will review it and follow up with your signup invite.</p>
+          </SuccessScreen>
+        </div>
+      </main>
+    );
+  }
+
   const units = await prisma.churchUnitOption.findMany({
     where: { isActive: true },
     orderBy: [{ order: "asc" }, { name: "asc" }],

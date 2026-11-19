@@ -18,6 +18,7 @@ import {
 import { sanitizeRichTextHtml } from "@/lib/rich-text";
 import { feeSettingsError } from "@/lib/schemas/cms.schema";
 import { tagRegistrationAttendees } from "@/lib/event-registration";
+import { storedShareMessage } from "@/lib/share-message";
 
 class EventSaveError extends Error {}
 
@@ -112,6 +113,8 @@ export async function saveEvent(
     type: data.type,
     registrationEnabled: data.registrationEnabled,
     allowOnline: data.allowOnline,
+    shareMessage: storedShareMessage(data.shareMessage),
+    calendarReminders: [...new Set(data.calendarReminders)].sort((a, b) => b - a),
     registrationClosesAt: data.registrationClosesAt ?? null,
     registrationFields: data.registrationFields,
     paymentMode: data.paymentMode,

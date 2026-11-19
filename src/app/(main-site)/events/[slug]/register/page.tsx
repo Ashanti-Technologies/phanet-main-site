@@ -2,12 +2,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock, MapPin, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, CalendarPlus, MapPin, Users, XCircle } from "lucide-react";
+import { IconBrandWhatsapp } from "@tabler/icons-react";
 import { prisma } from "@/lib/database";
 import { getServerAuthSession } from "@/lib/auth";
 import { getCurrentMemberForPortal } from "@/lib/member-portal";
 import { getKnownPeople, isRegistrationOpen } from "@/lib/event-registration";
-import { registerLocation } from "@/lib/event-subdomain";
+import { registerEmailUrl, registerLocation } from "@/lib/event-subdomain";
+import { fillShareMessage, whatsappShareUrl } from "@/lib/share-message";
+import { Button } from "@/app/components/ui/button";
 import { formatEventDate } from "@/lib/events";
 import {
   parseRegistrationFields,
@@ -16,7 +19,7 @@ import {
 import { AccountGate } from "./_components/account-gate";
 import { RegistrationForm, type FormRow } from "./_components/registration-form";
 import type { LocationValue } from "@/app/components/location-input";
-import { SuccessCelebration } from "@/app/components/success-celebration";
+import { SuccessScreen } from "@/app/components/success-celebration";
 import { CompletePaymentButton } from "./_components/complete-payment-button";
 import { settlePaymentIntent } from "@/lib/payments/settle";
 import { balanceMinor, chargesFees, pesewas } from "@/lib/event-fees";
@@ -58,6 +61,22 @@ export default async function EventRegisterPage({ params, searchParams }: Props)
   const open = isRegistrationOpen(event);
   const session = await getServerAuthSession();
   const here = registerLocation(event.slug, (await headers()).get("host"));
+
+  // A finished booking gets its own screen, not a banner above the form.
+  if (session && (sp.done || payment?.status === "completed" || payment?.status === "pending")) {
+    return (
+      <main className="bg-background pt-20 text-foreground sm:pt-28">
+        <div className="mx-auto w-full max-w-2xl px-4">
+          <RegistrationDone
+            event={event}
+            paymentStatus={payment?.status === "pending" ? "pending" : payment ? "completed" : null}
+            registerPath={here.path}
+            email={session.user.email}
+          />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-background pt-24 pb-16 text-foreground sm:pt-32">
@@ -104,32 +123,6 @@ export default async function EventRegisterPage({ params, searchParams }: Props)
           </div>
         </header>
 
-        {sp.done && (
-          <SuccessCelebration title="You're registered!">
-            <p>
-              We&apos;ve emailed you a confirmation. You can change your
-              booking below until registration closes, or see it any time in{" "}
-              <Link href="/me" className="underline underline-offset-4">
-                your portal
-              </Link>
-              .
-            </p>
-          </SuccessCelebration>
-        )}
-        {payment?.status === "completed" && (
-          <SuccessCelebration title="Payment received, you're registered!">
-            <p>We received {formatMoney(payment.amount)} and emailed you a confirmation.</p>
-          </SuccessCelebration>
-        )}
-        {payment?.status === "pending" && (
-          <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-900 dark:text-amber-200">
-            <Clock className="mt-0.5 h-5 w-5 shrink-0" />
-            <p>
-              Your payment is processing. Mobile Money can take a minute to confirm — we&apos;ll email you once it
-              clears. No need to pay again.
-            </p>
-          </div>
-        )}
         {payment?.status === "failed" && (
           <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
             <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
@@ -356,6 +349,123 @@ async function SignedIn({
       }
     />
     </>
+  );
+}
+
+type RegisterEvent = NonNullable<
+  Awaited<ReturnType<typeof prisma.event.findFirst<{ include: { priceTiers: true } }>>>
+>;
+
+/** "You're registered" screen: what was booked, what's left to pay, and what to do next. */
+async function RegistrationDone({
+  event,
+  paymentStatus,
+  registerPath,
+  email,
+}: {
+  event: RegisterEvent;
+  paymentStatus: "completed" | "pending" | null;
+  registerPath: string;
+  email: string;
+}) {
+  const { member } = await getCurrentMemberForPortal();
+  const registration = member
+    ? await prisma.eventRegistration.findUnique({
+        where: { eventId_registrantId: { eventId: event.id, registrantId: member.id } },
+        select: { amountDue: true, amountPaid: true, attendees: { select: { attendance: true } } },
+      })
+    : null;
+
+  const date = formatEventDate(event.date.toISOString().slice(0, 10), event.endDate?.toISOString().slice(0, 10));
+  const people = registration?.attendees.length ?? 0;
+  const online = registration?.attendees.filter((a) => a.attendance === "ONLINE").length ?? 0;
+  const charges = chargesFees(event.paymentMode) && event.priceTiers.length > 0;
+  const balance = registration ? balanceMinor(registration.amountDue, registration.amountPaid) / 100 : 0;
+  const pending = paymentStatus === "pending";
+  const prices = charges ? event.priceTiers.map((t) => t.amount.toNumber()) : [];
+  const cheapest = prices.length ? Math.min(...prices) : 0;
+  const shareText = fillShareMessage(event.shareMessage, {
+    event: event.title,
+    date,
+    time: event.time,
+    location: [event.location, event.address].filter(Boolean).join(", "),
+    price:
+      cheapest === 0 ? "Free" : prices.length === 1 ? formatMoney(cheapest) : `From ${formatMoney(cheapest)}`,
+    online: event.allowOnline ? "You can also join online for free" : "",
+    deadline:
+      event.registrationClosesAt && event.registrationClosesAt > new Date()
+        ? event.registrationClosesAt.toLocaleDateString("en-GB", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            timeZone: "Africa/Accra",
+          })
+        : "",
+    link: registerEmailUrl(event.slug),
+  });
+
+  return (
+    <SuccessScreen
+      tone={pending ? "pending" : "success"}
+      title={pending ? "Payment processing" : paymentStatus === "completed" ? "Payment received!" : "You're registered!"}
+      actions={
+        <>
+          {!pending && balance > 0 && event.paymentMode === "ONLINE" && (
+            <CompletePaymentButton className="h-12 w-full" eventId={event.id} label={`Pay ${formatMoney(balance)} now`} />
+          )}
+          <Button asChild size="lg" className="h-12 w-full bg-[#25D366] text-white hover:bg-[#1ebe5b]">
+            <a href={whatsappShareUrl(shareText)} target="_blank" rel="noopener noreferrer">
+              <IconBrandWhatsapp className="h-5 w-5" aria-hidden />
+              Invite friends on WhatsApp
+            </a>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-12 w-full">
+            <a href={`/api/events/${event.id}/ics`} download>
+              <CalendarPlus className="h-4 w-4" aria-hidden />
+              Add to calendar
+            </a>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-12 w-full">
+            <Link href={registerPath}>View or change booking</Link>
+          </Button>
+          <Button asChild variant="ghost" size="lg" className="h-12 w-full">
+            <Link href="/me">Go to my portal</Link>
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-2 rounded-2xl border bg-card p-4 text-left text-foreground">
+        <p className="font-semibold leading-snug">{event.title}</p>
+        <p className="flex items-center gap-2 text-muted-foreground">
+          <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
+          {date}
+        </p>
+        <p className="flex items-center gap-2 text-muted-foreground">
+          <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+          {event.location}
+        </p>
+        {people > 0 && (
+          <p className="flex items-center gap-2 text-muted-foreground">
+            <Users className="h-4 w-4 shrink-0" aria-hidden />
+            {people} {people === 1 ? "person" : "people"}
+            {online > 0 && ` · ${online} online`}
+            {charges && registration && (
+              <>
+                {" · "}
+                {balance > 0
+                  ? `${formatMoney(balance)} ${event.paymentMode === "PAY_AT_EVENT" ? "to pay at the event" : "still to pay"}`
+                  : `${formatMoney(registration.amountPaid)} paid`}
+              </>
+            )}
+          </p>
+        )}
+      </div>
+      <p>
+        {pending
+          ? "Mobile Money can take a minute to confirm. We'll email you once it clears, so there's no need to pay again."
+          : `We've emailed a confirmation to ${email}.`}
+      </p>
+    </SuccessScreen>
   );
 }
 

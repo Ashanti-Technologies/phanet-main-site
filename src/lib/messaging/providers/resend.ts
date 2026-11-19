@@ -36,6 +36,7 @@ export class ResendEmailAdapter implements MessagingService {
         subject: input.subject ?? "",
         html: input.body,
         text: input.text,
+        attachments: input.attachments,
       });
       if (error) {
         return {

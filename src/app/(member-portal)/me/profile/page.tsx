@@ -30,7 +30,7 @@ import {
   AvatarImage,
 } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
-import { SuccessCelebration } from "@/app/components/success-celebration";
+import { SuccessScreen } from "@/app/components/success-celebration";
 import { Progress } from "@/app/components/ui/progress";
 import {
   GENDER_LABELS,
@@ -100,13 +100,28 @@ export default async function MemberProfilePage({
 
   const whatsappDigits = member.whatsapp?.replace(/[^\d]/g, "");
 
+  if (justConfirmed) {
+    return (
+      <SuccessScreen
+        title="Your details are confirmed!"
+        actions={
+          <>
+            <Button asChild size="lg" className="h-12 w-full">
+              <Link href="/me/profile">View my profile</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="h-12 w-full">
+              <Link href="/me">Go to my portal</Link>
+            </Button>
+          </>
+        }
+      >
+        <p>Thanks for keeping your details up to date. You can change them any time from your profile.</p>
+      </SuccessScreen>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {justConfirmed && (
-        <SuccessCelebration title="Thanks, your details are confirmed!">
-          <p>You can update them any time from this page.</p>
-        </SuccessCelebration>
-      )}
       {justClaimed || needsConfirmation ? (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-mikado-yellow/50 bg-mikado-yellow/10 p-4 sm:p-5">
           <div className="flex items-start gap-3">

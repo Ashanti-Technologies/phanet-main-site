@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { submitMembershipApplication } from "@/actions/member-applications";
 import { Button } from "@/app/components/ui/button";
-import { SuccessCelebration } from "@/app/components/success-celebration";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import {
@@ -21,7 +21,7 @@ type Unit = { id: string; name: string };
 export function MembershipApplicationForm({ units }: { units: Unit[] }) {
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
 
   function submit(formData: FormData) {
     setMessage(null);
@@ -34,20 +34,12 @@ export function MembershipApplicationForm({ units }: { units: Unit[] }) {
           unitId: String(formData.get("unitId") || ""),
           intro: String(formData.get("intro") || ""),
         });
-        setSubmitted(true);
-        setMessage("Your application has been received.");
+        // The page shows the success screen on its own (no form, no intro).
+        router.replace("/membership/apply?submitted=1", { scroll: true });
       } catch (err) {
         setMessage(err instanceof Error ? err.message : "Application failed");
       }
     });
-  }
-
-  if (submitted) {
-    return (
-      <SuccessCelebration title={<h2>Application received!</h2>}>
-        <p>A PHANET leader will review it and follow up with your signup invite.</p>
-      </SuccessCelebration>
-    );
   }
 
   return (

@@ -6,13 +6,22 @@ import { startEventPayment } from "@/actions/event-registrations";
 import { Button } from "@/app/components/ui/button";
 
 /** Opens Paystack checkout for the balance on the signed-in member's booking. */
-export function CompletePaymentButton({ eventId, label }: { eventId: string; label: string }) {
+export function CompletePaymentButton({
+  eventId,
+  label,
+  className,
+}: {
+  eventId: string;
+  label: string;
+  className?: string;
+}) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="space-y-2">
       <Button
         type="button"
+        className={className}
         disabled={isPending}
         onClick={() =>
           startTransition(async () => {

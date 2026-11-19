@@ -4,6 +4,7 @@ import { renderEmail } from "@/lib/email-templates/render";
 import { BrandedTextEmail } from "@/lib/email-templates/BrandedTextEmail";
 import { escapeHtml } from "@/lib/rich-text";
 import { registerEmailUrl } from "@/lib/event-subdomain";
+import { buildEventIcs, googleCalendarUrl, icsUrl } from "@/lib/event-calendar";
 import { formatMoney } from "@/lib/format";
 import { balanceMinor, chargesFees, pesewas } from "@/lib/event-fees";
 
@@ -29,7 +30,19 @@ export async function sendRegistrationConfirmation({
         amountPaid: true,
         registrant: { select: { email: true } },
         event: {
-          select: { title: true, slug: true, date: true, time: true, location: true, paymentMode: true },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            description: true,
+            date: true,
+            endDate: true,
+            time: true,
+            location: true,
+            address: true,
+            calendarReminders: true,
+            paymentMode: true,
+          },
         },
         attendees: {
           orderBy: { createdAt: "asc" },
@@ -78,6 +91,10 @@ export async function sendRegistrationConfirmation({
       <ul>${people}</ul>
       ${streams}
       ${fees}
+      <p><strong>Add it to your calendar:</strong><br>
+      <a href="${escapeHtml(googleCalendarUrl(event))}">Google Calendar</a> ·
+      <a href="${escapeHtml(icsUrl(event))}">Apple / Outlook (.ics)</a><br>
+      The .ics file is also attached${event.calendarReminders.length ? " and includes reminders" : ""}.</p>
       <p>You can view or change your registration until registration closes:<br>
       <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`;
     const { html, text } = await renderEmail(
@@ -88,6 +105,13 @@ export async function sendRegistrationConfirmation({
       subject: `${updated ? "Registration updated" : "You're registered"}: ${event.title}`,
       body: html,
       text,
+      attachments: [
+        {
+          filename: `${event.slug}.ics`,
+          content: Buffer.from(buildEventIcs(event)),
+          contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+        },
+      ],
     });
     if (!result.ok) console.error("[event-registration] email failed:", result.error);
   } catch (err) {

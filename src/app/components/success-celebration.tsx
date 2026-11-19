@@ -1,51 +1,66 @@
 "use client";
 
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Clock } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 
 /**
- * A "you're done" moment: a confetti burst behind an animated check, plays
- * once. People who ask for reduced motion get a still check instead.
+ * The "you're done" screen shown instead of a finished form. Phone-first:
+ * fills the visible height, message in the middle, big actions at the bottom
+ * (thumb reach, clear of the home bar). `success` plays a confetti burst behind
+ * an animated check once; `pending` shows a still clock. Reduced motion gets a
+ * still check.
  *
  * Animations from LottieFiles, free under the Lottie Simple License
  * (https://lottiefiles.com/page/license):
  *   public/lottie/success-check.lottie: "success confetti" by Deepesh Reddy
  *   public/lottie/confetti.lottie: "confetti on transparent background" by Sportbank Design
  */
-export function SuccessCelebration({
+export function SuccessScreen({
   title,
+  tone = "success",
   children,
-  className,
+  actions,
 }: {
   title: React.ReactNode;
+  tone?: "success" | "pending";
   children?: React.ReactNode;
-  className?: string;
+  /** Full-width buttons/links, most important first. */
+  actions?: React.ReactNode;
 }) {
   const reduceMotion = useReducedMotion();
+  const animate = tone === "success" && !reduceMotion;
   return (
-    <div
-      role="status"
-      className={`relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-5 pb-6 text-center text-emerald-900 dark:text-emerald-200 ${className ?? ""}`}
-    >
-      {!reduceMotion && (
-        <DotLottieReact
-          src="/lottie/confetti.lottie"
-          autoplay
-          layout={{ fit: "cover", align: [0.5, 0] }}
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          aria-hidden
-        />
-      )}
-      <div className="relative mx-auto h-28 w-28">
-        {reduceMotion ? (
-          <CheckCircle2 className="h-full w-full p-5 text-emerald-500" aria-hidden />
-        ) : (
-          <DotLottieReact src="/lottie/success-check.lottie" autoplay className="h-full w-full" aria-hidden />
+    <div role="status" className="flex min-h-[calc(100dvh-10rem)] flex-col">
+      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-2 py-6 text-center">
+        {animate && (
+          <DotLottieReact
+            src="/lottie/confetti.lottie"
+            autoplay
+            layout={{ fit: "cover", align: [0.5, 0] }}
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            aria-hidden
+          />
+        )}
+        <div className="relative h-36 w-36">
+          {animate ? (
+            <DotLottieReact src="/lottie/success-check.lottie" autoplay className="h-full w-full" aria-hidden />
+          ) : tone === "pending" ? (
+            <Clock className="h-full w-full p-8 text-amber-500" aria-hidden />
+          ) : (
+            <CheckCircle2 className="h-full w-full p-6 text-emerald-500" aria-hidden />
+          )}
+        </div>
+        <h1 className="relative font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
+        {children && (
+          <div className="relative mt-3 w-full max-w-md space-y-3 text-sm text-muted-foreground">{children}</div>
         )}
       </div>
-      <div className="relative text-lg font-semibold">{title}</div>
-      {children && <div className="relative mt-1 space-y-1 text-sm">{children}</div>}
+      {actions && (
+        <div className="sticky bottom-0 mx-auto flex w-full max-w-md flex-col gap-2 bg-background/95 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
