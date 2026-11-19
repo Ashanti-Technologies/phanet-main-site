@@ -112,6 +112,55 @@ export async function findCandidateMemberByPhone(
   return { kind: "match", member: matches[0] };
 }
 
+/**
+ * Sign-in counterpart of /claim: a verified email matching exactly one
+ * unlinked registry record links it, and moves it off PENDING_APPROVAL /
+ * VISITOR like a claim does. Membership applications (/membership/apply)
+ * keep their status so they stay in the approval queue.
+ */
+export async function linkMemberByVerifiedEmail(user: {
+  id: string;
+  email: string | null;
+  emailVerified: boolean;
+}): Promise<void> {
+  const email = user.email?.trim();
+  if (!email || !user.emailVerified) return;
+  const already = await prisma.member.findUnique({
+    where: { userId: user.id },
+    select: { id: true },
+  });
+  if (already) return;
+
+  const matches = await prisma.member.findMany({
+    where: { email: { equals: email, mode: "insensitive" } },
+    select: { id: true, status: true, notes: true, userId: true },
+    take: 2,
+  });
+  if (matches.length !== 1 || matches[0].userId) return;
+  const [m] = matches;
+  const promote =
+    CLAIMABLE_STATUSES.includes(m.status) &&
+    !m.notes?.startsWith("Application intro:");
+
+  // userId: null guard — a parallel sign-in / claim may have linked it first.
+  const { count } = await prisma.member.updateMany({
+    where: { id: m.id, userId: null },
+    data: { userId: user.id, ...(promote && { status: MemberStatus.REGULAR }) },
+  });
+  if (!count) return;
+  await prisma.auditLog
+    .create({
+      data: {
+        actorId: user.id,
+        action: "member_claim.auto_link",
+        subject: "Member",
+        subjectId: m.id,
+        meta: { from: m.status, promoted: promote },
+      },
+    })
+    .catch((err) => console.error("[member-claim] audit failed:", err));
+}
+
 export function expiresInMinutes(minutes: number): Date {
   return new Date(Date.now() + minutes * 60 * 1000);
 }

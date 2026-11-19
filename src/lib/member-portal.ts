@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import { requirePermission } from "@/lib/auth-guard";
+import { linkMemberByVerifiedEmail } from "@/lib/member-claim";
 
 const memberPortalInclude = {
   units: { include: { unit: { select: { id: true, name: true } } } },
@@ -23,34 +24,13 @@ export const getCurrentMemberForPortal = cache(async () => {
   });
   if (linkedMember) return { session, member: linkedMember };
 
-  const email = session.user.email?.trim();
-  if (!email) return { session, member: null };
-
-  const emailMatches = await prisma.member.findMany({
-    where: {
-      email: { equals: email, mode: "insensitive" },
-    },
-    include: memberPortalInclude,
-    take: 2,
-  });
-
-  if (emailMatches.length !== 1) return { session, member: null };
-
-  const [match] = emailMatches;
-  if (match.userId && match.userId !== session.user.id) {
-    return { session, member: null };
-  }
-  if (match.userId === session.user.id) {
-    return { session, member: match };
-  }
-
-  const linkedByEmail = await prisma.member.update({
-    where: { id: match.id },
-    data: { userId: session.user.id },
+  // Sessions from before the sign-in hook existed still get linked here.
+  await linkMemberByVerifiedEmail(session.user);
+  const member = await prisma.member.findUnique({
+    where: { userId: session.user.id },
     include: memberPortalInclude,
   });
-
-  return { session, member: linkedByEmail };
+  return { session, member };
 });
 
 export async function getCurrentMemberOrRedirect() {

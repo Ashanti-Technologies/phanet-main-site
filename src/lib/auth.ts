@@ -62,9 +62,14 @@ export const auth = betterAuth({
           try {
             const user = await prisma.user.findUnique({
               where: { id: session.userId },
-              select: { id: true, email: true, role: true },
+              select: { id: true, email: true, emailVerified: true, role: true },
             });
             if (!user) return;
+            // Claim the matching registry record at sign-up/sign-in.
+            // Dynamic import: member-claim → member-portal → auth-guard → here.
+            await import("./member-claim")
+              .then((m) => m.linkMemberByVerifiedEmail(user))
+              .catch((err) => console.error("[auth] member auto-link failed:", err));
             const roles = parseRoles(user.role);
             if (!hasAnyAdminRole(roles)) return;
             await prisma.auditLog.create({

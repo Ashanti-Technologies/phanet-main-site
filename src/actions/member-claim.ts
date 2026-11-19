@@ -314,8 +314,7 @@ export async function consumeClaimToken(token: string) {
         where: { id: invite.memberId },
         data: {
           userId: existingUser.id,
-          status:
-            invite.member.status === "VISITOR" ? "REGULAR" : invite.member.status,
+          status: "REGULAR", // only claimable (VISITOR / PENDING_APPROVAL) get here
         },
       }),
       prisma.memberInvite.update({

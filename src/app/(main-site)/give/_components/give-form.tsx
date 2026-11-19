@@ -31,7 +31,10 @@ export function GiveForm({
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      const res = await (monthly ? startMonthlyGiving : startGiving)({ fundId, amount, fullName, email });
+      // Unexpected server failures (e.g. payments not configured) arrive as throws.
+      const res = await (monthly ? startMonthlyGiving : startGiving)({ fundId, amount, fullName, email }).catch(
+        () => ({ ok: false as const, error: "Online giving is temporarily unavailable. Please try again later." }),
+      );
       if (res.ok) window.location.assign(res.redirectUrl);
       else setError(res.error);
     });

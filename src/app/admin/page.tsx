@@ -201,6 +201,7 @@ async function getDashboardData(range: DateRange) {
         email: true,
         image: true,
         createdAt: true,
+        member: { select: { createdAt: true } },
       },
     }),
     prisma.project.count(),
@@ -478,8 +479,15 @@ export default async function AdminDashboardPage({
               <ActivityRow
                 key={`u-${u.id}`}
                 avatar={{ name: u.name ?? "User", image: u.image }}
-                title={u.name ?? "New member"}
-                detail={<>joined PHANET — {u.email}</>}
+                title={u.name ?? "New account"}
+                detail={
+                  <>
+                    {u.member && u.member.createdAt < u.createdAt
+                      ? "signed in to their existing member record"
+                      : "created an account"}{" "}
+                    — {u.email}
+                  </>
+                }
                 when={relTime(u.createdAt)}
               />
             ))}

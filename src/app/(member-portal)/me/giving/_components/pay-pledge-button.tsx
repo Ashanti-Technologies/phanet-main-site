@@ -18,7 +18,10 @@ export function PayPledgeButton({ commitmentId }: { commitmentId: string }) {
         onClick={() =>
           startTransition(async () => {
             setError(null);
-            const res = await startPledgePayment(commitmentId);
+            const res = await startPledgePayment(commitmentId).catch(() => ({
+              ok: false as const,
+              error: "Online giving is temporarily unavailable. Please try again later.",
+            }));
             if (res.ok) window.location.assign(res.redirectUrl);
             else setError(res.error);
           })
