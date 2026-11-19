@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { DateField } from "@/app/components/date-field";
+import { LocationInput } from "@/app/components/location-input";
 import {
   GENDER_LABELS,
   LIFE_STAGE_LABELS,
@@ -52,6 +53,7 @@ export type MemberProfile = {
   whatsapp: string | null;
   addressLine: string | null;
   city: string | null;
+  cityId: string | null;
   countryId: string | null;
   regionId: string | null;
   region: string | null;
@@ -64,20 +66,13 @@ export type MemberProfile = {
   organizationName: string | null;
 };
 
-type CountryOption = { id: string; name: string; code: string };
-type RegionOption = { id: string; name: string; countryId: string };
-
 const NONE = "__none__";
 
 export function ProfileForm({
   member,
-  countries,
-  regions,
   needsConfirmation,
 }: {
   member: MemberProfile;
-  countries: CountryOption[];
-  regions: RegionOption[];
   needsConfirmation: boolean;
 }) {
   const router = useRouter();
@@ -93,11 +88,6 @@ export function ProfileForm({
     value: MemberProfile[K],
   ) => setState((prev) => ({ ...prev, [key]: value }));
 
-  const filteredRegions = useMemo(() => {
-    if (!state.countryId) return regions;
-    return regions.filter((r) => r.countryId === state.countryId);
-  }, [regions, state.countryId]);
-
   const isProfessional = state.lifeStage === "WORKING_PROFESSIONAL";
 
   function buildPayload() {
@@ -112,6 +102,7 @@ export function ProfileForm({
       whatsapp: state.whatsapp,
       addressLine: state.addressLine,
       city: state.city,
+      cityId: state.cityId,
       countryId: state.countryId,
       regionId: state.regionId,
       region: state.region,
@@ -265,36 +256,30 @@ export function ProfileForm({
                 onChange={(v) => update("addressLine", v)}
               />
             </div>
-            <FieldText
-              label="City"
-              value={state.city}
-              onChange={(v) => update("city", v)}
-            />
-            <FieldSelect
-              label="Country"
-              value={state.countryId}
-              onChange={(v) => {
-                update("countryId", v);
-                // Clear region if it doesn't belong to the new country
-                if (v && state.regionId) {
-                  const stillValid = regions.find(
-                    (r) => r.id === state.regionId && r.countryId === v,
-                  );
-                  if (!stillValid) update("regionId", null);
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Where you live</Label>
+              <LocationInput
+                value={{
+                  countryId: state.countryId,
+                  country: state.country ?? "",
+                  regionId: state.regionId,
+                  region: state.region ?? "",
+                  cityId: state.cityId,
+                  city: state.city ?? "",
+                }}
+                onChange={(v) =>
+                  setState((prev) => ({
+                    ...prev,
+                    countryId: v.countryId,
+                    country: v.country || null,
+                    regionId: v.regionId,
+                    region: v.region || null,
+                    cityId: v.cityId,
+                    city: v.city || null,
+                  }))
                 }
-              }}
-              options={countries.map((c) => ({ value: c.id, label: c.name }))}
-            />
-            <FieldSelect
-              label="Region"
-              value={state.regionId}
-              onChange={(v) => update("regionId", v)}
-              options={filteredRegions.map((r) => ({
-                value: r.id,
-                label: r.name,
-              }))}
-              disabled={filteredRegions.length === 0}
-            />
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

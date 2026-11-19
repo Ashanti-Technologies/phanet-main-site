@@ -12,6 +12,7 @@ import {
   GripVertical,
   Hash,
   ListChecks,
+  MapPin,
   Pencil,
   Phone,
   Plus,
@@ -77,6 +78,7 @@ const TYPES: Record<RegistrationFieldType, { label: string; icon: LucideIcon }> 
   checkbox: { label: "Single checkbox", icon: SquareCheck },
   checkboxes: { label: "Checkboxes (pick many)", icon: ListChecks },
   switch: { label: "Switch (on / off)", icon: ToggleRight },
+  location: { label: "Location (country, region, town)", icon: MapPin },
 };
 const TYPE_KEYS = Object.keys(TYPES) as RegistrationFieldType[];
 const HAS_PLACEHOLDER: RegistrationFieldType[] = [
@@ -117,7 +119,7 @@ export function RegistrationFormBuilder({ value, onChange, otherForms }: Props) 
       options: OPTION_FIELD_TYPES.includes(type) ? ["Option 1", "Option 2"] : [],
       required: false,
       scope: "booking",
-      summary: OPTION_FIELD_TYPES.includes(type),
+      summary: OPTION_FIELD_TYPES.includes(type) || type === "location",
     };
     onChange([...value, field]);
     setOpenId(field.id);

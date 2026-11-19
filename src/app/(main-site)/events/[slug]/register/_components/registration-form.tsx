@@ -23,7 +23,7 @@ import {
 } from "@/lib/schemas/event-registration.schema";
 
 type AgeGroup = "ADULT" | "TEEN" | "CHILD" | "INFANT";
-type Relationship = "SELF" | "SPOUSE" | "CHILD" | "GUEST";
+type Relationship = "SELF" | "SPOUSE" | "CHILD" | "RELATIVE" | "GUEST";
 
 export type FormRow = {
   key: string;
@@ -60,7 +60,13 @@ type Props = {
   open: boolean;
   /** "/register" on the hoe. subdomain, else /events/<slug>/register */
   registerPath: string;
-  me: { id: string; fullName: string; email: string; phone: string | null } | null;
+  me: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string | null;
+    location: string[] | null;
+  } | null;
   sessionUser: { name: string; email: string };
   /** Household plus anyone booked before, with their last relationship. */
   household: { id: string; fullName: string; relationship: Exclude<Relationship, "SELF"> }[];
@@ -72,6 +78,7 @@ type Props = {
 const RELATIONSHIPS: [Relationship, string][] = [
   ["SPOUSE", "Spouse"],
   ["CHILD", "Child"],
+  ["RELATIVE", "Relative"],
   ["GUEST", "Guest"],
 ];
 const GENDERS: [string, string][] = [
@@ -127,7 +134,18 @@ export function RegistrationForm(props: Props) {
         },
       ],
   );
-  const [answers, setAnswers] = useState<Answers>(existing?.answers ?? {});
+  const [answers, setAnswers] = useState<Answers>(
+    () =>
+      existing?.answers ??
+      // New booking: start location questions from the member's profile.
+      Object.fromEntries(
+        me?.location
+          ? event.fields
+              .filter((f) => f.scope === "booking" && f.type === "location")
+              .map((f) => [f.id, me.location!])
+          : [],
+      ),
+  );
 
   const [lookup, setLookup] = useState("");
   const [lookupResult, setLookupResult] = useState<
@@ -587,6 +605,7 @@ const RELATIONSHIP_LABEL: Record<Relationship, string> = {
   SELF: "You",
   SPOUSE: "Spouse",
   CHILD: "Child",
+  RELATIVE: "Relative",
   GUEST: "Guest",
 };
 

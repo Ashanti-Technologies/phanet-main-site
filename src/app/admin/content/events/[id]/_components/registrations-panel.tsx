@@ -184,6 +184,13 @@ function countAnswers(
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([d, n]) => [/^\d{4}-/.test(d) ? fmtDay(d) : d, n]);
   }
+  if (f.type === "location") {
+    // Where people come from, by region (the town list is in the CSV).
+    return tally(rows, (r) => {
+      const v = fieldAnswer(r, f);
+      return Array.isArray(v) ? answerText([v[1] || "Region not given", v[2]]) : "";
+    });
+  }
   return tally(rows, (r) => answerText(fieldAnswer(r, f)));
 }
 

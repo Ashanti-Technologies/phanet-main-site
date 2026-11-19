@@ -38,9 +38,24 @@ async function applyProfileUpdate(
     });
     if (c) countryName = c.name;
   }
-  if (data.regionId) {
+  // A picked city must belong to the picked country; it also fixes the region.
+  let cityId: string | null = null;
+  let regionId = data.regionId;
+  let cityName = data.city;
+  if (data.cityId && data.countryId) {
+    const city = await prisma.city.findUnique({
+      where: { id: data.cityId },
+      select: { id: true, name: true, countryId: true, regionId: true },
+    });
+    if (city && city.countryId === data.countryId) {
+      cityId = city.id;
+      cityName = city.name;
+      regionId = city.regionId ?? regionId;
+    }
+  }
+  if (regionId) {
     const r = await prisma.region.findUnique({
-      where: { id: data.regionId },
+      where: { id: regionId },
       select: { name: true },
     });
     if (r) regionName = r.name;
@@ -59,9 +74,10 @@ async function applyProfileUpdate(
         phone: data.phone,
         whatsapp: data.whatsapp,
         addressLine: data.addressLine,
-        city: data.city,
+        city: cityName,
+        cityId,
         countryId: data.countryId,
-        regionId: data.regionId,
+        regionId,
         country: countryName ?? "Ghana",
         region: regionName,
       },

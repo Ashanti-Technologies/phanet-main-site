@@ -14,6 +14,7 @@ export const registrationFieldTypes = [
   "checkbox",
   "checkboxes",
   "switch",
+  "location",
 ] as const;
 
 export type RegistrationFieldType = (typeof registrationFieldTypes)[number];
@@ -97,7 +98,7 @@ export const DEFAULT_REGISTRATION_FIELDS: RegistrationField[] = [
     summary: true,
     options: ["Private car", "Public transport", "Church / organised transport", "Flight", "Other"],
   },
-  { id: "origin", label: "Coming from", type: "text", placeholder: "City / town", required: false, scope: "booking", summary: false, options: [] },
+  { id: "from_location", label: "Coming from", type: "location", required: false, scope: "booking", summary: true, options: [] },
   { id: "food", label: "Food preference", type: "select", required: false, scope: "person", summary: true, options: [...DIETARY_OPTIONS] },
   { id: "allergies", label: "Allergies", type: "text", placeholder: "e.g. peanuts, shellfish", required: false, scope: "person", summary: true, options: [] },
   { id: "notes", label: "Notes for the organisers", type: "textarea", required: false, scope: "booking", summary: false, options: [] },
@@ -152,6 +153,15 @@ export function checkAnswer(
       if (f.max !== undefined && n > f.max) return err(`Must be at most ${f.max}`);
       return ok(n);
     }
+    case "location": {
+      // [city, region, country] names from the location picker.
+      if (raw !== undefined && !(Array.isArray(raw) && raw.length === 3)) return err("Pick a location");
+      const [city, region, country] = (raw ?? ["", "", ""]).map((v) => String(v).trim());
+      if (!city) return f.required ? err("Enter your town or city") : ok(undefined);
+      if (!country) return err("Pick a country");
+      if ([city, region, country].some((v) => v.length > 100)) return err("That's too long");
+      return ok([city, region, country]);
+    }
     default: {
       const text = typeof raw === "string" ? raw.trim() : "";
       if (!text) return f.required ? err("This is required") : ok(undefined);
@@ -195,7 +205,7 @@ export function answerText(value: AnswerValue | undefined): string {
   if (value === undefined || value === null) return "";
   if (value === true) return "Yes";
   if (value === false) return "No";
-  if (Array.isArray(value)) return value.join(", ");
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
     return value.replace("T", " ");
   }
@@ -233,25 +243,28 @@ const attendeeDetails = {
  * memberId unless it can re-verify it (self, household, past bookings, already on booking);
  * looked-up people are re-resolved from the contact the user typed.
  */
+/** Who an added attendee is to the registrant. Only SPOUSE/CHILD join their household. */
+export const ATTENDEE_RELATIONSHIPS = ["SPOUSE", "CHILD", "RELATIVE", "GUEST"] as const;
+
 export const attendeeInputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("self"), ...attendeeDetails }),
   z.object({
     kind: z.literal("known"),
     memberId: z.string().min(1),
-    relationship: z.enum(["SPOUSE", "CHILD", "GUEST"]),
+    relationship: z.enum(ATTENDEE_RELATIONSHIPS),
     ...attendeeDetails,
   }),
   z.object({
     kind: z.literal("lookup"),
     contact: z.string().trim().min(3).max(200),
-    relationship: z.enum(["SPOUSE", "CHILD", "GUEST"]),
+    relationship: z.enum(ATTENDEE_RELATIONSHIPS),
     ...attendeeDetails,
   }),
   z.object({
     kind: z.literal("new"),
     fullName: z.string().trim().min(2, "Name is required").max(160),
     gender: z.enum(["MALE", "FEMALE"]),
-    relationship: z.enum(["SPOUSE", "CHILD", "GUEST"]),
+    relationship: z.enum(ATTENDEE_RELATIONSHIPS),
     phone: optionalText(40),
     email: z.email().trim().toLowerCase().optional().or(z.literal("").transform(() => undefined)),
     ...attendeeDetails,

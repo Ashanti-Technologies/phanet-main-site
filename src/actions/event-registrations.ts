@@ -163,7 +163,7 @@ export async function submitEventRegistration(
     memberId: string | null; // null = "self" before the registrant exists, or new
     isSelf: boolean;
     newPerson?: Extract<(typeof data.attendees)[number], { kind: "new" }>;
-    relationship: "SELF" | "SPOUSE" | "CHILD" | "GUEST";
+    relationship: "SELF" | "SPOUSE" | "CHILD" | "RELATIVE" | "GUEST";
     ageGroup?: "ADULT" | "TEEN" | "CHILD" | "INFANT";
     priceTierId?: string;
     answers: Answers;
@@ -255,9 +255,9 @@ export async function submitEventRegistration(
       const registrant = me;
 
       let householdId = registrant.householdId;
-      const needsHousehold = resolved.some(
-        (r) => r.newPerson && r.relationship !== "GUEST",
-      );
+      // Only spouses and children join the registrant's household.
+      const inHousehold = (r: Resolved) => r.relationship === "SPOUSE" || r.relationship === "CHILD";
+      const needsHousehold = resolved.some((r) => r.newPerson && inHousehold(r));
       if (needsHousehold && !householdId) {
         const hh = await tx.household.create({
           data: { name: `${registrant.fullName} household` },
@@ -276,7 +276,7 @@ export async function submitEventRegistration(
               gender: p.gender,
               phone: p.phone,
               email: p.email,
-              householdId: r.relationship === "GUEST" ? null : householdId,
+              householdId: inHousehold(r) ? householdId : null,
             },
             select: { id: true },
           });

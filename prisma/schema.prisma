@@ -168,6 +168,7 @@ model Country {
   translations Json?
   isActive     Boolean  @default(true)
   regions      Region[]
+  cities       City[]
   members      Member[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -182,6 +183,7 @@ model Region {
   country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
   name      String
   isActive  Boolean  @default(true)
+  cities    City[]
   members   Member[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -189,6 +191,32 @@ model Region {
   @@index([countryId])
   @@index([name])
   @@map("region")
+}
+
+/// A town or city members and attendees can pick. Seeded from GeoNames
+/// (CC BY 4.0) by scripts/import-geonames-cities.ts; coordinates are the
+/// place's, never a person's.
+model City {
+  id         String   @id @default(cuid())
+  geonameId  Int?     @unique
+  countryId  String
+  country    Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  regionId   String?
+  region     Region?  @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  name       String
+  /// Lowercased name + Latin-script alternate names (Obuasi → "Obuase").
+  searchText String
+  lat        Float
+  lng        Float
+  population Int      @default(0)
+  isActive   Boolean  @default(true)
+  members    Member[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([countryId])
+  @@index([regionId])
+  @@map("city")
 }
 
 model Member {
@@ -205,6 +233,8 @@ model Member {
   whatsapp           String?
   addressLine        String?
   city               String?
+  cityId             String?
+  cityRef            City?                @relation(fields: [cityId], references: [id], onDelete: SetNull)
   countryId          String?
   countryRef         Country?             @relation(fields: [countryId], references: [id], onDelete: SetNull)
   regionId           String?
@@ -248,6 +278,7 @@ model Member {
   @@index([dob])
   @@index([countryId])
   @@index([regionId])
+  @@index([cityId])
   @@index([householdId])
   @@map("member")
 }
@@ -1100,6 +1131,7 @@ enum AttendeeRelationship {
   SELF
   SPOUSE
   CHILD
+  RELATIVE
   GUEST
 }
 

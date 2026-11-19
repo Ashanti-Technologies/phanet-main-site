@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/database";
 import { getCurrentMemberOrRedirect } from "@/lib/member-portal";
 import { ProfileForm } from "../_components/profile-form";
 import { MemberAvatarUploader } from "../_components/member-avatar-uploader";
@@ -8,19 +7,6 @@ import { MemberAvatarUploader } from "../_components/member-avatar-uploader";
 export default async function EditMemberProfilePage() {
   const { member } = await getCurrentMemberOrRedirect();
   const needsConfirmation = !member.phanetProfile?.formSubmittedAt;
-
-  const [countries, regions] = await Promise.all([
-    prisma.country.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, code: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.region.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, countryId: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -59,10 +45,11 @@ export default async function EditMemberProfilePage() {
           whatsapp: member.whatsapp,
           addressLine: member.addressLine,
           city: member.city,
+          cityId: member.cityId,
           countryId: member.countryId,
           regionId: member.regionId,
-          region: member.region,
-          country: member.country,
+          region: member.regionRef?.name ?? member.region,
+          country: member.countryRef?.name ?? member.country,
           emergencyContactName:
             member.phanetProfile?.emergencyContactName ?? null,
           emergencyContactPhone:
@@ -72,8 +59,6 @@ export default async function EditMemberProfilePage() {
           professionalTrack: member.phanetProfile?.professionalTrack ?? null,
           organizationName: member.phanetProfile?.organizationName ?? null,
         }}
-        countries={countries}
-        regions={regions}
         needsConfirmation={needsConfirmation}
       />
     </div>

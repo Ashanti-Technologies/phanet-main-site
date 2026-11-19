@@ -65,6 +65,7 @@ export const memberProfileUpdateSchema = z.object({
   whatsapp: optionalString,
   addressLine: optionalString,
   city: optionalString,
+  cityId: optionalString,
   countryId: optionalString,
   regionId: optionalString,
   region: optionalString,

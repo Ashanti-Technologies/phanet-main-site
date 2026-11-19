@@ -21,6 +21,7 @@ import {
   FieldSet,
 } from "@/app/components/ui/field";
 import { Input } from "@/app/components/ui/input";
+import { EMPTY_LOCATION, LocationInput } from "@/app/components/location-input";
 import { Textarea } from "@/app/components/ui/textarea";
 import type {
   AnswerValue,
@@ -153,6 +154,18 @@ export function RegistrationFieldInput({ field, id, value, onChange, error }: Pr
         </Combobox>
       );
       break;
+    case "location": {
+      const [city = "", region = "", country = ""] = Array.isArray(value) ? value : [];
+      control = (
+        <LocationInput
+          id={id}
+          invalid={invalid}
+          value={{ ...EMPTY_LOCATION, city, region, country }}
+          onChange={(v) => onChange([v.city, v.region, v.country])}
+        />
+      );
+      break;
+    }
     case "date":
       control = (
         <DateField

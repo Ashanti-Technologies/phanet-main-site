@@ -301,6 +301,14 @@ async function SignedIn({
               fullName: member.fullName,
               email: member.email ?? sessionUser.email,
               phone: member.phone,
+              // [city, region, country] to pre-fill location questions.
+              location: member.city
+                ? [
+                    member.city,
+                    member.regionRef?.name ?? member.region ?? "",
+                    member.countryRef?.name ?? member.country ?? "",
+                  ]
+                : null,
             }
           : null
       }

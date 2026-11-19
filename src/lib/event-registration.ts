@@ -48,7 +48,7 @@ export async function getKnownPeople(member: { id: string; householdId: string |
       select: { relationship: true, member: { select: { id: true, fullName: true } } },
     }),
   ]);
-  const people = new Map<string, { id: string; fullName: string; relationship: "SPOUSE" | "CHILD" | "GUEST" }>();
+  const people = new Map<string, { id: string; fullName: string; relationship: "SPOUSE" | "CHILD" | "RELATIVE" | "GUEST" }>();
   for (const h of household) people.set(h.id, { ...h, relationship: "CHILD" });
   for (const p of past) {
     // SELF can't occur (memberId ≠ registrant), but keep the type honest
@@ -111,6 +111,7 @@ const REL_LABELS: Record<string, string> = {
   SELF: "Registrant",
   SPOUSE: "Spouse",
   CHILD: "Child",
+  RELATIVE: "Relative",
   GUEST: "Guest",
 };
 

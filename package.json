@@ -10,7 +10,8 @@
     "auth:bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
     "import:phanet-members-2024": "tsx scripts/import-phanet-members-2024.ts",
     "db:seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "import:cities": "tsx scripts/import-geonames-cities.ts"
   },
   "dependencies": {
     "@animate-ui/react": "^2.4.6",
