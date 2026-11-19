@@ -5,7 +5,6 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import { requirePermission } from "@/lib/auth-guard";
 import { logAudit } from "@/lib/audit";
-import { takesBed } from "@/lib/event-registration";
 import {
   roomInputSchema,
   roomTypeInputSchema,
@@ -79,15 +78,9 @@ export async function updateRoom(roomId: string, input: unknown): Promise<Result
   if (!parsed.success) return fail(parsed.error.issues[0].message);
   const room = await prisma.eventRoom.findUnique({
     where: { id: roomId },
-    select: {
-      roomType: { select: { eventId: true } },
-      _count: { select: { attendees: { where: takesBed } } },
-    },
+    select: { roomType: { select: { eventId: true } } },
   });
   if (!room) return fail("Room not found.");
-  if (parsed.data.beds < room._count.attendees) {
-    return fail(`${room._count.attendees} people are already in this room — move some out first.`);
-  }
   try {
     await prisma.eventRoom.update({ where: { id: roomId }, data: parsed.data });
   } catch (err) {
@@ -108,11 +101,9 @@ export async function deleteRoom(roomId: string): Promise<Result> {
 }
 
 /**
- * Put people in a room (or take them out with roomId = null). Fails if the
- * room would go over its bed count (infants don't take a bed), or if an
- * adult/teen doesn't match a single-gender room — children may stay with a
- * parent of either gender. The room row is locked for the duration, so two
- * admins can't both fill the last bed.
+ * Put people in a room (or take them out with roomId = null). Beds can be
+ * exceeded (floor mattresses). Fails if an adult/teen doesn't match a
+ * single-gender room — children may stay with a parent of either gender.
  */
 export async function assignRoom(attendeeIds: string[], roomId: string | null): Promise<Result> {
   const session = await guard();
@@ -130,37 +121,24 @@ export async function assignRoom(attendeeIds: string[], roomId: string | null): 
   if (roomId === null) {
     await prisma.eventAttendee.updateMany({ where: { id: { in: ids } }, data: { roomId: null } });
   } else {
-    const result = await prisma.$transaction(async (tx) => {
-      const locked = await tx.$queryRaw<{ beds: number; gender: string | null; eventId: string }[]>`
-        SELECT r.beds, r.gender::text AS gender, t."eventId" FROM event_room r
-        JOIN event_room_type t ON t.id = r."roomTypeId"
-        WHERE r.id = ${roomId}
-        FOR UPDATE OF r`;
-      const room = locked[0];
-      if (!room || room.eventId !== eventId) return fail("Room not found for this event.");
-      const wrongGender = attendees.find(
-        (a) =>
-          room.gender &&
-          a.member.gender &&
-          a.member.gender !== room.gender &&
-          a.ageGroup !== "CHILD" &&
-          a.ageGroup !== "INFANT",
-      );
-      if (wrongGender) {
-        return fail(`${wrongGender.member.fullName} can't go in a ${room.gender!.toLowerCase()}-only room.`);
-      }
-      const needed = attendees.filter((a) => a.ageGroup !== "INFANT").length;
-      const others = await tx.eventAttendee.count({
-        where: { roomId, id: { notIn: ids }, ...takesBed },
-      });
-      if (others + needed > room.beds) {
-        const free = Math.max(room.beds - others, 0);
-        return fail(`Not enough beds: ${free} free, ${needed} needed.`);
-      }
-      await tx.eventAttendee.updateMany({ where: { id: { in: ids } }, data: { roomId } });
-      return ok;
+    const room = await prisma.eventRoom.findUnique({
+      where: { id: roomId },
+      select: { gender: true, roomType: { select: { eventId: true } } },
     });
-    if (!result.success) return result;
+    if (!room || room.roomType.eventId !== eventId) return fail("Room not found for this event.");
+    const wrongGender = attendees.find(
+      (a) =>
+        room.gender &&
+        a.member.gender &&
+        a.member.gender !== room.gender &&
+        a.ageGroup !== "CHILD" &&
+        a.ageGroup !== "INFANT",
+    );
+    if (wrongGender) {
+      return fail(`${wrongGender.member.fullName} can't go in a ${room.gender!.toLowerCase()}-only room.`);
+    }
+    // Beds are a soft limit: overflow sleeps on floor mattresses.
+    await prisma.eventAttendee.updateMany({ where: { id: { in: ids } }, data: { roomId } });
   }
 
   await logAudit({

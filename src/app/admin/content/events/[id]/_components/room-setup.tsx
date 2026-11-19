@@ -188,7 +188,7 @@ function RoomRow({ room }: { room: RoomOption }) {
   const save = useAction();
   const del = useAction();
   const [confirming, setConfirming] = useState(false);
-  const full = room.used >= room.beds;
+  const floor = room.used - room.beds;
 
   return (
     <form
@@ -211,8 +211,8 @@ function RoomRow({ room }: { room: RoomOption }) {
         <option value="MALE">Men only</option>
         <option value="FEMALE">Women only</option>
       </select>
-      <span className={`text-sm tabular-nums ${full ? "font-medium text-destructive" : "text-muted-foreground"}`}>
-        {room.used}/{room.beds} {full ? "full" : "used"}
+      <span className={`text-sm tabular-nums ${floor >= 0 ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+        {room.used}/{room.beds} {floor > 0 ? `· ${floor} on floor` : floor === 0 ? "full" : "used"}
       </span>
       <div className="ml-auto flex gap-2">
         <Button type="submit" size="sm" variant="outline" disabled={save.isPending}>
