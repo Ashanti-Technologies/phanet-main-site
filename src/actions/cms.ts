@@ -85,6 +85,7 @@ export async function saveEvent(input: EventUpsertInput) {
   revalidatePath(`/admin/content/events/${event.id}`);
   revalidatePath("/events");
   revalidatePath(`/events/${event.slug}`);
+  revalidatePath("/", "layout"); // featured-event banner + homepage section
   return { success: true, data: event };
 }
 
@@ -94,6 +95,7 @@ export async function deleteEvent(id: string) {
   revalidatePath("/admin/content/events");
   revalidatePath("/events");
   revalidatePath(`/events/${event.slug}`);
+  revalidatePath("/", "layout"); // featured-event banner + homepage section
   return { success: true, data: event };
 }
 

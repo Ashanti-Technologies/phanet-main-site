@@ -23,7 +23,7 @@ export default function ElimHourLiveCard() {
   const icsDataUrl = `data:text/calendar;charset=utf-8;base64,${Buffer.from(ics).toString("base64")}`;
 
   return (
-    <div className="bg-crayola col-span-2 rounded-2xl p-8 flex flex-col justify-between min-h-[320px] lg:min-h-[380px]">
+    <div className="bg-crayola rounded-2xl p-6 sm:p-8 flex flex-col justify-between min-h-[320px] lg:min-h-[380px]">
       <div>
         <span className="text-white/80 text-sm font-semibold uppercase tracking-wider">
           Next service · {formatNextLabel(date)}

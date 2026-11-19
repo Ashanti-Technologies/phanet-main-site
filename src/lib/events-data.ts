@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/database";
 import type { Event, EventCategory } from "@/lib/events";
 
@@ -60,10 +61,18 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
   return event ? toPublicEvent(event) : null;
 }
 
-export async function getFeaturedEvent(): Promise<Event | undefined> {
+/** Next featured event that hasn't ended. Cached per request (layout banner + homepage share it). */
+export const getFeaturedEvent = cache(async (): Promise<Event | undefined> => {
+  // Event dates are UTC-midnight calendar days, so compare against today's UTC midnight.
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const event = await prisma.event.findFirst({
-    where: { status: "PUBLISHED", isFeatured: true },
+    where: {
+      status: "PUBLISHED",
+      isFeatured: true,
+      OR: [{ endDate: { gte: today } }, { endDate: null, date: { gte: today } }],
+    },
     orderBy: { date: "asc" },
   });
   return event ? toPublicEvent(event) : undefined;
-}
+});

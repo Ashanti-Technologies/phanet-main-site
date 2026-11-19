@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, MapPin, Clock, X, CalendarDays } from "lucide-react";
 import {
   type Event,
@@ -43,6 +44,15 @@ function EventCard({ event }: { event: Event }) {
       <div
         className={`relative h-48 sm:h-52 bg-gradient-to-br ${CATEGORY_GRADIENTS[event.category]} flex-shrink-0`}
       >
+        {event.imageUrl && (
+          <Image
+            src={event.imageUrl}
+            alt={event.imageAlt || `${event.title} flyer`}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
+        )}
         {/* Date badge */}
         <div className="absolute top-4 left-4 bg-white rounded-xl px-3 py-2 text-center shadow-md min-w-[52px]">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
@@ -61,13 +71,15 @@ function EventCard({ event }: { event: Event }) {
         </div>
 
         {/* Decorative pattern */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px)`,
-            backgroundSize: "16px 16px",
-          }}
-        />
+        {!event.imageUrl && (
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px)`,
+              backgroundSize: "16px 16px",
+            }}
+          />
+        )}
       </div>
 
       {/* Card body */}
@@ -104,7 +116,8 @@ function EventCard({ event }: { event: Event }) {
   );
 }
 
-function FeaturedEventCard({ event }: { event: Event }) {
+export function FeaturedEventCard({ event }: { event: Event }) {
+  const start = new Date(event.date);
   return (
     <Link
       href={`/events/${event.slug}`}
@@ -121,8 +134,18 @@ function FeaturedEventCard({ event }: { event: Event }) {
     >
       {/* Gradient background (left on desktop, top on mobile) */}
       <div
-        className={`relative h-56 sm:h-64 lg:h-auto lg:w-[45%] bg-gradient-to-br ${CATEGORY_GRADIENTS[event.category]} flex-shrink-0`}
+        className={`relative ${event.imageUrl ? "h-80 sm:h-96 lg:min-h-[420px]" : "h-56 sm:h-64"} lg:h-auto lg:w-[45%] bg-gradient-to-br ${CATEGORY_GRADIENTS[event.category]} flex-shrink-0`}
       >
+        {event.imageUrl && (
+          // Flyers carry their own text — contain, don't crop.
+          <Image
+            src={event.imageUrl}
+            alt={event.imageAlt || `${event.title} flyer`}
+            fill
+            sizes="(min-width: 1024px) 45vw, 100vw"
+            className="object-contain p-4"
+          />
+        )}
         {/* Featured label */}
         <div className="absolute top-4 left-4">
           <span className="bg-white text-gray-900 text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shadow">
@@ -136,20 +159,20 @@ function FeaturedEventCard({ event }: { event: Event }) {
             backgroundSize: "20px 20px",
           }}
         />
-        {/* Large date */}
-        <div className="absolute bottom-4 left-4 text-white">
-          <p className="text-sm font-semibold uppercase tracking-wider opacity-80">
-            {new Date(event.date).toLocaleDateString("en-US", { month: "long" })}
-          </p>
-          <p className="text-6xl font-black leading-none">
-            {new Date(event.date).getDate()}
-          </p>
-          {event.endDate && (
-            <p className="text-sm opacity-70">
-              — {new Date(event.endDate).getDate()}
+        {/* Large date (the flyer already shows it) */}
+        {!event.imageUrl && (
+          <div className="absolute bottom-4 left-4 text-white">
+            <p className="text-sm font-semibold uppercase tracking-wider opacity-80">
+              {start.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" })}
             </p>
-          )}
-        </div>
+            <p className="text-6xl font-black leading-none">{start.getUTCDate()}</p>
+            {event.endDate && (
+              <p className="text-sm opacity-70">
+                — {new Date(event.endDate).getUTCDate()}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}

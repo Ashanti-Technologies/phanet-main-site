@@ -17,7 +17,7 @@ export default function QuoteTile({ delay = 0 }: Props) {
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
       transition={{ duration: 0.6, delay }}
-      className="col-span-2 relative rounded-2xl overflow-hidden min-h-[320px] lg:min-h-[380px] bg-midnight-green p-8 sm:p-10 flex flex-col justify-between"
+      className="md:col-span-2 relative rounded-2xl overflow-hidden min-h-[320px] lg:min-h-[380px] bg-midnight-green p-6 sm:p-10 flex flex-col justify-between"
     >
       {/* Decorative quotation glyph */}
       <span

@@ -31,7 +31,7 @@ function initialsFor(name: string | null | undefined) {
   );
 }
 
-export default function Header() {
+export default function Header({ banner }: { banner?: React.ReactNode }) {
   const { data: session, isPending } = authClient.useSession();
   const sessionUser = session?.user as
     | ({ role?: string } & NonNullable<typeof session>["user"])
@@ -44,7 +44,9 @@ export default function Header() {
     initials: initialsFor(sessionUser?.name),
   };
   return (
-    <header className="w-full flex items-center justify-between px-12 py-3 fixed top-0 left-0 z-50 transition-colors duration-300 border-b border-b-black/40 bg-black/70 backdrop-blur-md">
+    <div className="fixed top-0 left-0 z-50 w-full">
+      {banner}
+    <header className="w-full flex items-center justify-between px-12 py-3 transition-colors duration-300 border-b border-b-black/40 bg-black/70 backdrop-blur-md">
       <div className="flex items-center">
         <Link href="/">
           <Image
@@ -175,5 +177,6 @@ export default function Header() {
         </SheetContent>
       </Sheet>
     </header>
+    </div>
   );
 }
