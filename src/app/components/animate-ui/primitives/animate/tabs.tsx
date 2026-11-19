@@ -174,6 +174,8 @@ function TabsTrigger({
       ref={localRef}
       data-slot="tabs-trigger"
       role="tab"
+      // Not a submit button when tabs sit inside a <form>.
+      type={asChild ? undefined : 'button'}
       onClick={() => handleValueChange(value)}
       data-state={activeValue === value ? 'active' : 'inactive'}
       {...props}

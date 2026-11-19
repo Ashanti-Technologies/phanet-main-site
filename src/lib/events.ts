@@ -26,6 +26,9 @@ export type Event = {
   bodyHtml?: string;
   isFeatured?: boolean;
   registrationUrl?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  headerImageUrl?: string;
   status?: "DRAFT" | "PUBLISHED";
   recurrence?: Recurrence;
 };

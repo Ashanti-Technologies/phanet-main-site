@@ -13,6 +13,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@animate-ui/react": "^2.4.6",
     "@casl/ability": "^6.8.1",
     "@casl/prisma": "^1.6.2",
     "@prisma/adapter-pg": "^7.2.0",
@@ -60,7 +61,7 @@
     "qrcode.react": "^4.2.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.6",
-    "react-day-picker": "^10.0.0",
+    "react-day-picker": "^10.0.2",
     "react-dom": "^19.2.6",
     "recharts": "^3.8.0",
     "resend": "^6.7.0",

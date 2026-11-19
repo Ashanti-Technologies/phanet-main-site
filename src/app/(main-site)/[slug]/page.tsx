@@ -54,7 +54,7 @@ export default async function PublicContentPage({ params }: Props) {
             </div>
           )}
           <div
-            className="prose prose-lg max-w-none"
+            className="rich-text text-lg"
             dangerouslySetInnerHTML={{ __html: page.bodyHtml }}
           />
         </div>

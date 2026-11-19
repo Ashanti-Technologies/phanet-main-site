@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { AnimateIcon } from "@animate-ui/react/icons";
 import { getAdminEventById } from "@/actions/cms";
+import { ArrowLeft } from "@/app/components/animate-ui/icons/arrow-left";
 import { Button } from "@/app/components/ui/button";
 import { EventForm } from "../../_components/event-form";
 
@@ -17,14 +18,16 @@ export default async function EditEventPage({ params }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/admin/content/events/${event.id}`} aria-label="Back to event">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Edit Event</h1>
-          <p className="text-muted-foreground">{event.title}</p>
+        <AnimateIcon animateOnHover animation="pointing" asChild>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/admin/content/events/${event.id}`} aria-label="Back to event">
+              <ArrowLeft />
+            </Link>
+          </Button>
+        </AnimateIcon>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Edit {event.title ?? 'Event'}</h1>
+          {/* <p className="truncate text-muted-foreground">{event.title}</p> */}
         </div>
       </div>
       <EventForm event={event} />

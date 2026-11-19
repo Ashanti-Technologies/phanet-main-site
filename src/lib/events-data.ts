@@ -16,6 +16,9 @@ function toPublicEvent(event: {
   isFeatured: boolean;
   registrationUrl: string | null;
   registrationEnabled: boolean;
+  imageUrl: string | null;
+  imageAlt: string | null;
+  headerImageUrl: string | null;
   status: "DRAFT" | "PUBLISHED";
 }): Event {
   return {
@@ -35,6 +38,9 @@ function toPublicEvent(event: {
     registrationUrl: event.registrationEnabled
       ? `/events/${event.slug}/register`
       : (event.registrationUrl ?? undefined),
+    imageUrl: event.imageUrl ?? undefined,
+    imageAlt: event.imageAlt ?? undefined,
+    headerImageUrl: event.headerImageUrl ?? undefined,
     status: event.status,
   };
 }

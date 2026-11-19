@@ -10,21 +10,23 @@ import {
 export interface MagicLinkSignInEmailProps {
   url: string;
   expiresInMinutes: number;
+  portal?: string;
 }
 
 export function MagicLinkSignInEmail({
   url,
   expiresInMinutes,
+  portal = "Member Portal",
 }: MagicLinkSignInEmailProps) {
   return (
-    <EmailLayout preview="Your secure PHANET Member Portal sign-in link.">
-      <EmailHeading>Sign in to PHANET Member Portal</EmailHeading>
+    <EmailLayout preview={`Your secure PHANET ${portal} sign-in link.`}>
+      <EmailHeading>Sign in to PHANET {portal}</EmailHeading>
       <EmailParagraph>
-        Use the secure button below to sign in to your member portal. No
+        Use the secure button below to sign in to the PHANET {portal}. No
         password needed.
       </EmailParagraph>
 
-      <BrandButton href={url}>Sign in to my portal</BrandButton>
+      <BrandButton href={url}>Sign in</BrandButton>
 
       <EmailSmall>
         Or copy and paste this link into your browser:

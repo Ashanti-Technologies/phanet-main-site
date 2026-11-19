@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Switch } from "@/app/components/ui/switch";
+import { DateRangeField } from "@/app/components/date-field";
 import { RichTextEditor } from "@/app/admin/_components/rich-text-editor";
 import { CloudinaryImageField } from "@/app/admin/_components/cloudinary-image-field";
 import { DeleteButton } from "@/app/admin/_components/delete-button";
@@ -24,6 +25,13 @@ import {
   parseRegistrationFields,
   type RegistrationField,
 } from "@/lib/schemas/event-registration.schema";
+import {
+  Tabs,
+  TabsContent,
+  TabsContents,
+  TabsList,
+  TabsTrigger,
+} from "@/app/components/animate-ui/components/animate/tabs";
 import { RegistrationQuestionsEditor } from "./registration-questions-editor";
 
 type EventFormProps = {
@@ -45,6 +53,8 @@ type EventFormProps = {
     imageUrl: string | null;
     imagePublicId: string | null;
     imageAlt: string | null;
+    headerImageUrl: string | null;
+    headerImagePublicId: string | null;
     status: "DRAFT" | "PUBLISHED";
     type: "MEETING" | "CAMP";
     registrationEnabled: boolean;
@@ -78,12 +88,19 @@ function slugify(value: string) {
 export function EventForm({ event: initialEvent }: EventFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [tab, setTab] = useState("details");
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState(initialEvent?.title ?? "");
   const [slug, setSlug] = useState(initialEvent?.slug ?? "");
   const [category, setCategory] = useState(initialEvent?.category ?? "national");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">(
     initialEvent?.status ?? "DRAFT"
+  );
+  const [date, setDate] = useState<string | null>(
+    toDateInput(initialEvent?.date) || null
+  );
+  const [endDate, setEndDate] = useState<string | null>(
+    toDateInput(initialEvent?.endDate) || null
   );
   const [isFeatured, setIsFeatured] = useState(!!initialEvent?.isFeatured);
   const [type, setType] = useState<"MEETING" | "CAMP">(
@@ -108,8 +125,19 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
     publicId: initialEvent?.imagePublicId ?? undefined,
     alt: initialEvent?.imageAlt ?? undefined,
   });
+  const [headerImage, setHeaderImage] = useState<{
+    url?: string;
+    publicId?: string;
+  }>({
+    url: initialEvent?.headerImageUrl ?? undefined,
+    publicId: initialEvent?.headerImagePublicId ?? undefined,
+  });
 
   async function handleSubmit(formData: FormData) {
+    if (!date) {
+      setError("Pick a date for the event");
+      return;
+    }
     setIsSaving(true);
     setError(null);
 
@@ -123,8 +151,8 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
           | "regional"
           | "university-chapter"
           | "diaspora",
-        date: String(formData.get("date")),
-        endDate: String(formData.get("endDate") || "") || null,
+        date,
+        endDate,
         time: String(formData.get("time")),
         location: String(formData.get("location")),
         address: String(formData.get("address") || ""),
@@ -136,6 +164,8 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
         imageUrl: image.url,
         imagePublicId: image.publicId,
         imageAlt: image.alt,
+        headerImageUrl: headerImage.url,
+        headerImagePublicId: headerImage.publicId,
         status,
         type,
         registrationEnabled,
@@ -155,187 +185,225 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
   }
 
   return (
-    <form action={handleSubmit} className="max-w-4xl space-y-6">
+    <form
+      action={handleSubmit}
+      // Required fields live on the details tab; jump there so the browser can focus them.
+      onInvalidCapture={() => setTab("details")}
+      className="space-y-6 lg:w-2/3"
+    >
       {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="title">Title *</Label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(event) => {
-              setTitle(event.target.value);
-              if (!initialEvent?.id) setSlug(slugify(event.target.value));
-            }}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="slug">Slug *</Label>
-          <Input
-            id="slug"
-            value={slug}
-            onChange={(event) => setSlug(slugify(event.target.value))}
-            required
-            spellCheck={false}
-          />
-        </div>
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="w-full">
+          <TabsTrigger value="details">Event details</TabsTrigger>
+          <TabsTrigger value="registration">Registration</TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="space-y-2">
-          <Label>Date *</Label>
-          <Input name="date" type="date" defaultValue={toDateInput(initialEvent?.date)} required />
-        </div>
-        <div className="space-y-2">
-          <Label>End date</Label>
-          <Input name="endDate" type="date" defaultValue={toDateInput(initialEvent?.endDate)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Time *</Label>
-          <Input name="time" defaultValue={initialEvent?.time ?? ""} required />
-        </div>
-        <div className="space-y-2">
-          <Label>Status</Label>
-          <Select value={status} onValueChange={(value) => setStatus(value as "DRAFT" | "PUBLISHED")}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="DRAFT">Draft</SelectItem>
-              <SelectItem value="PUBLISHED">Published</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        <TabsContents className="mt-4">
+          <TabsContent value="details" className="space-y-6 p-px">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(event) => {
+                    setTitle(event.target.value);
+                    if (!initialEvent?.id) setSlug(slugify(event.target.value));
+                  }}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug *</Label>
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={(event) => setSlug(slugify(event.target.value))}
+                  required
+                  spellCheck={false}
+                />
+              </div>
+            </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Event type</Label>
-          <Select
-            value={type}
-            onValueChange={(value) => setType(value as "MEETING" | "CAMP")}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="MEETING">Meeting</SelectItem>
-              <SelectItem value="CAMP">Camp (with accommodation)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Category</Label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="national">National</SelectItem>
-              <SelectItem value="regional">Regional</SelectItem>
-              <SelectItem value="university-chapter">University Chapter</SelectItem>
-              <SelectItem value="diaspora">Diaspora</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Dates *</Label>
+                <DateRangeField
+                  value={{ from: date, to: endDate }}
+                  onChange={({ from, to }) => {
+                    setDate(from);
+                    setEndDate(to);
+                  }}
+                  placeholder="Pick a start date (and end date for multi-day events)"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Time *</Label>
+                <Input name="time" defaultValue={initialEvent?.time ?? ""} placeholder="e.g. 6:00 PM" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(value) => setStatus(value as "DRAFT" | "PUBLISHED")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="PUBLISHED">Published</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Location *</Label>
-          <Input name="location" defaultValue={initialEvent?.location ?? ""} required />
-        </div>
-        <div className="space-y-2">
-          <Label>Address</Label>
-          <Input name="address" defaultValue={initialEvent?.address ?? ""} />
-        </div>
-      </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Event type</Label>
+                <Select
+                  value={type}
+                  onValueChange={(value) => setType(value as "MEETING" | "CAMP")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MEETING">Meeting</SelectItem>
+                    <SelectItem value="CAMP">Camp (with accommodation)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="national">National</SelectItem>
+                    <SelectItem value="regional">Regional</SelectItem>
+                    <SelectItem value="university-chapter">University Chapter</SelectItem>
+                    <SelectItem value="diaspora">Diaspora</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-      <div className="space-y-2">
-        <Label>Description *</Label>
-        <Textarea
-          name="description"
-          defaultValue={initialEvent?.description ?? ""}
-          rows={3}
-          required
-        />
-      </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Location *</Label>
+                <Input name="location" defaultValue={initialEvent?.location ?? ""} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Address</Label>
+                <Input name="address" defaultValue={initialEvent?.address ?? ""} />
+              </div>
+            </div>
 
-      <div className="space-y-2">
-        <Label>Body *</Label>
-        <RichTextEditor value={body.html} onChange={setBody} />
-      </div>
+            <div className="space-y-2">
+              <Label>Description *</Label>
+              <Textarea
+                name="description"
+                defaultValue={initialEvent?.description ?? ""}
+                rows={3}
+                required
+              />
+            </div>
 
-      <CloudinaryImageField
-        value={image}
-        onChange={setImage}
-        ownerType="event"
-        ownerId={initialEvent?.id}
-      />
+            <div className="space-y-2">
+              <Label>Body *</Label>
+              <RichTextEditor value={body.html} onChange={setBody} />
+            </div>
 
-      <section className="space-y-4 rounded-md border p-4">
-        <div className="flex items-center gap-3">
-          <Switch
-            id="registrationEnabled"
-            checked={registrationEnabled}
-            onCheckedChange={setRegistrationEnabled}
-          />
-          <Label htmlFor="registrationEnabled">
-            Members register on this website
-          </Label>
-        </div>
+            <div className="space-y-2">
+              <Label>Flyer</Label>
+              <CloudinaryImageField
+                value={image}
+                onChange={setImage}
+                ownerType="event"
+                ownerId={initialEvent?.id}
+              />
+            </div>
 
-        {registrationEnabled ? (
-          <>
-            <div className="space-y-2 md:max-w-xs">
-              <Label htmlFor="registrationClosesAt">Registration closes</Label>
-              <Input
-                id="registrationClosesAt"
-                name="registrationClosesAt"
-                type="datetime-local"
-                defaultValue={toDateTimeInput(initialEvent?.registrationClosesAt)}
-                suppressHydrationWarning
+            <div className="space-y-2">
+              <Label>Header background (optional)</Label>
+              <CloudinaryImageField
+                value={headerImage}
+                onChange={setHeaderImage}
+                ownerType="event"
+                ownerId={initialEvent?.id}
               />
               <p className="text-xs text-muted-foreground">
-                Leave empty to keep registration open until the event starts.
+                Wide image shown behind the title on the event page. Falls back to the
+                category colour.
               </p>
             </div>
-            <RegistrationQuestionsEditor
-              value={registrationFields}
-              onChange={setRegistrationFields}
-            />
-            {type === "CAMP" && (
-              <p className="text-sm text-muted-foreground">
-                After saving, set up rooms and allocate people from the
-                event&apos;s Rooms tab.
-              </p>
-            )}
-          </>
-        ) : (
-          <div className="space-y-2">
-            <Label>External registration URL</Label>
-            <Input
-              name="registrationUrl"
-              type="url"
-              defaultValue={initialEvent?.registrationUrl ?? ""}
-              placeholder="https://forms.google.com"
-            />
-          </div>
-        )}
-      </section>
 
-      <div className="flex items-center gap-3 rounded-md border p-4">
-        <Switch checked={isFeatured} onCheckedChange={setIsFeatured} id="featured" />
-        <Label htmlFor="featured">Feature this event on the events page</Label>
-      </div>
+            <div className="flex items-center gap-3 rounded-md border p-4">
+              <Switch checked={isFeatured} onCheckedChange={setIsFeatured} id="featured" />
+              <Label htmlFor="featured">Feature this event on the events page</Label>
+            </div>
+          </TabsContent>
 
-      <div className="flex items-center justify-between border-t pt-4">
+          <TabsContent value="registration" className="space-y-6 p-px">
+            <section className="space-y-4 rounded-md border p-4">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="registrationEnabled"
+                  checked={registrationEnabled}
+                  onCheckedChange={setRegistrationEnabled}
+                />
+                <Label htmlFor="registrationEnabled">
+                  Members register on this website
+                </Label>
+              </div>
+
+              {registrationEnabled ? (
+                <>
+                  <div className="space-y-2 md:max-w-xs">
+                    <Label htmlFor="registrationClosesAt">Registration closes</Label>
+                    <Input
+                      id="registrationClosesAt"
+                      name="registrationClosesAt"
+                      type="datetime-local"
+                      defaultValue={toDateTimeInput(initialEvent?.registrationClosesAt)}
+                      suppressHydrationWarning
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to keep registration open until the event starts.
+                    </p>
+                  </div>
+                  <RegistrationQuestionsEditor
+                    value={registrationFields}
+                    onChange={setRegistrationFields}
+                  />
+                  {type === "CAMP" && (
+                    <p className="text-sm text-muted-foreground">
+                      After saving, set up rooms and allocate people from the
+                      event&apos;s Rooms tab.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <Label>External registration URL</Label>
+                  <Input
+                    name="registrationUrl"
+                    type="url"
+                    defaultValue={initialEvent?.registrationUrl ?? ""}
+                    placeholder="https://forms.google.com"
+                  />
+                </div>
+              )}
+            </section>
+          </TabsContent>
+        </TabsContents>
+      </Tabs>
+
+      <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           {initialEvent && (
             <DeleteButton
@@ -349,7 +417,7 @@ export function EventForm({ event: initialEvent }: EventFormProps) {
             />
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 *:flex-1 sm:*:flex-none">
           <Button type="button" variant="outline" asChild>
             <Link href="/admin/content/events">Cancel</Link>
           </Button>

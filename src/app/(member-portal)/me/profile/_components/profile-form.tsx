@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
-import { DateField } from "../../_components/date-field";
+import { DateField } from "@/app/components/date-field";
 import {
   GENDER_LABELS,
   LIFE_STAGE_LABELS,

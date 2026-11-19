@@ -43,6 +43,8 @@ export const eventUpsertSchema = richTextSchema.extend({
   imageUrl: optionalUrlSchema,
   imagePublicId: z.string().trim().optional(),
   imageAlt: z.string().trim().optional(),
+  headerImageUrl: optionalUrlSchema,
+  headerImagePublicId: z.string().trim().optional(),
   status: publishStatusSchema.default("DRAFT"),
   type: eventTypeSchema.default("MEETING"),
   registrationEnabled: z.boolean().default(false),

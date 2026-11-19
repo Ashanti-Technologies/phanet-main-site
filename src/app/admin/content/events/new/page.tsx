@@ -12,8 +12,8 @@ export default function NewEventPage() {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">New Event</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">New Event</h1>
           <p className="text-muted-foreground">Create a CMS event.</p>
         </div>
       </div>

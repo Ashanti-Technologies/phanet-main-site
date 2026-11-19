@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   CalendarDays,
   Clock,
@@ -46,14 +47,27 @@ export default async function EventDetailPage({
       <section
         className={`relative bg-gradient-to-br ${CATEGORY_GRADIENTS[event.category]} pt-32 pb-16 overflow-hidden`}
       >
+        {event.headerImageUrl ? (
+          <Image
+            src={event.headerImageUrl}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        ) : (
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)`,
+              backgroundSize: "20px 20px",
+            }}
+          />
+        )}
         <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)`,
-            backgroundSize: "20px 20px",
-          }}
+          className={`absolute inset-0 bg-gradient-to-b ${event.headerImageUrl ? "from-black/60 via-black/40 to-black/70" : "from-black/40 via-black/20 to-black/50"}`}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50" />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Back link */}
@@ -108,11 +122,21 @@ export default async function EventDetailPage({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-14">
             {/* Body text */}
             <div className="lg:col-span-2 order-2 lg:order-1">
+              {event.imageUrl && (
+                <Image
+                  src={event.imageUrl}
+                  alt={event.imageAlt || `${event.title} flyer`}
+                  width={1200}
+                  height={1500}
+                  sizes="(min-width: 1024px) 66vw, 100vw"
+                  className="mb-10 h-auto w-full rounded-2xl shadow-sm"
+                />
+              )}
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 About This Event
               </h2>
               <div
-                className="prose prose-lg max-w-none text-gray-600"
+                className="rich-text text-lg text-gray-600"
                 dangerouslySetInnerHTML={{
                   __html: event.bodyHtml || event.body,
                 }}

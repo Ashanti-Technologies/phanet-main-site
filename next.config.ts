@@ -4,6 +4,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd()
   },
+  // Dev-only: let phones/laptops on any private LAN (home Wi-Fi, hotspot) use
+  // HMR without pinning an IP that changes. Ignored in production.
+  allowedDevOrigins: [
+    "10.*.*.*",
+    "192.168.*.*",
+    ...Array.from({ length: 16 }, (_, i) => `172.${16 + i}.*.*`),
+  ],
   // Allow images from Cloudinary and Google
   images: {
     remotePatterns: [

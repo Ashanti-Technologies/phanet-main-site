@@ -108,13 +108,31 @@ export const auth = betterAuth({
       expiresIn: 60 * 15,
       storeToken: "hashed",
       sendMagicLink: async ({ email, url }) => {
+        // Admin-login links (callbackURL under /admin) only go to admins.
+        // Return silently otherwise so the response doesn't reveal which
+        // emails are admin accounts.
+        const callback = new URL(
+          new URL(url).searchParams.get("callbackURL") ?? "/",
+          url,
+        ).pathname;
+        const isAdminLogin =
+          callback === "/admin" || callback.startsWith("/admin/");
+        if (isAdminLogin) {
+          const user = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: "insensitive" } },
+            select: { role: true },
+          });
+          if (!user || !hasAnyAdminRole(parseRoles(user.role))) return;
+        }
+
+        const portal = isAdminLogin ? "Admin Portal" : "Member Portal";
         const { html, text } = await renderEmail(
-          MagicLinkSignInEmail({ url, expiresInMinutes: 15 }),
+          MagicLinkSignInEmail({ url, expiresInMinutes: 15, portal }),
         );
         const service = getMessagingService("EMAIL");
         const result = await service.send({
           to: email,
-          subject: "Your PHANET Member Portal sign-in link",
+          subject: `Your PHANET ${portal} sign-in link`,
           body: html,
           text,
         });

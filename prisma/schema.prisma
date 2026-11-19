@@ -798,6 +798,9 @@ model Event {
   imageUrl             String?
   imagePublicId        String?
   imageAlt             String?
+  /// Optional hero background on the public event page
+  headerImageUrl       String?
+  headerImagePublicId  String?
   status               PublishStatus       @default(DRAFT)
   type                 EventType           @default(MEETING)
   registrationEnabled  Boolean             @default(false)

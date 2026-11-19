@@ -2,9 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { DayPicker, type DateRange } from "react-day-picker";
+import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, ChevronDown } from "lucide-react";
+import { AnimateIcon } from "@animate-ui/react/icons";
+import { CalendarIcon } from "@/app/components/animate-ui/icons/calendar";
+import { ChevronDownIcon } from "@/app/components/animate-ui/icons/chevron-down";
+import { Calendar } from "@/app/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -12,8 +15,6 @@ import {
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
 import { cn } from "@/lib/utils";
-
-import "react-day-picker/style.css";
 
 type Preset = {
   label: string;
@@ -101,18 +102,17 @@ export function DateRangePicker() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-9 gap-2 font-normal",
-            pending && "opacity-60",
-          )}
-        >
-          <CalendarIcon className="h-3.5 w-3.5" />
-          <span>{label}</span>
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-        </Button>
+        <AnimateIcon animateOnHover asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn("h-9 gap-2 font-normal", pending && "opacity-60")}
+          >
+            <CalendarIcon className="h-3.5 w-3.5" />
+            <span>{label}</span>
+            <ChevronDownIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </AnimateIcon>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-auto p-0 overflow-hidden">
         <div className="flex flex-col sm:flex-row">
@@ -144,38 +144,14 @@ export function DateRangePicker() {
           </div>
 
           {/* Calendar column */}
-          <div className="p-2">
-            <DayPicker
+          <div>
+            <Calendar
               mode="range"
               numberOfMonths={1}
               defaultMonth={activeFrom}
               selected={range ?? { from: activeFrom, to: activeTo }}
               onSelect={handleRangeChange}
               disabled={{ after: new Date() }}
-              classNames={{
-                root: "rdp-root [--rdp-accent-color:var(--foreground)] [--rdp-accent-background-color:var(--accent)] text-sm",
-                months: "flex flex-col gap-3",
-                month_caption:
-                  "flex items-center justify-center h-8 px-2 text-sm font-medium",
-                nav: "flex items-center gap-1",
-                button_previous:
-                  "h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent",
-                button_next:
-                  "h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent",
-                weekday:
-                  "text-[11px] font-medium text-muted-foreground w-8 h-8",
-                day: "h-8 w-8 p-0 text-sm",
-                day_button:
-                  "h-8 w-8 rounded-md inline-flex items-center justify-center hover:bg-accent transition-colors",
-                today: "font-semibold text-foreground",
-                outside: "text-muted-foreground/50",
-                disabled: "opacity-40 pointer-events-none",
-                range_start:
-                  "[&_button]:bg-foreground [&_button]:text-background [&_button]:hover:bg-foreground/90",
-                range_end:
-                  "[&_button]:bg-foreground [&_button]:text-background [&_button]:hover:bg-foreground/90",
-                range_middle: "bg-accent/60",
-              }}
             />
           </div>
         </div>

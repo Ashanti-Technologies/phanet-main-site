@@ -75,7 +75,7 @@ export default function AdminLoginPage() {
         return;
       }
       setMessage(
-        "Check your email — we just sent you a secure sign-in link. Admin access is verified after sign-in.",
+        "If that email belongs to an admin account, a secure sign-in link is on its way.",
       );
     });
   }
@@ -94,12 +94,18 @@ export default function AdminLoginPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-black/75 via-black/45 to-midnight-green/80" />
         <div className="relative z-10 flex h-full flex-col justify-between p-10 text-white">
           <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-md bg-mikado-yellow text-base font-bold text-black">
-              PN
+            <div className="rounded-md bg-white p-1">
+              <Image
+                src="/images/logo.svg"
+                alt="PHANET"
+                width={44}
+                height={44}
+                priority
+              />
             </div>
             <div>
               <p className="text-lg font-bold leading-none">PHANET</p>
-              <p className="text-sm text-white/70">Admin CMS</p>
+              <p className="text-sm text-white/70">Admin Portal</p>
             </div>
           </div>
 
@@ -122,9 +128,13 @@ export default function AdminLoginPage() {
       <main className="flex min-h-svh items-center justify-center p-6 lg:p-10">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center lg:text-left">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-md bg-mikado-yellow text-lg font-bold text-black lg:mx-0">
-              PN
-            </div>
+            <Image
+              src="/images/logo.svg"
+              alt="PHANET"
+              width={48}
+              height={48}
+              className="mx-auto mb-4 lg:mx-0"
+            />
             <h1 className="text-2xl font-semibold tracking-tight">
               Admin Portal
             </h1>
@@ -215,7 +225,7 @@ export default function AdminLoginPage() {
                       Email me a sign-in link
                     </Button>
                     <p className="text-center text-xs text-muted-foreground">
-                      Admin access is verified after you click the link.
+                      Links are only sent to admin accounts.
                     </p>
                   </form>
                 </TabsContent>

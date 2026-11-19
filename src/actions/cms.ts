@@ -57,6 +57,8 @@ export async function saveEvent(input: EventUpsertInput) {
     imageUrl: emptyToNull(data.imageUrl),
     imagePublicId: emptyToNull(data.imagePublicId),
     imageAlt: emptyToNull(data.imageAlt),
+    headerImageUrl: emptyToNull(data.headerImageUrl),
+    headerImagePublicId: emptyToNull(data.headerImagePublicId),
     status: data.status,
     type: data.type,
     registrationEnabled: data.registrationEnabled,
