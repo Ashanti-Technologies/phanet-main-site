@@ -425,7 +425,17 @@ export function RegistrationForm(props: Props) {
 
   return (
     // Enter in a field moves to the next step; only the Review step submits.
-    <form action={() => (step === "review" ? submit() : goNext())} className="space-y-5" aria-busy={isPending}>
+    // onSubmit, not `action`: React resets a form after an action runs, and the
+    // reset snaps Radix checkboxes ("same place as me") back to their first value.
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (step === "review") submit();
+        else goNext();
+      }}
+      className="space-y-5"
+      aria-busy={isPending}
+    >
       {!open && (
         <p className="rounded-2xl border bg-muted p-4 text-sm">
           Registration has closed, so your booking can no longer be changed.
@@ -978,8 +988,8 @@ function PersonCard({
         </Field>
       )}
       {row.kind !== "self" && (
-        <div className="space-y-3" data-field-id={`${k}-location`}>
-          <label className="flex cursor-pointer items-start gap-3 text-sm">
+        <div className="space-y-3 border-t pt-4" data-field-id={`${k}-location`}>
+          <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 text-sm has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5">
             <Checkbox
               className="mt-0.5"
               checked={!!row.sameAsMe}
