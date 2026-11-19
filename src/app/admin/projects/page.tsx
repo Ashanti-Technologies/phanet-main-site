@@ -1,5 +1,5 @@
 import { getProjects } from "@/actions/projects";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePermission } from "@/lib/auth-guard";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
 import { StatusBadge } from "@/app/admin/_components/status-badge";
@@ -19,7 +19,7 @@ const fundingModeLabels = {
 };
 
 export default async function AdminProjectsPage() {
-  await requireAdmin();
+  await requirePermission("read", "Project");
   const projects = await getProjects({ includeCommitments: true });
 
   return (

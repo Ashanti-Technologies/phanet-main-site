@@ -3,6 +3,8 @@ import { renderEmail } from "./email-templates/render";
 import { CommitmentReceivedAdminEmail } from "./email-templates/CommitmentReceivedAdminEmail";
 import { CommitmentReceivedDonorEmail } from "./email-templates/CommitmentReceivedDonorEmail";
 import { CommitmentStatusUpdateEmail } from "./email-templates/CommitmentStatusUpdateEmail";
+import { GiftReceivedEmail, type GiftReceivedEmailProps } from "./email-templates/GiftReceivedEmail";
+import { MonthlyGiftPausedEmail, type MonthlyGiftPausedEmailProps } from "./email-templates/MonthlyGiftPausedEmail";
 
 const ADMIN_EMAIL =
   process.env.ADMIN_NOTIFICATION_EMAIL || "admin@phanerosisnetwork.com";
@@ -102,6 +104,37 @@ export async function sendStatusUpdate(
   });
   if (!result.ok) {
     console.error("Failed to send status update:", result.error);
+  }
+  return result;
+}
+
+/**
+ * Receipt for an online gift once the payment provider has confirmed it.
+ */
+export async function sendGiftReceipt(gift: GiftReceivedEmailProps & { to: string }) {
+  const { to, ...props } = gift;
+  const { html, text } = await renderEmail(GiftReceivedEmail(props));
+  const result = await email.send({
+    to,
+    subject: `Gift received — ${props.amount}`,
+    body: html,
+    text,
+  });
+  if (!result.ok) {
+    console.error("Failed to send gift receipt:", result.error);
+  }
+  return result;
+}
+
+/**
+ * Tell a giver their monthly gift stopped after repeated declined charges.
+ */
+export async function sendMonthlyGiftPaused(gift: MonthlyGiftPausedEmailProps & { to: string }) {
+  const { to, ...props } = gift;
+  const { html, text } = await renderEmail(MonthlyGiftPausedEmail(props));
+  const result = await email.send({ to, subject: "Your monthly gift is paused", body: html, text });
+  if (!result.ok) {
+    console.error("Failed to send monthly gift paused email:", result.error);
   }
   return result;
 }

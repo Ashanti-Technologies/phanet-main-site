@@ -30,6 +30,10 @@ export type Event = {
   imageAlt?: string;
   headerImageUrl?: string;
   status?: "DRAFT" | "PUBLISHED";
+  updatedAt?: string; // ISO, for sitemap lastModified
+  paymentMode?: "FREE" | "DISPLAY_ONLY" | "PAY_AT_EVENT" | "ONLINE";
+  priceTiers?: { name: string; description?: string; amount: number }[];
+  registrationClosesAt?: string; // ISO
   recurrence?: Recurrence;
 };
 

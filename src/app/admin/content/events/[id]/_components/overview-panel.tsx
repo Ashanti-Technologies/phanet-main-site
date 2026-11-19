@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { ArrowRight, BedDouble, CheckCircle2, Circle, ExternalLink, MapPin } from "lucide-react";
 import type { Event } from "@/app/generated/prisma/client";
-import type { AttendeeRow, EventRooms } from "@/lib/event-registration";
-import { relTime } from "@/lib/format";
+import { feeTotals, type AttendeeRow, type EventRooms } from "@/lib/event-registration";
+import { chargesFees } from "@/lib/event-fees";
+import { formatMoney, relTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/app/components/ui/button";
 import { Progress } from "@/app/components/ui/progress";
@@ -181,6 +182,19 @@ function RegistrationStrip({
             value={`${checkedIn}/${rows.length}`}
             progress={rows.length ? (checkedIn / rows.length) * 100 : 0}
           />
+          {chargesFees(event.paymentMode) && (() => {
+            const t = feeTotals(rows);
+            return (
+              <>
+                <Metric
+                  label="Fees collected"
+                  value={`${formatMoney(t.collected)}`}
+                  progress={t.expected ? (t.collected / t.expected) * 100 : 0}
+                />
+                <Metric label="Bookings paid" value={`${t.paidBookings}/${t.charged}`} />
+              </>
+            );
+          })()}
           {rooms && (
             <Metric
               label="Beds filled"

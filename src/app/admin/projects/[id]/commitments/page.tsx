@@ -1,6 +1,6 @@
 import { getProjectById } from "@/actions/projects";
 import { getCommitmentsByProject } from "@/actions/commitments";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePermission } from "@/lib/auth-guard";
 import { notFound } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -26,7 +26,7 @@ interface Props {
 }
 
 export default async function CommitmentsPage({ params, searchParams }: Props) {
-  await requireAdmin();
+  await requirePermission("read", "Commitment");
   const { id } = await params;
   const project = await getProjectById(id);
 

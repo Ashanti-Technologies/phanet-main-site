@@ -38,7 +38,7 @@ export class StripePaymentService implements PaymentService {
     return {
       success: false,
       reference,
-      amount: 0,
+      amountMinor: 0,
       currency: "GHS",
       status: "pending",
     };

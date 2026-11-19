@@ -14,35 +14,39 @@ datasource db {
 }
 
 model User {
-  id                  String         @id
+  id                  String          @id
   name                String
   email               String
-  emailVerified       Boolean        @default(false)
+  emailVerified       Boolean         @default(false)
   image               String?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
   phoneNumber         String?
   phoneNumberVerified Boolean?
   // Comma-separated list of role keys (e.g. "super_admin,pastor"). See src/lib/rbac/roles.ts.
   role                String?
-  banned              Boolean?       @default(false)
+  banned              Boolean?        @default(false)
   banReason           String?
   banExpires          DateTime?
-  twoFactorEnabled    Boolean        @default(false)
+  twoFactorEnabled    Boolean         @default(false)
   lastLoginMethod     String?
   twoFactors          TwoFactor[]
   sessions            Session[]
   accounts            Account[]
   commitments         Commitment[]
   unitRoles           UserUnitRole[]
-  auditLogs           AuditLog[]     @relation("AuditActor")
+  auditLogs           AuditLog[]      @relation("AuditActor")
   member              Member?
   importJobs          ImportJob[]
-  visitations         Visitation[]   @relation("VisitedBy")
-  assignedTasks       FollowUpTask[] @relation("TaskAssignee")
-  createdTasks        FollowUpTask[] @relation("TaskCreator")
-  memberNotes         MemberNote[]   @relation("NoteAuthor")
-  createdInvites      MemberInvite[] @relation("InviteCreator")
+  visitations         Visitation[]    @relation("VisitedBy")
+  assignedTasks       FollowUpTask[]  @relation("TaskAssignee")
+  createdTasks        FollowUpTask[]  @relation("TaskCreator")
+  memberNotes         MemberNote[]    @relation("NoteAuthor")
+  createdInvites      MemberInvite[]  @relation("InviteCreator")
+  incomesRecorded     Income[]        @relation("IncomeRecordedBy")
+  recurringGifts      RecurringGift[]
+  expensesRecorded    Expense[]       @relation("ExpenseRecordedBy")
+  expensesApproved    Expense[]       @relation("ExpenseApprovedBy")
 
   @@unique([email])
   @@unique([phoneNumber])
@@ -232,6 +236,9 @@ model Member {
   eventRegistrations EventRegistration[]
   eventAttendances   EventAttendee[]
   phanetProfile      MemberPhanetProfile?
+  incomes            Income[]
+  paymentIntents     PaymentIntent[]
+  recurringGifts     RecurringGift[]
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @default(now()) @updatedAt
 
@@ -431,6 +438,7 @@ model Service {
   location   String?
   notes      String?      @db.Text
   attendance Attendance[]
+  incomes    Income[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @default(now()) @updatedAt
 
@@ -712,6 +720,8 @@ model ChurchUnitOption {
   createdAt DateTime       @default(now())
   userRoles UserUnitRole[]
   members   MemberUnit[]
+  expenses  Expense[]
+  budgets   Budget[]
 
   @@map("church_unit_option")
 }
@@ -737,6 +747,7 @@ model Commitment {
   confirmedAt     DateTime?
   internalNote    String?          @db.Text
   paymentIntents  PaymentIntent[]
+  incomes         Income[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -759,21 +770,223 @@ model ProofUpload {
 }
 
 model PaymentIntent {
-  id           String          @id @default(cuid())
-  commitmentId String
-  commitment   Commitment      @relation(fields: [commitmentId], references: [id], onDelete: Cascade)
-  provider     PaymentProvider
-  reference    String          @unique
-  amount       Decimal         @db.Decimal(12, 2)
-  currency     String          @default("GHS")
-  status       PaymentStatus   @default(PENDING)
-  metadata     Json?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id                  String             @id @default(cuid())
+  // Set for pledge payments; null for general online giving.
+  commitmentId        String?
+  commitment          Commitment?        @relation(fields: [commitmentId], references: [id], onDelete: Cascade)
+  /// Set for event-fee payments.
+  eventRegistrationId String?
+  eventRegistration   EventRegistration? @relation(fields: [eventRegistrationId], references: [id], onDelete: SetNull)
+  fundId              String?
+  fund                Fund?              @relation(fields: [fundId], references: [id], onDelete: SetNull)
+  memberId            String?
+  member              Member?            @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  email               String?
+  donorName           String?
+  /// Set for monthly gifts (the first checkout and every renewal charge).
+  recurringGiftId     String?
+  recurringGift       RecurringGift?     @relation(fields: [recurringGiftId], references: [id], onDelete: SetNull)
+  provider            PaymentProvider
+  reference           String             @unique
+  amount              Decimal            @db.Decimal(12, 2)
+  currency            String             @default("GHS")
+  status              PaymentStatus      @default(PENDING)
+  metadata            Json?
+  income              Income?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([commitmentId])
+  @@index([eventRegistrationId])
+  @@index([recurringGiftId])
   @@index([reference])
   @@map("payment_intent")
+}
+
+enum RecurringGiftStatus {
+  // Waiting for the first payment to succeed and give us a reusable card.
+  PENDING
+  ACTIVE
+  // Stopped after repeated failed charges; the giver can set up a new one.
+  PAUSED
+  CANCELLED
+}
+
+// A monthly card gift. Renewals are charged by /api/cron/recurring-giving
+// against the saved Paystack authorization, then settled like any gift.
+model RecurringGift {
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberId          String?
+  member            Member?             @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  fundId            String
+  fund              Fund                @relation(fields: [fundId], references: [id])
+  amount            Decimal             @db.Decimal(12, 2)
+  currency          String              @default("GHS")
+  email             String
+  donorName         String
+  provider          PaymentProvider     @default(PAYSTACK)
+  // Paystack reusable card token. Never sent to the browser.
+  authorizationCode String?
+  cardLabel         String?
+  dayOfMonth        Int
+  nextChargeAt      DateTime?
+  failedAttempts    Int                 @default(0)
+  status            RecurringGiftStatus @default(PENDING)
+  cancelledAt       DateTime?
+  paymentIntents    PaymentIntent[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([status, nextChargeAt])
+  @@index([userId])
+  @@map("recurring_gift")
+}
+
+// ============================================
+// FINANCE LEDGER
+// ============================================
+// Rows are never hard-deleted: set voidedAt instead, and every report filters
+// voidedAt = null. Amounts are GHS for now (currency column kept for later).
+
+enum PaymentMethod {
+  CASH
+  MOMO
+  BANK_TRANSFER
+  CARD
+  CHEQUE
+  OTHER
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+model Fund {
+  id             String          @id @default(cuid())
+  name           String          @unique
+  description    String?
+  isActive       Boolean         @default(true)
+  incomes        Income[]
+  expenses       Expense[]
+  paymentIntents PaymentIntent[]
+  recurringGifts RecurringGift[]
+  /// Events whose fees are recorded into this fund
+  events         Event[]
+  createdAt      DateTime        @default(now())
+
+  @@map("fund")
+}
+
+model Income {
+  id                  String             @id @default(cuid())
+  fundId              String
+  fund                Fund               @relation(fields: [fundId], references: [id])
+  amount              Decimal            @db.Decimal(12, 2)
+  currency            String             @default("GHS")
+  receivedAt          DateTime
+  method              PaymentMethod
+  // MoMo transaction id, bank reference, cheque number…
+  reference           String?
+  memberId            String?
+  member              Member?            @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  // Visitors / non-members, or a label like "Sunday offering".
+  donorName           String?
+  serviceId           String?
+  service             Service?           @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  commitmentId        String?
+  commitment          Commitment?        @relation(fields: [commitmentId], references: [id], onDelete: SetNull)
+  paymentIntentId     String?            @unique
+  paymentIntent       PaymentIntent?     @relation(fields: [paymentIntentId], references: [id], onDelete: SetNull)
+  /// Event fee: keeps EventRegistration.amountPaid in sync (see syncRegistrationPayment).
+  eventRegistrationId String?
+  eventRegistration   EventRegistration? @relation(fields: [eventRegistrationId], references: [id], onDelete: SetNull)
+  note                String?            @db.Text
+  // Null for gifts settled automatically by a payment provider.
+  recordedById        String?
+  recordedBy          User?              @relation("IncomeRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+  voidedAt            DateTime?
+  voidReason          String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([fundId, receivedAt])
+  @@index([receivedAt])
+  @@index([memberId])
+  @@index([serviceId])
+  @@index([commitmentId])
+  @@index([eventRegistrationId])
+  @@map("income")
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  expenses  Expense[]
+  budgets   Budget[]
+  createdAt DateTime  @default(now())
+
+  @@map("expense_category")
+}
+
+// Spending plan for a period. Null category / unit = any. Actual spend is
+// computed from PAID, non-voided expenses — never stored.
+model Budget {
+  id           String            @id @default(cuid())
+  name         String
+  categoryId   String?
+  category     ExpenseCategory?  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  churchUnitId String?
+  churchUnit   ChurchUnitOption? @relation(fields: [churchUnitId], references: [id], onDelete: Cascade)
+  periodStart  DateTime
+  // Inclusive (whole day).
+  periodEnd    DateTime
+  amount       Decimal           @db.Decimal(12, 2)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([periodStart, periodEnd])
+  @@map("budget")
+}
+
+model Expense {
+  id           String            @id @default(cuid())
+  categoryId   String
+  category     ExpenseCategory   @relation(fields: [categoryId], references: [id])
+  fundId       String?
+  fund         Fund?             @relation(fields: [fundId], references: [id], onDelete: SetNull)
+  churchUnitId String?
+  churchUnit   ChurchUnitOption? @relation(fields: [churchUnitId], references: [id], onDelete: SetNull)
+  amount       Decimal           @db.Decimal(12, 2)
+  currency     String            @default("GHS")
+  payee        String
+  description  String            @db.Text
+  incurredAt   DateTime
+  method       PaymentMethod?
+  reference    String?
+  receiptUrl   String?
+  status       ExpenseStatus     @default(PENDING)
+  recordedById String
+  recordedBy   User              @relation("ExpenseRecordedBy", fields: [recordedById], references: [id])
+  approvedById String?
+  approvedBy   User?             @relation("ExpenseApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt   DateTime?
+  paidAt       DateTime?
+  voidedAt     DateTime?
+  voidReason   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([incurredAt])
+  @@index([status])
+  @@index([categoryId])
+  @@index([churchUnitId])
+  @@map("expense")
 }
 
 // ============================================
@@ -807,6 +1020,11 @@ model Event {
   registrationClosesAt DateTime?
   /// Admin-built registration form; shape: eventRegistrationFieldsSchema
   registrationFields   Json?
+  paymentMode          EventPaymentMode    @default(FREE)
+  /// Ledger fund for this event's fees (PAY_AT_EVENT / ONLINE)
+  feeFundId            String?
+  feeFund              Fund?               @relation(fields: [feeFundId], references: [id], onDelete: SetNull)
+  priceTiers           EventPriceTier[]
   rsvps                EventRsvp[]
   registrations        EventRegistration[]
   attendees            EventAttendee[]
@@ -846,7 +1064,36 @@ enum EventType {
 
 enum EventRegistrationStatus {
   CONFIRMED
+  /// ONLINE events: held until Paystack confirms payment
+  PENDING_PAYMENT
   CANCELLED
+}
+
+enum EventPaymentMode {
+  /// No fee
+  FREE
+  /// Fees shown publicly; nothing tracked
+  DISPLAY_ONLY
+  /// Booking confirmed; amount owed until desk staff record payment
+  PAY_AT_EVENT
+  /// Booking held as PENDING_PAYMENT until Paystack confirms
+  ONLINE
+}
+
+/// Admin-defined price category (e.g. "Tertiary student", "Working class").
+model EventPriceTier {
+  id          String          @id @default(cuid())
+  eventId     String
+  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  amount      Decimal         @db.Decimal(12, 2)
+  sortOrder   Int             @default(0)
+  attendees   EventAttendee[]
+  createdAt   DateTime        @default(now())
+
+  @@unique([eventId, name])
+  @@map("event_price_tier")
 }
 
 enum AttendeeRelationship {
@@ -865,17 +1112,24 @@ enum AgeGroup {
 
 /// One booking, filled in by `registrant` for themselves and/or others.
 model EventRegistration {
-  id           String                  @id @default(cuid())
-  eventId      String
-  event        Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  registrantId String
-  registrant   Member                  @relation(fields: [registrantId], references: [id], onDelete: Cascade)
-  status       EventRegistrationStatus @default(CONFIRMED)
+  id             String                  @id @default(cuid())
+  eventId        String
+  event          Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrantId   String
+  registrant     Member                  @relation(fields: [registrantId], references: [id], onDelete: Cascade)
+  status         EventRegistrationStatus @default(CONFIRMED)
   /// Answers to booking-scoped form fields, keyed by field id.
-  answers      Json?
-  attendees    EventAttendee[]
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
+  answers        Json?
+  attendees      EventAttendee[]
+  /// Sum of attendee price snapshots
+  amountDue      Decimal                 @default(0) @db.Decimal(12, 2)
+  /// Sum of non-voided linked incomes (syncRegistrationPayment)
+  amountPaid     Decimal                 @default(0) @db.Decimal(12, 2)
+  paidAt         DateTime?
+  incomes        Income[]
+  paymentIntents PaymentIntent[]
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
   @@unique([eventId, registrantId])
   @@index([eventId, status])
@@ -893,6 +1147,11 @@ model EventAttendee {
   member         Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
   relationship   AttendeeRelationship
   ageGroup       AgeGroup?
+  priceTierId    String?
+  priceTier      EventPriceTier?      @relation(fields: [priceTierId], references: [id], onDelete: SetNull)
+  /// Snapshots at booking time, so later tier edits don't change what's owed
+  tierName       String?
+  amount         Decimal?             @db.Decimal(12, 2)
   /// Answers to person-scoped form fields, keyed by field id.
   answers        Json?
   roomId         String?

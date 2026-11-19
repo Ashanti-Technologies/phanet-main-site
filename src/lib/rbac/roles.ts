@@ -35,7 +35,7 @@ export const ROLE_DEFINITIONS: Record<
   },
   finance: {
     label: "Finance",
-    description: "Manage fundraising projects, commitments, and payments",
+    description: "Manage finances: income, expenses, funds, fundraising projects and pledges",
     isAdminRole: true,
     requiresUnits: false,
   },

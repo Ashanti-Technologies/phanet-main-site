@@ -16,6 +16,10 @@ import {
   type SermonFeatureUpsertInput,
 } from "@/lib/schemas";
 import { sanitizeRichTextHtml } from "@/lib/rich-text";
+import { feeSettingsError } from "@/lib/schemas/cms.schema";
+import { tagRegistrationAttendees } from "@/lib/event-registration";
+
+class EventSaveError extends Error {}
 
 function emptyToNull(value?: string | null) {
   const trimmed = value?.trim();
@@ -32,7 +36,36 @@ export async function getAdminEvents() {
 
 export async function getAdminEventById(id: string) {
   await requireAdmin();
-  return prisma.event.findUnique({ where: { id } });
+  const event = await prisma.event.findUnique({
+    where: { id },
+    include: {
+      priceTiers: { orderBy: { sortOrder: "asc" } },
+      _count: { select: { registrations: true } },
+    },
+  });
+  if (!event) return null;
+  // Decimal doesn't cross to client components.
+  const { priceTiers, _count, ...rest } = event;
+  return {
+    ...rest,
+    bookingCount: _count.registrations,
+    priceTiers: priceTiers.map((t) => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      amount: t.amount.toNumber(),
+    })),
+  };
+}
+
+/** Active funds for the event fee picker. Read directly: EDITORs manage events but can't read Fund. */
+export async function listFeeFunds() {
+  await requireAdmin();
+  return prisma.fund.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
 }
 
 /** Other events' registration forms, for "Copy form from…" in the builder. */
@@ -46,9 +79,14 @@ export async function listEventForms(excludeId?: string) {
   });
 }
 
-export async function saveEvent(input: EventUpsertInput) {
+export async function saveEvent(
+  input: EventUpsertInput,
+): Promise<{ success: true; data: { id: string } } | { success: false; error: string }> {
   await requireAdmin();
   const data = eventUpsertSchema.parse(input);
+  // Returned, not thrown: Next masks thrown messages in production.
+  const feeError = feeSettingsError(data);
+  if (feeError) return { success: false, error: feeError };
   const bodyHtml = sanitizeRichTextHtml(data.bodyHtml);
 
   const payload = {
@@ -75,18 +113,77 @@ export async function saveEvent(input: EventUpsertInput) {
     registrationEnabled: data.registrationEnabled,
     registrationClosesAt: data.registrationClosesAt ?? null,
     registrationFields: data.registrationFields,
+    paymentMode: data.paymentMode,
+    feeFundId: data.paymentMode === "PAY_AT_EVENT" || data.paymentMode === "ONLINE" ? data.feeFundId : null,
   };
 
-  const event = data.id
-    ? await prisma.event.update({ where: { id: data.id }, data: payload })
-    : await prisma.event.create({ data: payload });
+  let event: { id: string; slug: string };
+  try {
+    event = await prisma.$transaction(async (tx) => {
+      const ev = data.id
+        ? await tx.event.update({ where: { id: data.id }, data: payload, select: { id: true, slug: true } })
+        : await tx.event.create({ data: payload, select: { id: true, slug: true } });
+
+      // Sync tiers by id: deleting and recreating would null every booked attendee's tier.
+      const tiers = data.paymentMode === "FREE" ? [] : data.priceTiers;
+      const existing = await tx.eventPriceTier.findMany({
+        where: { eventId: ev.id },
+        select: { id: true, name: true, _count: { select: { attendees: true } } },
+      });
+      const keep = new Set(tiers.map((t) => t.id).filter(Boolean));
+      const removed = existing.filter((t) => !keep.has(t.id));
+      const inUse = removed.find((t) => t._count.attendees > 0);
+      if (inUse) {
+        throw new EventSaveError(
+          `People have already registered under “${inUse.name}”, so it can't be removed. Change its name or price instead.`,
+        );
+      }
+      if (removed.length) {
+        await tx.eventPriceTier.deleteMany({ where: { id: { in: removed.map((t) => t.id) } } });
+      }
+      const existingIds = new Set(existing.map((t) => t.id));
+      // Free up names first so swapping two tiers' names doesn't trip @@unique([eventId, name]).
+      for (const t of tiers) {
+        if (t.id && existingIds.has(t.id)) {
+          await tx.eventPriceTier.update({ where: { id: t.id }, data: { name: `__renaming_${t.id}` } });
+        }
+      }
+      for (const [i, t] of tiers.entries()) {
+        const values = { name: t.name, description: emptyToNull(t.description), amount: t.amount, sortOrder: i };
+        if (t.id && existingIds.has(t.id)) {
+          await tx.eventPriceTier.update({ where: { id: t.id }, data: values });
+        } else {
+          await tx.eventPriceTier.create({ data: { ...values, eventId: ev.id } });
+        }
+      }
+
+      // No longer collecting online: bookings held for payment become ordinary confirmed ones.
+      if (data.paymentMode !== "ONLINE") {
+        const pending = await tx.eventRegistration.findMany({
+          where: { eventId: ev.id, status: "PENDING_PAYMENT" },
+          select: { id: true },
+        });
+        if (pending.length) {
+          await tx.eventRegistration.updateMany({
+            where: { id: { in: pending.map((r) => r.id) } },
+            data: { status: "CONFIRMED" },
+          });
+          await tagRegistrationAttendees(tx, pending.map((r) => r.id));
+        }
+      }
+      return ev;
+    }, { timeout: 20_000 });
+  } catch (err) {
+    if (err instanceof EventSaveError) return { success: false, error: err.message };
+    throw err;
+  }
 
   revalidatePath("/admin/content/events");
   revalidatePath(`/admin/content/events/${event.id}`);
   revalidatePath("/events");
   revalidatePath(`/events/${event.slug}`);
   revalidatePath("/", "layout"); // featured-event banner + homepage section
-  return { success: true, data: event };
+  return { success: true, data: { id: event.id } };
 }
 
 export async function deleteEvent(id: string) {

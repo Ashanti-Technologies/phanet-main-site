@@ -80,8 +80,17 @@ const navigation: NavGroup[] = [
     ],
   },
   {
-    label: "Fundraising",
-    items: [{ name: "Projects", href: "/admin/projects", icon: "projects" }],
+    label: "Finance",
+    items: [
+      { name: "Overview", href: "/admin/finance", icon: "finance", exact: true },
+      { name: "Income", href: "/admin/finance/income", icon: "income" },
+      { name: "Monthly gifts", href: "/admin/finance/monthly", icon: "monthly" },
+      { name: "Expenses", href: "/admin/finance/expenses", icon: "expenses" },
+      { name: "Budgets", href: "/admin/finance/budgets", icon: "budgets" },
+      { name: "Statements", href: "/admin/finance/statements", icon: "statements" },
+      { name: "Funds", href: "/admin/finance/funds", icon: "funds" },
+      { name: "Projects", href: "/admin/projects", icon: "projects" },
+    ],
   },
   {
     label: "Ministry",
@@ -112,7 +121,6 @@ const navigation: NavGroup[] = [
         href: "/admin/reports/engagement",
         icon: "reports",
       },
-      { name: "Giving", href: "/admin/reports/giving", icon: "reports" },
     ],
   },
   {

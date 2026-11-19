@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AnimateIcon } from "@animate-ui/react/icons";
-import { getAdminEventById, listEventForms } from "@/actions/cms";
+import { getAdminEventById, listEventForms, listFeeFunds } from "@/actions/cms";
 import { ArrowLeft } from "@/app/components/animate-ui/icons/arrow-left";
 import { Button } from "@/app/components/ui/button";
 import { EventForm } from "../../_components/event-form";
@@ -12,9 +12,10 @@ type Props = {
 
 export default async function EditEventPage({ params }: Props) {
   const { id } = await params;
-  const [event, otherForms] = await Promise.all([
+  const [event, otherForms, funds] = await Promise.all([
     getAdminEventById(id),
     listEventForms(id),
+    listFeeFunds(),
   ]);
   if (!event) notFound();
 
@@ -33,7 +34,7 @@ export default async function EditEventPage({ params }: Props) {
           {/* <p className="truncate text-muted-foreground">{event.title}</p> */}
         </div>
       </div>
-      <EventForm event={event} otherForms={otherForms} />
+      <EventForm event={event} otherForms={otherForms} funds={funds} />
     </div>
   );
 }

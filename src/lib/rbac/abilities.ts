@@ -75,7 +75,19 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
       "MemberInvite",
       "PrayerRequest",
     ]);
-    can("read", ["User", "ChurchUnit", "Project", "Commitment", "PaymentIntent", "AuditLog"]);
+    can("read", [
+      "User",
+      "ChurchUnit",
+      "Project",
+      "Commitment",
+      "PaymentIntent",
+      "AuditLog",
+      "Fund",
+      "Income",
+      "Expense",
+      "ExpenseCategory",
+      "Budget",
+    ]);
   }
 
   if (roles.has(ROLES.EDITOR)) {
@@ -85,7 +97,17 @@ export function defineAbilityFor(ctx: AbilityContext): AppAbility {
 
   if (roles.has(ROLES.FINANCE)) {
     can("access", "AdminPanel");
-    can("manage", ["Project", "Commitment", "PaymentIntent", "ProofUpload"]);
+    can("manage", [
+      "Project",
+      "Commitment",
+      "PaymentIntent",
+      "ProofUpload",
+      "Fund",
+      "Income",
+      "Expense",
+      "ExpenseCategory",
+      "Budget",
+    ]);
     can("read", ["Member", "ChurchUnit"]);
   }
 

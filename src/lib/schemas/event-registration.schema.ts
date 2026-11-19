@@ -223,6 +223,8 @@ const answersSchema = z
 
 const attendeeDetails = {
   ageGroup: z.enum(["ADULT", "TEEN", "CHILD", "INFANT"]).optional(),
+  /** Event price tier; re-priced on the server, never trusted for the amount. */
+  priceTierId: z.string().min(1).optional(),
   answers: answersSchema,
 };
 
@@ -283,6 +285,12 @@ export type RegistrationSubmitInput = z.input<typeof registrationSubmitSchema>;
 // ---------------------------------------------------------------------------
 // Rooms (camp events, admin)
 // ---------------------------------------------------------------------------
+
+export const eventPaymentInputSchema = z.object({
+  amount: z.coerce.number().positive("Enter the amount received").max(1_000_000),
+  method: z.enum(["CASH", "MOMO", "BANK_TRANSFER", "CARD", "CHEQUE", "OTHER"]),
+  reference: z.string().trim().max(120).optional().transform((v) => v || undefined),
+});
 
 export const roomTypeInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),

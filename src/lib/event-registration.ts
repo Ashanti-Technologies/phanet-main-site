@@ -1,11 +1,32 @@
 import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
 import type { Answers } from "@/lib/schemas/event-registration.schema";
+import { balanceMinor, paymentState } from "@/lib/event-fees";
 
 /** Attendees who need a bed. Infants share with a parent; unknown age counts. */
 export const takesBed = {
   OR: [{ ageGroup: null }, { ageGroup: { not: "INFANT" } }],
 } satisfies Prisma.EventAttendeeWhereInput;
+
+/**
+ * Tag the people on confirmed bookings with the event (member-list filters).
+ * Pending (unpaid online) bookings are tagged only once they're confirmed.
+ * All registrationIds must belong to the same event.
+ */
+export async function tagRegistrationAttendees(tx: Prisma.TransactionClient, registrationIds: string[]) {
+  if (registrationIds.length === 0) return;
+  const rows = await tx.eventAttendee.findMany({
+    where: { registrationId: { in: registrationIds } },
+    select: { memberId: true, event: { select: { title: true } } },
+  });
+  if (rows.length === 0) return;
+  const label = rows[0].event.title;
+  const tag = await tx.tag.upsert({ where: { label }, create: { label }, update: {}, select: { id: true } });
+  await tx.memberTag.createMany({
+    data: rows.map((r) => ({ memberId: r.memberId, tagId: tag.id })),
+    skipDuplicates: true,
+  });
+}
 
 /**
  * People a member may add to a booking by id: their household plus anyone
@@ -123,6 +144,15 @@ export async function getEventAttendeeRows(eventId: string) {
       ageGroup: a.ageGroup ? AGE_LABELS[a.ageGroup] : "",
       room: a.room ? `${a.room.roomType.name} · ${a.room.name}` : "",
       checkedIn: !!a.checkedInAt,
+      tierName: a.tierName ?? "",
+      amount: a.amount?.toNumber() ?? null,
+      // Payment is per booking; repeated on each of its people.
+      payment: {
+        state: paymentState(r.amountDue, r.amountPaid),
+        amountDue: r.amountDue.toNumber(),
+        amountPaid: r.amountPaid.toNumber(),
+        balance: balanceMinor(r.amountDue, r.amountPaid) / 100,
+      },
       registeredAt: r.createdAt,
       personAnswers: (a.answers ?? {}) as Answers,
       bookingAnswers: (r.answers ?? {}) as Answers,
@@ -131,6 +161,47 @@ export async function getEventAttendeeRows(eventId: string) {
 }
 
 export type AttendeeRow = Awaited<ReturnType<typeof getEventAttendeeRows>>[number];
+
+/** Money across confirmed bookings (rows repeat per person, so dedupe by booking). Pesewa-safe. */
+export function feeTotals(rows: AttendeeRow[]) {
+  const byBooking = new Map(rows.map((r) => [r.registrationId, r.payment]));
+  let due = 0;
+  let paid = 0;
+  let paidBookings = 0;
+  let charged = 0;
+  for (const p of byBooking.values()) {
+    due += Math.round(p.amountDue * 100);
+    paid += Math.round(p.amountPaid * 100);
+    if (p.amountDue > 0) charged++;
+    if (p.amountDue > 0 && p.balance === 0) paidBookings++;
+  }
+  return { expected: due / 100, collected: paid / 100, charged, paidBookings };
+}
+
+/** Online bookings still waiting on Paystack (not in the attendee list until paid). */
+export async function getPendingPaymentBookings(eventId: string) {
+  const rows = await prisma.eventRegistration.findMany({
+    where: { eventId, status: "PENDING_PAYMENT" },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      amountDue: true,
+      createdAt: true,
+      registrant: { select: { fullName: true, phone: true, email: true } },
+      _count: { select: { attendees: true } },
+    },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    bookedBy: r.registrant.fullName,
+    contact: r.registrant.phone || r.registrant.email || "",
+    people: r._count.attendees,
+    amountDue: r.amountDue.toNumber(),
+    createdAt: r.createdAt,
+  }));
+}
+
+export type PendingBooking = Awaited<ReturnType<typeof getPendingPaymentBookings>>[number];
 
 /** Count rows by a key, most common first. Empty keys become `emptyLabel`. */
 export function tally(rows: AttendeeRow[], key: (r: AttendeeRow) => string, emptyLabel = "Not given") {

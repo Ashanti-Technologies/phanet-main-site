@@ -27,6 +27,38 @@ export const richTextSchema = z.object({
   bodyHtml: z.string().trim().min(1, "Content is required"),
 });
 
+export const eventPaymentModeSchema = z.enum(["FREE", "DISPLAY_ONLY", "PAY_AT_EVENT", "ONLINE"]);
+
+export const eventPriceTierSchema = z.object({
+  /** Existing tier id; omitted for new tiers. */
+  id: z.string().optional(),
+  name: z.string().trim().min(1, "Give each price a name").max(80),
+  description: z.string().trim().max(200).optional(),
+  amount: z.coerce
+    .number({ error: "Enter a price" })
+    .min(0, "Prices can't be negative")
+    .max(1_000_000)
+    .transform((n) => Math.round(n * 100) / 100),
+});
+
+/** Fee settings rules, shared by the admin form (client) and saveEvent (server). */
+export function feeSettingsError(input: {
+  paymentMode: z.infer<typeof eventPaymentModeSchema>;
+  registrationEnabled: boolean;
+  feeFundId?: string | null;
+  priceTiers: { name: string }[];
+}): string | null {
+  const { paymentMode, priceTiers } = input;
+  if (paymentMode === "FREE") return null;
+  if (priceTiers.length === 0) return "Add at least one price";
+  const names = priceTiers.map((t) => t.name.trim().toLowerCase());
+  if (new Set(names).size !== names.length) return "Each price needs a different name";
+  if (paymentMode === "DISPLAY_ONLY") return null;
+  if (!input.registrationEnabled) return "Turn on website registration to collect fees";
+  if (!input.feeFundId) return "Pick the fund these fees are recorded in";
+  return null;
+}
+
 export const eventUpsertSchema = richTextSchema.extend({
   id: z.cuid().optional(),
   slug: slugSchema,
@@ -50,6 +82,9 @@ export const eventUpsertSchema = richTextSchema.extend({
   registrationEnabled: z.boolean().default(false),
   registrationClosesAt: z.coerce.date().optional().nullable(),
   registrationFields: eventRegistrationFieldsSchema.default([]),
+  paymentMode: eventPaymentModeSchema.default("FREE"),
+  feeFundId: z.string().optional().nullable(),
+  priceTiers: z.array(eventPriceTierSchema).max(30).default([]),
 });
 
 export const contentPageUpsertSchema = richTextSchema.extend({

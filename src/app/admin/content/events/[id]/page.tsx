@@ -4,7 +4,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock, ExternalLink, MapPin, Pencil, Star } from "lucide-react";
 import { prisma } from "@/lib/database";
 import { can, requireAdmin } from "@/lib/auth-guard";
-import { getEventAttendeeRows, getEventRooms, isRegistrationOpen } from "@/lib/event-registration";
+import {
+  getEventAttendeeRows,
+  getEventRooms,
+  getPendingPaymentBookings,
+  isRegistrationOpen,
+} from "@/lib/event-registration";
+import { chargesFees } from "@/lib/event-fees";
 import {
   CATEGORY_LABELS,
   eventTiming,
@@ -40,9 +46,11 @@ export default async function EventPage({ params }: Props) {
   const canSeePeople = await can("read", "Member");
   const isCamp = event.type === "CAMP";
   // ponytail: loads every tab's data up front; fine for camp-sized events.
-  const [rows, rooms] = await Promise.all([
+  const showFees = chargesFees(event.paymentMode);
+  const [rows, rooms, pending] = await Promise.all([
     canSeePeople ? getEventAttendeeRows(id) : null,
     canSeePeople && isCamp ? getEventRooms(id) : null,
+    canSeePeople && event.paymentMode === "ONLINE" ? getPendingPaymentBookings(id) : [],
   ]);
   // Keep the tab after registration is switched off, if people registered.
   const showRegistrations = !!rows && (event.registrationEnabled || rows.length > 0);
@@ -208,6 +216,8 @@ export default async function EventPage({ params }: Props) {
               isCamp={isCamp}
               rows={rows!}
               fields={parseRegistrationFields(event.registrationFields)}
+              showFees={showFees}
+              pending={pending}
             />
           </TabsContent>
         )}

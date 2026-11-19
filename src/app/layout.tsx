@@ -137,7 +137,6 @@ export default function RootLayout({
           `}
         </Script>
         <JsonLd data={jsonLdData} />
-        <link rel="canonical" href={APP_CONFIG.siteUrl} />
       </head>
       <body className="font-sans antialiased">
         <noscript>

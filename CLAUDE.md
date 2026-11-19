@@ -12,7 +12,7 @@ The Prisma client is generated into `src/app/generated/prisma` (note: inside `sr
 
 ## Environment
 
-Required env vars (see `.env`): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `GROQ_API_KEY`, `YOUTUBE_API_KEY`.
+Required env vars (see `.env`): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `GROQ_API_KEY`, `YOUTUBE_API_KEY`, `PAYSTACK_SECRET_KEY` (online giving; the Paystack webhook URL is `/api/payments/paystack/webhook`).
 
 ## Architecture
 
@@ -31,6 +31,10 @@ Mutations triggered from React components go in `src/actions/` (Zod v4 schemas i
 ### Payments
 
 Default currency is **GHS** (Paystack is the primary provider for Ghana).
+
+### Finance ledger
+
+`Income` / `Expense` rows are never deleted — void them (`voidedAt` + `voidReason`) and filter `voidedAt: null` in every total. Expenses only count as spent once `PAID`. Ledger math lives in `src/lib/finance-summary.ts` (integer pesewas); check it with `pnpm tsx scripts/finance-check.ts`. A pledge's `confirmedAmount` is synced from its linked incomes (`syncCommitment` in `src/lib/finance-ledger.ts`). Online gifts (`/give`, pledge "Pay now") become Income only via `settlePaymentIntent` (`src/lib/payments/settle.ts`), which re-verifies with the provider and is idempotent — never write Income from a webhook payload directly. Budgets store only the plan; spend is always computed (`budgetActuals`). Annual giving statements (`src/lib/statements.ts`) only include Income linked to a `Member`. Monthly gifts (`RecurringGift`, card only) are charged by `/api/cron/recurring-giving` (needs `CRON_SECRET`): it claims the month by advancing `nextChargeAt` *before* charging, then settles through `settlePaymentIntent` — keep that order to avoid double charges; schedule rules are in `src/lib/recurring.ts`.
 
 ### Chat assistant ("Elim")
 

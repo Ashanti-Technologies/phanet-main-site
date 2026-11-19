@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/database";
+import { summarizeLedger } from "@/lib/finance-summary";
 
 export type ChartPoint = { label: string; value: number };
 
@@ -152,52 +153,36 @@ export async function getEngagementReport() {
   return { averageAttendance, serviceAttendance, retention };
 }
 
-export async function getGivingReport() {
-  const [activeMembers, commitments, completedPaymentIntents] = await Promise.all([
-    prisma.member.count({ where: { status: { in: ["REGULAR", "MEMBER"] } } }),
-    prisma.commitment.findMany({
-      where: { status: "CONFIRMED" },
-      include: { project: { select: { title: true } } },
-      orderBy: { createdAt: "desc" },
+/** Finance overview for an inclusive [from, to] date range (UTC days). */
+export async function getFinanceSummary(from: Date, to: Date) {
+  const end = new Date(to);
+  end.setUTCDate(end.getUTCDate() + 1);
+  const [incomes, expenses] = await Promise.all([
+    prisma.income.findMany({
+      where: { receivedAt: { gte: from, lt: end }, voidedAt: null },
+      select: {
+        amount: true,
+        receivedAt: true,
+        method: true,
+        voidedAt: true,
+        fund: { select: { name: true } },
+      },
     }),
-    prisma.paymentIntent.findMany({
-      where: { status: "COMPLETED" },
-      include: { commitment: { include: { project: { select: { title: true } } } } },
-      orderBy: { createdAt: "desc" },
+    prisma.expense.findMany({
+      where: { incurredAt: { gte: from, lt: end }, voidedAt: null },
+      select: {
+        amount: true,
+        incurredAt: true,
+        status: true,
+        voidedAt: true,
+        category: { select: { name: true } },
+      },
     }),
   ]);
-
-  const confirmedTotal = commitments.reduce(
-    (sum, commitment) =>
-      sum + Number(commitment.confirmedAmount ?? commitment.amountCommitted),
-    0,
+  return summarizeLedger(
+    incomes.map((r) => ({ ...r, fund: r.fund.name })),
+    expenses.map((r) => ({ ...r, category: r.category.name })),
   );
-  const paymentIntentTotal = completedPaymentIntents.reduce(
-    (sum, intent) => sum + Number(intent.amount),
-    0,
-  );
-  const byProject = new Map<string, number>();
-  commitments.forEach((commitment) => {
-    increment(
-      byProject,
-      commitment.project.title,
-      Number(commitment.confirmedAmount ?? commitment.amountCommitted),
-    );
-  });
-
-  return {
-    activeMembers,
-    confirmedTotal,
-    paymentIntentTotal,
-    averagePerActiveMember:
-      activeMembers === 0 ? 0 : confirmedTotal / activeMembers,
-    byProject: Array.from(byProject.entries()).map(([label, value]) => ({
-      label,
-      value,
-    })),
-    commitments,
-    completedPaymentIntents,
-  };
 }
 
 export function toCsv(rows: Array<Record<string, string | number | null>>) {

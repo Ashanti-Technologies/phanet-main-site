@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, MapPin, Clock, X, CalendarDays } from "lucide-react";
+import { Search, MapPin, Clock, X, CalendarDays, Ticket } from "lucide-react";
 import {
   type Event,
   type EventCategory,
@@ -15,6 +15,14 @@ import {
   formatEventDateShort,
 } from "@/lib/events";
 import posthog from "posthog-js";
+import { priceRangeLabel } from "@/lib/event-fees";
+
+/** "Free", "GH₵200" or "Free – GH₵200". */
+function priceLabel(event: Event) {
+  return event.paymentMode && event.paymentMode !== "FREE"
+    ? priceRangeLabel((event.priceTiers ?? []).map((t) => t.amount))
+    : "Free";
+}
 
 const CATEGORIES: { value: "all" | EventCategory; label: string }[] = [
   { value: "all", label: "All Events" },
@@ -100,6 +108,10 @@ function EventCard({ event }: { event: Event }) {
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 flex-shrink-0 text-gray-400" />
             <span className="line-clamp-1">{event.location}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Ticket className="w-4 h-4 flex-shrink-0 text-gray-400" />
+            <span>{priceLabel(event)}</span>
           </div>
         </div>
 
@@ -200,6 +212,10 @@ export function FeaturedEventCard({ event }: { event: Event }) {
           <span className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             {event.location}
+          </span>
+          <span className="flex items-center gap-2">
+            <Ticket className="w-4 h-4" />
+            {priceLabel(event)}
           </span>
         </div>
         <span className="inline-flex w-fit items-center gap-2 bg-crayola text-white text-sm font-semibold px-6 py-3 rounded-full group-hover:bg-red-600 transition-colors">

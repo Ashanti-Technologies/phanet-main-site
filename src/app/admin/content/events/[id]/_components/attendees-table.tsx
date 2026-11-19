@@ -8,15 +8,71 @@ import { DataTableColumnHeader } from "@/app/components/data-table/data-table-co
 import { columnHelper, facetFilterFn } from "@/app/components/data-table/features";
 import type { AttendeeRow } from "@/lib/event-registration";
 import { TONE_TEXT } from "@/app/admin/_components/status-badge";
+import { RecordPaymentDialog } from "./payment-actions";
 import {
   answerText,
   fieldAnswer,
   type RegistrationField,
 } from "@/lib/schemas/event-registration.schema";
 
-type Row = AttendeeRow & { checkedInLabel: string };
+type Row = AttendeeRow & { checkedInLabel: string; paymentLabel: string; leadsBooking: boolean };
 
 const col = columnHelper<Row>();
+
+const PAYMENT_LABEL: Record<AttendeeRow["payment"]["state"], string> = {
+  free: "No fee",
+  unpaid: "Unpaid",
+  partial: "Part paid",
+  paid: "Paid",
+  overpaid: "Overpaid",
+};
+const PAYMENT_TONE: Record<AttendeeRow["payment"]["state"], string> = {
+  free: "text-muted-foreground",
+  unpaid: TONE_TEXT.warning,
+  partial: TONE_TEXT.warning,
+  paid: TONE_TEXT.success,
+  overpaid: TONE_TEXT.danger,
+};
+const cedis = (n: number) => `GH₵${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// Payment is per booking: its first row carries the action (the booker may not be attending).
+const feeColumns = [
+  col.accessor("tierName", {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Price" />,
+    cell: ({ row }) =>
+      row.original.tierName ? (
+        <div>
+          <p>{row.original.tierName}</p>
+          <p className="text-xs text-muted-foreground tabular-nums">{cedis(row.original.amount ?? 0)}</p>
+        </div>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      ),
+    filterFn: facetFilterFn,
+  }),
+  col.accessor("paymentLabel", {
+    header: "Payment",
+    cell: ({ row }) => {
+      const { payment, leadsBooking, registrationId, bookedBy } = row.original;
+      return (
+        <div className="space-y-1">
+          <p className={`text-sm font-medium ${PAYMENT_TONE[payment.state]}`}>
+            {row.original.paymentLabel}
+            {payment.state === "partial" && (
+              <span className="font-normal text-muted-foreground"> · {cedis(payment.balance)} owed</span>
+            )}
+          </p>
+          {leadsBooking && payment.balance > 0 && (
+            <RecordPaymentDialog registrationId={registrationId} bookedBy={bookedBy} balance={payment.balance} />
+          )}
+        </div>
+      );
+    },
+    filterFn: facetFilterFn,
+    enableSorting: false,
+  }),
+];
+
 
 function CheckInCell({ row }: { row: Row }) {
   const [isPending, startTransition] = useTransition();
@@ -90,23 +146,30 @@ export function AttendeesTable({
   rows,
   fields,
   showRoom,
+  showFees,
 }: {
   rows: AttendeeRow[];
   fields: RegistrationField[];
   showRoom: boolean;
+  /** Event charges fees (pay at the event / online). */
+  showFees: boolean;
 }) {
+  const seen = new Set<string>();
   const data: Row[] = rows.map((r) => ({
     ...r,
+    leadsBooking: !seen.has(r.registrationId) && !!seen.add(r.registrationId),
     checkedInLabel: r.checkedIn ? "Checked in" : "Not yet",
+    paymentLabel: PAYMENT_LABEL[r.payment.state],
   }));
   const columns = useMemo(
     () =>
       col.columns([
         ...baseColumns,
+        ...(showFees ? feeColumns : []),
         ...fields.map(fieldColumn),
         ...(showRoom ? [roomColumn] : []),
       ]),
-    [fields, showRoom],
+    [fields, showRoom, showFees],
   );
 
   return (
@@ -124,6 +187,12 @@ export function AttendeesTable({
             title: f.label,
             options: uniq(rows.map((r) => answerText(fieldAnswer(r, f)))),
           })),
+        ...(showFees
+          ? [
+              { id: "paymentLabel", title: "Payment", options: uniq(data.map((r) => r.paymentLabel)) },
+              { id: "tierName", title: "Price", options: uniq(rows.map((r) => r.tierName)) },
+            ]
+          : []),
         {
           id: "checkedInLabel",
           title: "Check-in",

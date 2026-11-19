@@ -22,6 +22,13 @@ import {
   CalendarCheck,
   ClipboardList,
   BarChart3,
+  Wallet,
+  ArrowDownToLine,
+  Receipt,
+  PiggyBank,
+  Target,
+  ScrollText,
+  Repeat,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,7 +52,14 @@ export type NavIconName =
   | "batches"
   | "services"
   | "tasks"
-  | "reports";
+  | "reports"
+  | "finance"
+  | "income"
+  | "expenses"
+  | "funds"
+  | "budgets"
+  | "statements"
+  | "monthly";
 
 const icons: Record<NavIconName, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -67,6 +81,13 @@ const icons: Record<NavIconName, LucideIcon> = {
   services: CalendarCheck,
   tasks: ClipboardList,
   reports: BarChart3,
+  finance: Wallet,
+  income: ArrowDownToLine,
+  expenses: Receipt,
+  funds: PiggyBank,
+  budgets: Target,
+  statements: ScrollText,
+  monthly: Repeat,
 };
 
 type Props = {

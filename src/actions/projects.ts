@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/database";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireAdmin, requirePermission } from "@/lib/auth-guard";
 import {
   projectCreateSchema,
   projectUpdateSchema,
@@ -95,6 +95,7 @@ export async function getProjectById(id: string) {
  */
 export async function createProject(data: ProjectCreateInput) {
   await requireAdmin();
+  await requirePermission("create", "Project");
 
   const validated = projectCreateSchema.parse(data);
 
@@ -119,6 +120,7 @@ export async function createProject(data: ProjectCreateInput) {
  */
 export async function updateProject(data: ProjectUpdateInput) {
   await requireAdmin();
+  await requirePermission("update", "Project");
 
   const validated = projectUpdateSchema.parse(data);
   const { id, ...updateData } = validated;
@@ -149,6 +151,7 @@ export async function updateProject(data: ProjectUpdateInput) {
  */
 export async function deleteProject(id: string) {
   await requireAdmin();
+  await requirePermission("delete", "Project");
 
   await prisma.project.delete({
     where: { id },
@@ -165,6 +168,7 @@ export async function deleteProject(id: string) {
  */
 export async function updateProjectStatus(data: ProjectStatusInput) {
   await requireAdmin();
+  await requirePermission("update", "Project");
 
   const validated = projectStatusSchema.parse(data);
 

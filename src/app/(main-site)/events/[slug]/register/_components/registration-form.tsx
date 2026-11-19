@@ -37,8 +37,13 @@ export type FormRow = {
   phone?: string;
   email?: string;
   ageGroup?: AgeGroup;
+  priceTierId?: string;
+  /** What this person already owes on the saved booking (kept while their tier is unchanged). */
+  booked?: { priceTierId: string | null; amount: number | null };
   answers: Answers;
 };
+
+export type PriceTier = { id: string; name: string; description: string | null; amount: number };
 
 type Props = {
   event: {
@@ -46,6 +51,11 @@ type Props = {
     slug: string;
     type: "MEETING" | "CAMP";
     fields: RegistrationField[];
+    paymentMode: "FREE" | "DISPLAY_ONLY" | "PAY_AT_EVENT" | "ONLINE";
+    /** Only for events that charge (PAY_AT_EVENT / ONLINE). */
+    tiers: PriceTier[];
+    /** Already paid on the saved booking. */
+    amountPaid: number;
   };
   open: boolean;
   /** "/register" on the hoe. subdomain, else /events/<slug>/register */
@@ -68,6 +78,17 @@ const GENDERS: [string, string][] = [
   ["MALE", "Male"],
   ["FEMALE", "Female"],
 ];
+const cedis = (n: number) =>
+  n === 0 ? "Free" : `GH₵${n.toLocaleString("en-GH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+/** Mirrors the server: people keep their booked price while their tier is unchanged. */
+function rowPrice(row: FormRow, tiers: PriceTier[]) {
+  if (row.booked && row.booked.priceTierId === row.priceTierId && row.booked.amount != null) {
+    return row.booked.amount;
+  }
+  return tiers.find((t) => t.id === row.priceTierId)?.amount ?? 0;
+}
+
 const AGE_GROUPS: [AgeGroup, string][] = [
   ["ADULT", "Adult (18+)"],
   ["TEEN", "Teen (13–17)"],
@@ -115,6 +136,11 @@ export function RegistrationForm(props: Props) {
   const [isLooking, startLookup] = useTransition();
 
   const attending = rows.some((r) => r.kind === "self");
+  const charges = event.tiers.length > 0;
+  // Cent-safe sum for display; the server re-prices authoritatively.
+  const total = rows.reduce((sum, r) => sum + Math.round(rowPrice(r, event.tiers) * 100), 0) / 100;
+  const toPay = Math.max(0, Math.round((total - event.amountPaid) * 100) / 100);
+  const paysOnline = event.paymentMode === "ONLINE" && toPay > 0;
   const bookingFields = event.fields.filter((f) => f.scope === "booking");
   const personFields = event.fields.filter((f) => f.scope === "person");
   const addableHousehold = household.filter(
@@ -178,6 +204,9 @@ export function RegistrationForm(props: Props) {
         return setError("Each person you add needs a name, gender and age group.");
       }
     }
+    if (charges && rows.some((r) => !r.priceTierId)) {
+      return setError("Pick a price for everyone on the booking.");
+    }
     const errors = findFieldErrors();
     setFieldErrors(errors);
     const firstId = Object.keys(errors)[0];
@@ -191,7 +220,7 @@ export function RegistrationForm(props: Props) {
     }
 
     const attendees: AttendeeInput[] = rows.map((r) => {
-      const details = { ageGroup: r.ageGroup, answers: r.answers };
+      const details = { ageGroup: r.ageGroup, priceTierId: charges ? r.priceTierId : undefined, answers: r.answers };
       const rel = r.relationship as Exclude<Relationship, "SELF">;
       switch (r.kind) {
         case "self":
@@ -222,7 +251,15 @@ export function RegistrationForm(props: Props) {
         attendees,
       });
       if (!res.success) return setError(res.error);
-      router.replace(`${props.registerPath}?done=1`, { scroll: true });
+      if (res.data.payUrl) {
+        // Paystack's hosted checkout; it returns to this page with ?reference=….
+        window.location.href = res.data.payUrl;
+        return;
+      }
+      router.replace(
+        res.data.paymentError ? `${props.registerPath}?payment=unavailable` : `${props.registerPath}?done=1`,
+        { scroll: true },
+      );
       router.refresh();
     });
   }
@@ -313,6 +350,7 @@ export function RegistrationForm(props: Props) {
                 row={row}
                 selfName={me?.fullName ?? (self.fullName || "You")}
                 personFields={personFields}
+                tiers={event.tiers}
                 fieldErrors={fieldErrors}
                 onAnswer={(fieldId, v) => {
                   updateRow(row.key, { answers: { ...row.answers, [fieldId]: v } });
@@ -495,6 +533,14 @@ export function RegistrationForm(props: Props) {
                   {rows.length}
                 </span>{" "}
                 {rows.length === 1 ? "person" : "people"}
+                {charges && (
+                  <>
+                    {" · "}
+                    <span className="font-semibold text-foreground tabular-nums">{cedis(total)}</span>
+                    {event.amountPaid > 0 && toPay > 0 && <> ({cedis(toPay)} to pay)</>}
+                    {event.paymentMode === "PAY_AT_EVENT" && toPay > 0 && <> at the event</>}
+                  </>
+                )}
               </p>
               <Button
                 type="submit"
@@ -503,7 +549,7 @@ export function RegistrationForm(props: Props) {
                 disabled={isPending || rows.length === 0}
               >
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {existing ? "Save changes" : "Complete registration"}
+                {paysOnline ? "Continue to payment" : existing ? "Save changes" : "Complete registration"}
               </Button>
             </div>
           </div>
@@ -548,6 +594,7 @@ function PersonCard({
   row,
   selfName,
   personFields,
+  tiers,
   fieldErrors,
   onAnswer,
   onChange,
@@ -556,6 +603,7 @@ function PersonCard({
   row: FormRow;
   selfName: string;
   personFields: RegistrationField[];
+  tiers: PriceTier[];
   fieldErrors: Record<string, string>;
   onAnswer: (fieldId: string, value: AnswerValue) => void;
   onChange: (patch: Partial<FormRow>) => void;
@@ -642,6 +690,29 @@ function PersonCard({
           columns={2}
         />
       </Field>
+      {tiers.length > 0 && (
+        <Field label="Price *" id={`${k}-price`}>
+          <Pick
+            id={`${k}-price`}
+            value={row.priceTierId}
+            onChange={(v) => onChange({ priceTierId: v })}
+            options={tiers.map((t) => [
+              t.id,
+              `${t.name} · ${
+                row.booked?.priceTierId === t.id && row.booked.amount != null
+                  ? cedis(row.booked.amount)
+                  : cedis(t.amount)
+              }`,
+            ])}
+            columns={2}
+          />
+          {tiers.find((t) => t.id === row.priceTierId)?.description && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {tiers.find((t) => t.id === row.priceTierId)!.description}
+            </p>
+          )}
+        </Field>
+      )}
       {personFields.map((f) => (
         <RegistrationFieldInput
           key={f.id}

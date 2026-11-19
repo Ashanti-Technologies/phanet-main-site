@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/database";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireAdmin, requirePermission } from "@/lib/auth-guard";
 import {
   proofUploadCreateSchema,
   type ProofUploadCreateInput,
@@ -23,6 +23,7 @@ export async function getProofsByProject(projectId: string) {
  */
 export async function createProofUpload(data: ProofUploadCreateInput) {
   await requireAdmin();
+  await requirePermission("create", "ProofUpload");
 
   const validated = proofUploadCreateSchema.parse(data);
 
@@ -46,6 +47,7 @@ export async function createProofUpload(data: ProofUploadCreateInput) {
  */
 export async function deleteProofUpload(id: string) {
   await requireAdmin();
+  await requirePermission("delete", "ProofUpload");
 
   const proof = await prisma.proofUpload.delete({
     where: { id },

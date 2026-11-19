@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Wallet } from "lucide-react";
 import { updateCommitmentFinance } from "@/actions/commitments";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -101,10 +102,18 @@ export function CommitmentFinanceForm({
         aria-label="Internal note"
       />
       {error && <p className="text-xs text-destructive">{error}</p>}
-      <Button type="submit" size="sm" disabled={isSaving}>
-        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save finance
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" size="sm" variant="outline" disabled={isSaving}>
+          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save finance
+        </Button>
+        {/* Payments recorded in the ledger set the confirmed amount automatically. */}
+        <Button asChild size="sm">
+          <Link href={`/admin/finance/income/new?commitmentId=${commitment.id}`}>
+            <Wallet className="mr-1.5 h-4 w-4" /> Record payment
+          </Link>
+        </Button>
+      </div>
     </form>
   );
 }

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { BedDouble, Download } from "lucide-react";
-import { tally, type AttendeeRow } from "@/lib/event-registration";
+import { feeTotals, tally, type AttendeeRow, type PendingBooking } from "@/lib/event-registration";
+import { formatMoney, relTime } from "@/lib/format";
+import { ClearPendingButton } from "./payment-actions";
 import {
   answerText,
   fieldAnswer,
@@ -20,12 +22,19 @@ export function RegistrationsPanel({
   isCamp,
   rows,
   fields,
+  showFees,
+  pending,
 }: {
   eventId: string;
   isCamp: boolean;
   rows: AttendeeRow[];
   fields: RegistrationField[];
+  /** Event charges fees (pay at the event / online). */
+  showFees: boolean;
+  /** Online bookings awaiting payment; not in `rows` until paid. */
+  pending: PendingBooking[];
 }) {
+  const fees = showFees ? feeTotals(rows) : null;
   const bookings = new Set(rows.map((r) => r.registrationId)).size;
   const checkedIn = rows.filter((r) => r.checkedIn).length;
   const summaryFields = fields.filter((f) => f.summary);
@@ -42,6 +51,7 @@ export function RegistrationsPanel({
 
   const breakdowns: [string, [string, number][]][] = [
     ["Age groups", tally(rows, (r) => r.ageGroup)],
+    ...(showFees ? [["Prices", tally(rows, (r) => r.tierName, "No price")] as [string, [string, number][]]] : []),
     ...summaryFields
       .filter((f) => !isListed(f))
       .map((f): [string, [string, number][]] => [f.label, countAnswers(rows, f, fmtDay)]),
@@ -60,6 +70,13 @@ export function RegistrationsPanel({
           <span className="font-mono font-medium tabular-nums text-foreground">{bookings}</span>{" "}
           {bookings === 1 ? "booking" : "bookings"} ·{" "}
           <span className="font-mono font-medium tabular-nums text-foreground">{checkedIn}</span> checked in
+          {fees && (
+            <>
+              {" · "}
+              <span className="font-mono font-medium tabular-nums text-foreground">{formatMoney(fees.collected)}</span>{" "}
+              of {formatMoney(fees.expected)} collected
+            </>
+          )}
         </p>
         <div className="flex flex-wrap gap-2">
           {isCamp && (
@@ -115,7 +132,32 @@ export function RegistrationsPanel({
         </Accordion>
       )}
 
-      <AttendeesTable rows={rows} fields={fields} showRoom={isCamp} />
+      {pending.length > 0 && (
+        <section className="rounded-xl border bg-card">
+          <div className="border-b px-5 py-3">
+            <h3 className="text-sm font-medium">Awaiting online payment ({pending.length})</h3>
+            <p className="text-xs text-muted-foreground">
+              Not counted above until paid. Clear abandoned ones so those people can book again.
+            </p>
+          </div>
+          <ul className="divide-y">
+            {pending.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium">{p.bookedBy}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {p.contact} · {p.people} {p.people === 1 ? "person" : "people"} · {formatMoney(p.amountDue)} ·
+                    started {relTime(p.createdAt)}
+                  </p>
+                </div>
+                <ClearPendingButton registrationId={p.id} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <AttendeesTable rows={rows} fields={fields} showRoom={isCamp} showFees={showFees} />
     </div>
   );
 }

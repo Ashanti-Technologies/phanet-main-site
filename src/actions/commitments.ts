@@ -1,7 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/database";
-import { requireAdmin, requireAuth, getSessionOrNull } from "@/lib/auth-guard";
+import {
+  requireAdmin,
+  requireAuth,
+  requirePermission,
+  getSessionOrNull,
+} from "@/lib/auth-guard";
 import {
   commitmentCreateSchema,
   commitmentStatusUpdateSchema,
@@ -120,6 +125,7 @@ export async function getCommitmentsByProject(
   input: Record<string, unknown> = {}
 ) {
   await requireAdmin();
+  await requirePermission("read", "Commitment");
   const filters = commitmentFiltersSchema.parse(input);
 
   const where: Prisma.CommitmentWhereInput = { projectId };
@@ -199,6 +205,7 @@ export async function updateCommitmentStatus(
   data: CommitmentStatusUpdateInput
 ) {
   await requireAdmin();
+  await requirePermission("update", "Commitment");
 
   const validated = commitmentStatusUpdateSchema.parse(data);
 
@@ -252,6 +259,7 @@ export async function getThankYouWallData(projectId?: string) {
  */
 export async function getCommitmentsForExport(projectId: string) {
   await requireAdmin();
+  await requirePermission("export", "Commitment");
 
   const commitments = await prisma.commitment.findMany({
     where: { projectId },
@@ -286,6 +294,7 @@ export async function getCommitmentsForExport(projectId: string) {
  */
 export async function updateCommitmentFinance(data: ManualFinanceUpdateInput) {
   await requireAdmin();
+  await requirePermission("update", "Commitment");
 
   const validated = manualFinanceUpdateSchema.parse(data);
 

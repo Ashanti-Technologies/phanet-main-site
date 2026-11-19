@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth-guard";
 import { prisma } from "@/lib/database";
 import { getEventAttendeeRows } from "@/lib/event-registration";
+import { chargesFees } from "@/lib/event-fees";
 import { toCsv } from "@/lib/reports";
 import {
   answerText,
@@ -17,12 +18,13 @@ export async function GET(
   const { id } = await params;
   const event = await prisma.event.findUnique({
     where: { id },
-    select: { slug: true, registrationFields: true },
+    select: { slug: true, registrationFields: true, paymentMode: true },
   });
   if (!event) notFound();
 
   const fields = parseRegistrationFields(event.registrationFields);
   const rows = await getEventAttendeeRows(id);
+  const fees = chargesFees(event.paymentMode);
 
   const csv = toCsv(
     rows.map((r) => ({
@@ -37,6 +39,16 @@ export async function GET(
       "Member status": r.memberStatus,
       Room: r.room,
       "Checked in": r.checkedIn ? "Yes" : "No",
+      // Booking-level money repeats on each person of the booking.
+      ...(fees
+        ? {
+            "Price": r.tierName,
+            "Amount": r.amount?.toFixed(2) ?? "",
+            "Booking total": r.payment.amountDue.toFixed(2),
+            "Booking paid": r.payment.amountPaid.toFixed(2),
+            "Payment status": r.payment.state,
+          }
+        : {}),
       ...Object.fromEntries(fields.map((f) => [f.label, answerText(fieldAnswer(r, f))])),
     })),
   );

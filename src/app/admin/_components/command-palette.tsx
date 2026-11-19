@@ -23,6 +23,7 @@ import {
   Users,
   ClipboardList,
   BarChart3,
+  Wallet,
 } from "lucide-react";
 
 type Item = {
@@ -104,6 +105,24 @@ export function CommandPalette() {
           onSelect: go("/admin/projects"),
         },
         {
+          label: "Finance",
+          icon: <Wallet className="h-4 w-4" />,
+          onSelect: go("/admin/finance"),
+          keywords: ["money", "income", "expenses", "tithe", "offering"],
+        },
+        {
+          label: "Record income",
+          icon: <Plus className="h-4 w-4" />,
+          onSelect: go("/admin/finance/income/new"),
+          keywords: ["tithe", "offering", "collection", "gift"],
+        },
+        {
+          label: "Record expense",
+          icon: <Plus className="h-4 w-4" />,
+          onSelect: go("/admin/finance/expenses/new"),
+          keywords: ["spend", "payment", "receipt"],
+        },
+        {
           label: "My tasks",
           icon: <ClipboardList className="h-4 w-4" />,
           onSelect: go("/admin/tasks"),
@@ -132,12 +151,6 @@ export function CommandPalette() {
           icon: <BarChart3 className="h-4 w-4" />,
           onSelect: go("/admin/reports/engagement"),
           keywords: ["reports", "attendance"],
-        },
-        {
-          label: "Giving report",
-          icon: <BarChart3 className="h-4 w-4" />,
-          onSelect: go("/admin/reports/giving"),
-          keywords: ["reports", "finance"],
         },
         {
           label: "Users",

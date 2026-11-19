@@ -7,18 +7,20 @@ import { prisma } from "@/lib/database";
 import { auth, getServerAuthSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { requirePermission } from "@/lib/auth-guard";
-import { getMessagingService } from "@/lib/messaging";
-import { renderEmail } from "@/lib/email-templates/render";
-import { BrandedTextEmail } from "@/lib/email-templates/BrandedTextEmail";
 import { ROLES, serializeRoles } from "@/lib/rbac/roles";
-import { escapeHtml } from "@/lib/rich-text";
 import {
   findMemberByContact,
   getKnownPeople,
   isRegistrationOpen,
   maskName,
+  tagRegistrationAttendees,
 } from "@/lib/event-registration";
+import { sendRegistrationConfirmation } from "@/lib/event-registration-email";
 import { registerEmailUrl, registerLocation } from "@/lib/event-subdomain";
+import { balanceMinor, chargesFees, pesewas, priceAttendees } from "@/lib/event-fees";
+import { syncRegistrationPayment } from "@/lib/finance-ledger";
+import { checkout, CheckoutError } from "@/lib/payments/checkout";
+import { settlePaymentIntent } from "@/lib/payments/settle";
 import {
   createEventAccountSchema,
   parseRegistrationFields,
@@ -26,6 +28,7 @@ import {
   validateAnswers,
   type Answers,
   type RegistrationSubmitInput,
+  eventPaymentInputSchema,
 } from "@/lib/schemas/event-registration.schema";
 
 // Member-facing actions return errors instead of throwing: thrown messages
@@ -48,6 +51,9 @@ const eventSelect = {
   registrationEnabled: true,
   registrationClosesAt: true,
   registrationFields: true,
+  paymentMode: true,
+  feeFundId: true,
+  priceTiers: { select: { id: true, name: true, amount: true } },
 } satisfies Prisma.EventSelect;
 
 /**
@@ -114,7 +120,7 @@ export async function findPersonForRegistration(
 
 export async function submitEventRegistration(
   input: RegistrationSubmitInput,
-): Promise<Result<{ registrationId: string }>> {
+): Promise<Result<{ registrationId: string; payUrl?: string; paymentError?: string }>> {
   const session = await getServerAuthSession();
   if (!session) return fail("Please sign in first.");
 
@@ -141,7 +147,12 @@ export async function submitEventRegistration(
   const existing = me
     ? await prisma.eventRegistration.findUnique({
         where: { eventId_registrantId: { eventId: event.id, registrantId: me.id } },
-        select: { id: true, attendees: { select: { memberId: true } } },
+        select: {
+          id: true,
+          status: true,
+          amountPaid: true,
+          attendees: { select: { memberId: true, priceTierId: true, tierName: true, amount: true } },
+        },
       })
     : null;
   const onBooking = new Set(existing?.attendees.map((a) => a.memberId));
@@ -154,13 +165,14 @@ export async function submitEventRegistration(
     newPerson?: Extract<(typeof data.attendees)[number], { kind: "new" }>;
     relationship: "SELF" | "SPOUSE" | "CHILD" | "GUEST";
     ageGroup?: "ADULT" | "TEEN" | "CHILD" | "INFANT";
+    priceTierId?: string;
     answers: Answers;
   };
   const resolved: Resolved[] = [];
   for (const a of data.attendees) {
     const answers = validateAnswers(fields, "person", a.answers);
     if (!answers.ok) return fail(answers.error);
-    const base = { ageGroup: a.ageGroup, answers: answers.value };
+    const base = { ageGroup: a.ageGroup, priceTierId: a.priceTierId, answers: answers.value };
     if (a.kind === "self") {
       resolved.push({ ...base, memberId: me?.id ?? null, isSelf: true, relationship: "SELF" });
     } else if (a.kind === "known") {
@@ -195,6 +207,34 @@ export async function submitEventRegistration(
       return fail(`${maskName(elsewhere.member.fullName)} is already registered for this event on another booking.`);
     }
   }
+
+  // Fees are priced here from the DB, never from the client. People who keep
+  // the tier they booked keep their price even if the admin changed it since.
+  const charges = chargesFees(event.paymentMode) && event.priceTiers.length > 0;
+  if (charges && resolved.some((r) => !r.priceTierId)) {
+    return fail("Pick a price for everyone on the booking.");
+  }
+  const previous = new Map(existing?.attendees.map((a) => [a.memberId, a]));
+  const priced = priceAttendees(
+    event.priceTiers,
+    resolved.map((r) => ({
+      priceTierId: charges ? (r.priceTierId ?? null) : null,
+      previous: charges && r.memberId ? previous.get(r.memberId) : null,
+    })),
+  );
+  if (!priced) return fail("The prices for this event have changed. Please refresh the page and try again.");
+  const paidMinor = existing ? pesewas(existing.amountPaid) : 0;
+  if (priced.totalMinor < paidMinor) {
+    return fail("This booking is already paid. Please contact us to remove people or change prices.");
+  }
+  const owes = priced.totalMinor > paidMinor;
+  // Online events hold new bookings until paid. An already-confirmed booking
+  // that adds people stays confirmed and shows a balance to pay.
+  const status =
+    event.paymentMode === "ONLINE" && owes && (!existing || existing.status === "PENDING_PAYMENT")
+      ? ("PENDING_PAYMENT" as const)
+      : ("CONFIRMED" as const);
+  const money = (minor: number) => (minor / 100).toFixed(2);
 
   let registrationId: string;
   try {
@@ -244,11 +284,11 @@ export async function submitEventRegistration(
         }
       }
 
-      const booking = { answers: bookingAnswers.value };
+      const booking = { answers: bookingAnswers.value, amountDue: money(priced.totalMinor), status };
       const registration = await tx.eventRegistration.upsert({
         where: { eventId_registrantId: { eventId: event.id, registrantId: registrant.id } },
         create: { eventId: event.id, registrantId: registrant.id, ...booking },
-        update: { ...booking, status: "CONFIRMED" },
+        update: booking,
         select: { id: true },
       });
 
@@ -256,11 +296,15 @@ export async function submitEventRegistration(
       await tx.eventAttendee.deleteMany({
         where: { registrationId: registration.id, memberId: { notIn: finalIds } },
       });
-      for (const r of resolved) {
+      for (const [i, r] of resolved.entries()) {
+        const p = priced.attendees[i];
         const details = {
           relationship: r.relationship,
           ageGroup: r.ageGroup ?? null,
           answers: r.answers,
+          priceTierId: p.priceTierId,
+          tierName: p.tierName,
+          amount: charges ? money(p.amountMinor) : null,
         };
         // update keeps admin-owned roomId / checkedInAt intact
         await tx.eventAttendee.upsert({
@@ -275,17 +319,9 @@ export async function submitEventRegistration(
         });
       }
 
-      // Tag everyone with the event so they show up in the member list filters.
-      const tag = await tx.tag.upsert({
-        where: { label: event.title },
-        create: { label: event.title },
-        update: {},
-        select: { id: true },
-      });
-      await tx.memberTag.createMany({
-        data: finalIds.map((memberId) => ({ memberId, tagId: tag.id })),
-        skipDuplicates: true,
-      });
+      await syncRegistrationPayment(tx, registration.id);
+      // Tag everyone with the event (member-list filters) — not while awaiting payment.
+      if (status === "CONFIRMED") await tagRegistrationAttendees(tx, [registration.id]);
 
       return registration.id;
     }, { timeout: 20_000 }); // remote DB + one upsert per attendee
@@ -304,16 +340,88 @@ export async function submitEventRegistration(
     meta: { eventId: event.id, attendees: resolved.length },
   });
 
-  await sendConfirmation({
-    to: me!.email ?? session.user.email,
-    event,
-    registrationId,
-    updated: !!existing,
-  });
+  if (status === "CONFIRMED") {
+    await sendRegistrationConfirmation({
+      registrationId,
+      updated: !!existing,
+      to: me!.email ?? session.user.email,
+    });
+  }
 
   revalidatePath("/me");
   revalidatePath(`/events/${event.slug}/register`);
+  revalidatePath(`/admin/content/events/${event.id}`);
+
+  if (event.paymentMode === "ONLINE" && owes) {
+    const pay = await beginPayment(registrationId, session.user.email);
+    // The booking is saved either way; the page offers "Complete payment".
+    return pay.success
+      ? { success: true, data: { registrationId, payUrl: pay.data.payUrl } }
+      : { success: true, data: { registrationId, paymentError: pay.error } };
+  }
   return { success: true, data: { registrationId } };
+}
+
+/**
+ * Start (or resume) online payment of a booking's balance. Earlier checkouts
+ * are re-verified first, so a payment whose webhook is slow gets settled
+ * rather than charged twice.
+ */
+async function beginPayment(registrationId: string, fallbackEmail: string): Promise<Result<{ payUrl: string }>> {
+  const open = await prisma.paymentIntent.findMany({
+    where: { eventRegistrationId: registrationId, status: { in: ["PENDING", "PROCESSING"] } },
+    select: { reference: true },
+  });
+  for (const i of open) await settlePaymentIntent(i.reference).catch(() => undefined);
+
+  const reg = await prisma.eventRegistration.findUnique({
+    where: { id: registrationId },
+    select: {
+      amountDue: true,
+      amountPaid: true,
+      registrantId: true,
+      registrant: { select: { fullName: true, email: true } },
+      event: { select: { slug: true, paymentMode: true, feeFundId: true } },
+    },
+  });
+  if (!reg) return fail("Booking not found.");
+  const balance = balanceMinor(reg.amountDue, reg.amountPaid);
+  if (balance === 0) return fail("This booking is already paid — thank you!");
+  if (reg.event.paymentMode !== "ONLINE" || !reg.event.feeFundId) {
+    return fail("Online payment isn't available for this event.");
+  }
+  try {
+    const { redirectUrl } = await checkout({
+      amount: new Prisma.Decimal(balance).div(100),
+      fundId: reg.event.feeFundId,
+      email: reg.registrant.email ?? fallbackEmail,
+      donorName: reg.registrant.fullName,
+      memberId: reg.registrantId,
+      eventRegistrationId: registrationId,
+      callbackUrl: registerEmailUrl(reg.event.slug),
+    });
+    return { success: true, data: { payUrl: redirectUrl } };
+  } catch (err) {
+    if (err instanceof CheckoutError) return fail(err.message);
+    // e.g. PAYSTACK_SECRET_KEY missing or Paystack unreachable.
+    console.error("[event-registration] checkout failed", err);
+    return fail("Online payment isn't available right now. Please try again later.");
+  }
+}
+
+/** "Complete payment" on the register page, for the signed-in registrant's own booking. */
+export async function startEventPayment(eventId: string): Promise<Result<{ payUrl: string }>> {
+  const session = await getServerAuthSession();
+  if (!session) return fail("Please sign in first.");
+  const me = await prisma.member.findUnique({ where: { userId: session.user.id }, select: { id: true } });
+  const reg = me
+    ? await prisma.eventRegistration.findUnique({
+        where: { eventId_registrantId: { eventId, registrantId: me.id } },
+        select: { id: true },
+      })
+    : null;
+  if (!reg) return fail("No registration found.");
+  return beginPayment(reg.id, session.user.email);
 }
 
 export async function cancelEventRegistration(eventId: string): Promise<Result> {
@@ -326,10 +434,13 @@ export async function cancelEventRegistration(eventId: string): Promise<Result> 
   const registration = me
     ? await prisma.eventRegistration.findUnique({
         where: { eventId_registrantId: { eventId, registrantId: me.id } },
-        select: { id: true, event: { select: eventSelect } },
+        select: { id: true, amountPaid: true, event: { select: eventSelect } },
       })
     : null;
   if (!registration) return fail("No registration found.");
+  if (pesewas(registration.amountPaid) > 0) {
+    return fail("This booking has been paid for — please contact the organisers to cancel it.");
+  }
   if (!isRegistrationOpen(registration.event)) {
     return fail("Registration has closed — please contact the organisers to cancel.");
   }
@@ -371,50 +482,98 @@ export async function setAttendeeCheckIn(
   return { success: true, data: undefined };
 }
 
-async function sendConfirmation({
-  to,
-  event,
-  registrationId,
-  updated,
-}: {
-  to: string;
-  event: { title: string; slug: string; date: Date; time: string; location: string };
-  registrationId: string;
-  updated: boolean;
-}) {
-  try {
-    const attendees = await prisma.eventAttendee.findMany({
-      where: { registrationId },
-      select: { member: { select: { fullName: true } } },
-      orderBy: { createdAt: "asc" },
-    });
-    const url = registerEmailUrl(event.slug);
-    const date = event.date.toLocaleDateString("en-GB", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-    const htmlBody = `
-      <p>${updated ? "Your registration has been updated" : "You're registered"} for <strong>${escapeHtml(event.title)}</strong>.</p>
-      <p>${escapeHtml(date)} · ${escapeHtml(event.time)}<br>${escapeHtml(event.location)}</p>
-      <p><strong>On this booking:</strong></p>
-      <ul>${attendees.map((a) => `<li>${escapeHtml(a.member.fullName)}</li>`).join("")}</ul>
-      <p>You can view or change your registration until registration closes:<br>
-      <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`;
-    const { html, text } = await renderEmail(
-      BrandedTextEmail({ preview: `Registration confirmed: ${event.title}`, htmlBody }),
-    );
-    const result = await getMessagingService("EMAIL").send({
-      to,
-      subject: `${updated ? "Registration updated" : "You're registered"}: ${event.title}`,
-      body: html,
-      text,
-    });
-    if (!result.ok) console.error("[event-registration] email failed:", result.error);
-  } catch (err) {
-    // Never fail a saved registration because the email didn't go out.
-    console.error("[event-registration] email failed:", err);
+/**
+ * Desk staff record a fee paid at the event. Deliberately narrow so it can sit
+ * behind the check-in permission rather than finance's: it only ever writes to
+ * this event's fee fund, for this booking, up to the balance owed. Wrong
+ * entries are voided by finance in the ledger.
+ */
+export async function recordEventPayment(
+  registrationId: string,
+  input: { amount: number | string; method: string; reference?: string },
+): Promise<Result> {
+  const session = await requirePermission("update", "Member");
+  const parsed = eventPaymentInputSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Check the payment details");
+  const data = parsed.data;
+
+  const reg = await prisma.eventRegistration.findUnique({
+    where: { id: String(registrationId) },
+    select: {
+      id: true,
+      amountDue: true,
+      amountPaid: true,
+      registrantId: true,
+      registrant: { select: { fullName: true } },
+      event: { select: { id: true, title: true, paymentMode: true, feeFundId: true } },
+    },
+  });
+  if (!reg) return fail("Booking not found.");
+  if (!chargesFees(reg.event.paymentMode) || !reg.event.feeFundId) {
+    return fail("This event doesn't collect fees.");
   }
+  const balance = balanceMinor(reg.amountDue, reg.amountPaid);
+  const amountMinor = pesewas(data.amount);
+  if (balance === 0) return fail("This booking is already paid.");
+  if (amountMinor > balance) return fail(`That's more than the GH₵${(balance / 100).toFixed(2)} still owed.`);
+
+  const income = await prisma.$transaction(async (tx) => {
+    const row = await tx.income.create({
+      data: {
+        fundId: reg.event.feeFundId!,
+        amount: (amountMinor / 100).toFixed(2),
+        receivedAt: new Date(),
+        method: data.method,
+        reference: data.reference,
+        memberId: reg.registrantId,
+        donorName: reg.registrant.fullName,
+        eventRegistrationId: reg.id,
+        note: `${reg.event.title} registration (paid at the event)`,
+        recordedById: session.user.id,
+      },
+      select: { id: true },
+    });
+    await syncRegistrationPayment(tx, reg.id);
+    return row;
+  });
+  await logAudit({
+    action: "event_registration.payment",
+    subject: "EventRegistration",
+    subjectId: reg.id,
+    actorId: session.user.id,
+    meta: { incomeId: income.id, amount: amountMinor / 100, method: data.method },
+  });
+  revalidatePath(`/admin/content/events/${reg.event.id}`);
+  revalidatePath("/admin/finance", "layout");
+  return { success: true, data: undefined };
+}
+
+/** Clear an abandoned online booking so the people on it can book again. */
+export async function cancelPendingRegistration(registrationId: string): Promise<Result> {
+  const session = await requirePermission("update", "Member");
+  const reg = await prisma.eventRegistration.findUnique({
+    where: { id: String(registrationId) },
+    select: { id: true, status: true, amountPaid: true, eventId: true },
+  });
+  if (!reg || reg.status !== "PENDING_PAYMENT") return fail("Only bookings awaiting payment can be cleared here.");
+  if (pesewas(reg.amountPaid) > 0) return fail("This booking has a payment against it — ask finance to review it.");
+  // A checkout may have completed since the page loaded.
+  const open = await prisma.paymentIntent.findMany({
+    where: { eventRegistrationId: reg.id, status: { in: ["PENDING", "PROCESSING"] } },
+    select: { reference: true },
+  });
+  for (const i of open) await settlePaymentIntent(i.reference).catch(() => undefined);
+  const { count } = await prisma.eventRegistration.deleteMany({
+    where: { id: reg.id, status: "PENDING_PAYMENT", amountPaid: 0 },
+  });
+  if (count === 0) return fail("This booking was just paid, so it was kept.");
+  await logAudit({
+    action: "event_registration.clear_pending",
+    subject: "EventRegistration",
+    subjectId: reg.id,
+    actorId: session.user.id,
+    meta: { eventId: reg.eventId },
+  });
+  revalidatePath(`/admin/content/events/${reg.eventId}`);
+  return { success: true, data: undefined };
 }

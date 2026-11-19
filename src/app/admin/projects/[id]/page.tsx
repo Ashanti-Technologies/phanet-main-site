@@ -1,5 +1,5 @@
 import { getProjectById } from "@/actions/projects";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requirePermission } from "@/lib/auth-guard";
 import { notFound } from "next/navigation";
 import { ProjectEditForm } from "./_components/project-edit-form";
 import { ProjectImages } from "./_components/project-images";
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default async function EditProjectPage({ params }: Props) {
-  await requireAdmin();
+  await requirePermission("update", "Project");
   const { id } = await params;
   const project = await getProjectById(id);
 

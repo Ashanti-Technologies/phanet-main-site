@@ -11,6 +11,11 @@ const COMMITMENT_LABELS: Record<string, string> = {
   CANCELLED: "Cancelled",
 };
 
+/** Ledger amounts: always 2 decimals, GH₵. */
+export function formatMoney(amount: number | string | { toString(): string }): string {
+  return `GH₵ ${Number(amount.toString()).toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function formatCommitmentStatus(status: string): string {
   return COMMITMENT_LABELS[status] ?? status;
 }

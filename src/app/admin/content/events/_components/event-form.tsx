@@ -35,6 +35,8 @@ import {
   TabsTrigger,
 } from "@/app/components/animate-ui/components/animate/tabs";
 import { RegistrationFormBuilder } from "./registration-form-builder";
+import { FeesEditor, newTierDraft, type PaymentMode, type TierDraft } from "./fees-editor";
+import { eventPriceTierSchema, feeSettingsError } from "@/lib/schemas/cms.schema";
 
 type EventFormProps = {
   event?: {
@@ -62,8 +64,13 @@ type EventFormProps = {
     registrationEnabled: boolean;
     registrationClosesAt: Date | string | null;
     registrationFields: unknown;
+    paymentMode: PaymentMode;
+    feeFundId: string | null;
+    priceTiers: { id: string; name: string; description: string | null; amount: number }[];
+    bookingCount: number;
   } | null;
   otherForms: { id: string; title: string; registrationFields: unknown }[];
+  funds: { id: string; name: string }[];
 };
 
 function toDateInput(value?: Date | string | null) {
@@ -88,7 +95,10 @@ function slugify(value: string) {
     .replace(/^-|-$/g, "");
 }
 
-export function EventForm({ event: initialEvent, otherForms }: EventFormProps) {
+/** Seeded by the event_fees migration. */
+const DEFAULT_FEE_FUND_ID = "fund_events";
+
+export function EventForm({ event: initialEvent, otherForms, funds }: EventFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [tab, setTab] = useState("details");
@@ -118,6 +128,14 @@ export function EventForm({ event: initialEvent, otherForms }: EventFormProps) {
     initialEvent?.registrationFields == null
       ? DEFAULT_REGISTRATION_FIELDS
       : parseRegistrationFields(initialEvent.registrationFields),
+  );
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>(initialEvent?.paymentMode ?? "FREE");
+  const [tiers, setTiers] = useState<TierDraft[]>(() =>
+    initialEvent?.priceTiers.length ? initialEvent.priceTiers.map(newTierDraft) : [newTierDraft()],
+  );
+  const [feeFundId, setFeeFundId] = useState<string | null>(
+    initialEvent?.feeFundId ??
+      (funds.some((f) => f.id === DEFAULT_FEE_FUND_ID) ? DEFAULT_FEE_FUND_ID : null),
   );
   const [body, setBody] = useState({
     html: initialEvent?.bodyHtml ?? "<p></p>",
@@ -160,6 +178,29 @@ export function EventForm({ event: initialEvent, otherForms }: EventFormProps) {
       );
       return;
     }
+    // Fees: blank rows are dropped; the rest must parse.
+    const tierRows = paymentMode === "FREE" ? [] : tiers.filter((t) => t.name.trim() || t.amount.trim());
+    const priceTiers = [];
+    for (const t of tierRows) {
+      const parsed = eventPriceTierSchema.safeParse({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        amount: t.amount.trim() === "" ? undefined : t.amount,
+      });
+      if (!parsed.success) {
+        setTab("registration");
+        setError(`Fees, “${t.name || "unnamed price"}”: ${parsed.error.issues[0].message}`);
+        return;
+      }
+      priceTiers.push(parsed.data);
+    }
+    const feeError = feeSettingsError({ paymentMode, registrationEnabled, feeFundId, priceTiers });
+    if (feeError) {
+      setTab("registration");
+      setError(`Fees: ${feeError}`);
+      return;
+    }
     setIsSaving(true);
     setError(null);
 
@@ -195,7 +236,15 @@ export function EventForm({ event: initialEvent, otherForms }: EventFormProps) {
           ? new Date(String(formData.get("registrationClosesAt"))).toISOString()
           : null,
         registrationFields: checked.data,
+        paymentMode,
+        feeFundId,
+        priceTiers,
       });
+      if (!result.success) {
+        setTab("registration");
+        setError(result.error);
+        return;
+      }
 
       router.push(`/admin/content/events/${result.data.id}`);
       router.refresh();
@@ -422,6 +471,22 @@ export function EventForm({ event: initialEvent, otherForms }: EventFormProps) {
                 </div>
               )}
             </section>
+
+            <FeesEditor
+              mode={paymentMode}
+              onModeChange={setPaymentMode}
+              tiers={tiers}
+              onTiersChange={setTiers}
+              fundId={feeFundId}
+              onFundChange={setFeeFundId}
+              funds={funds}
+              registrationEnabled={registrationEnabled}
+              unpricedBookings={
+                initialEvent && (initialEvent.paymentMode === "FREE" || initialEvent.paymentMode === "DISPLAY_ONLY")
+                  ? initialEvent.bookingCount
+                  : 0
+              }
+            />
           </TabsContent>
         </TabsContents>
       </Tabs>

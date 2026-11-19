@@ -31,6 +31,12 @@ const STATUS_TONE: Record<string, Tone> = {
   PENDING: "warning",
   CONFIRMED: "success",
   CANCELLED: "danger",
+  // Finance
+  APPROVED: "info",
+  PAID: "success",
+  REJECTED: "danger",
+  VOIDED: "danger",
+  PAUSED: "warning",
   // Messaging
   SENDING: "info",
   SENT: "success",

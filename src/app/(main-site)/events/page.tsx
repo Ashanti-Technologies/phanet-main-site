@@ -1,11 +1,24 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getAllEvents } from "@/lib/events-data";
 import EventsClient from "./_components/EventsClient";
 
-export const metadata = {
-  title: "Events | Phanerosis Prayer Network",
-  description:
-    "Find upcoming national, regional, university, and diaspora events from the Phanerosis Prayer Network.",
+const description =
+  "Find upcoming national, regional, university, and diaspora events from the Phanerosis Prayer Network.";
+
+export const metadata: Metadata = {
+  title: "Events", // root layout template appends the site name
+  description,
+  alternates: { canonical: "/events" },
+  openGraph: {
+    type: "website",
+    url: "/events",
+    siteName: "Phanerosis Prayer Network International",
+    title: "Events",
+    description,
+    images: [{ url: "/api/og", width: 1200, height: 630, alt: "PHANET events" }],
+  },
+  twitter: { card: "summary_large_image", title: "Events", description, images: ["/api/og"] },
 };
 
 export const dynamic = "force-dynamic";
