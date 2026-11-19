@@ -1,3 +1,4 @@
+import { log } from "./logger";
 import { headers } from "next/headers";
 import { cache } from "react";
 import { betterAuth } from "better-auth";
@@ -70,7 +71,7 @@ export const auth = betterAuth({
             // Dynamic import: member-claim → member-portal → auth-guard → here.
             await import("./member-claim")
               .then((m) => m.linkMemberByVerifiedEmail(user))
-              .catch((err) => console.error("[auth] member auto-link failed:", err));
+              .catch((err) => log.error("auth", "member auto-link failed", { userId: user.id, err }));
             const grants = await loadGrants(user.id);
             if (grants.length === 0) return;
             await prisma.auditLog.create({
@@ -88,7 +89,7 @@ export const auth = betterAuth({
               },
             });
           } catch (err) {
-            console.error("[auth] admin sign-in audit failed:", err);
+            log.error("auth", "admin sign-in audit failed", { err });
           }
         },
       },

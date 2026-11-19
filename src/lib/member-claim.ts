@@ -1,3 +1,4 @@
+import { log } from "./logger";
 import { createHash, randomBytes, randomInt, timingSafeEqual } from "crypto";
 import { headers } from "next/headers";
 import { MemberStatus } from "@/app/generated/prisma/client";
@@ -158,7 +159,7 @@ export async function linkMemberByVerifiedEmail(user: {
         meta: { from: m.status, promoted: promote },
       },
     })
-    .catch((err) => console.error("[member-claim] audit failed:", err));
+    .catch((err) => log.error("member-claim", "audit failed", { err }));
 }
 
 export function expiresInMinutes(minutes: number): Date {

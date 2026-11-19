@@ -1,3 +1,4 @@
+import { log } from "./logger";
 import { getMessagingService } from "./messaging";
 import { renderEmail } from "./email-templates/render";
 import { CommitmentReceivedAdminEmail } from "./email-templates/CommitmentReceivedAdminEmail";
@@ -48,7 +49,7 @@ export async function sendAdminNotification(commitment: CommitmentData) {
     text,
   });
   if (!result.ok) {
-    console.error("Failed to send admin notification:", result.error);
+    log.error("email", "admin notification failed", { err: result.error });
   }
   return result;
 }
@@ -71,7 +72,7 @@ export async function sendDonorConfirmation(commitment: CommitmentData) {
     text,
   });
   if (!result.ok) {
-    console.error("Failed to send donor confirmation:", result.error);
+    log.error("email", "donor confirmation failed", { err: result.error });
   }
   return result;
 }
@@ -103,7 +104,7 @@ export async function sendStatusUpdate(
     text,
   });
   if (!result.ok) {
-    console.error("Failed to send status update:", result.error);
+    log.error("email", "status update failed", { err: result.error });
   }
   return result;
 }
@@ -121,7 +122,7 @@ export async function sendGiftReceipt(gift: GiftReceivedEmailProps & { to: strin
     text,
   });
   if (!result.ok) {
-    console.error("Failed to send gift receipt:", result.error);
+    log.error("email", "gift receipt failed", { err: result.error });
   }
   return result;
 }
@@ -134,7 +135,7 @@ export async function sendMonthlyGiftPaused(gift: MonthlyGiftPausedEmailProps & 
   const { html, text } = await renderEmail(MonthlyGiftPausedEmail(props));
   const result = await email.send({ to, subject: "Your monthly gift is paused", body: html, text });
   if (!result.ok) {
-    console.error("Failed to send monthly gift paused email:", result.error);
+    log.error("email", "monthly gift paused email failed", { err: result.error });
   }
   return result;
 }

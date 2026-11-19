@@ -1,3 +1,4 @@
+import { log } from "./logger";
 import { prisma } from "./database";
 import { getSessionOrNull } from "./auth-guard";
 import type { Prisma } from "@/app/generated/prisma/client";
@@ -34,6 +35,6 @@ export async function logAudit(input: AuditLogInput): Promise<void> {
       },
     });
   } catch (err) {
-    console.error("[audit] failed to log", input.action, err);
+    log.error("audit", "failed to log", { action: input.action, err });
   }
 }

@@ -12,13 +12,17 @@ The Prisma client is generated into `src/app/generated/prisma` (note: inside `sr
 
 ## Environment
 
-Required env vars (see `.env`): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `GROQ_API_KEY`, `YOUTUBE_API_KEY`, `PAYSTACK_SECRET_KEY` (online giving; the Paystack webhook URL is `/api/payments/paystack/webhook`).
+Required env vars (see `.env`): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `GROQ_API_KEY`, `YOUTUBE_API_KEY`, `PAYSTACK_SECRET_KEY` (online giving; the Paystack webhook URL is `/api/payments/paystack/webhook`). Optional: `LOG_LEVEL` (debug|info|warn|error; default debug in dev, info in prod), `LOG_PRISMA_QUERIES=1` (log every Prisma query at debug).
 
 ## Architecture
 
 ### Subdomain proxy
 
 `src/proxy.ts` is a Next.js 16 **proxy** (the renamed middleware). It rewrites `projects.phanerosisnetwork.com` (and `projects.localhost`) to the `/projects` path tree. When adding new top-level routes, remember they're invisible on the `projects.` host unless rewritten. API routes, `_next`, and any path with a dot are skipped.
+
+### Logging
+
+Server code logs through `log` from `src/lib/logger.ts` — `log.error("payments", "initialize failed", { reference, err })` — never `console.*`. Prod writes one JSON line per call (Vercel log search); `log.error` also reports to PostHog error tracking. Unhandled server errors are caught by `onRequestError` in `src/instrumentation.ts`. Client components keep `console.error` (PostHog autocaptures client exceptions). Self-check: `pnpm tsx scripts/logger-check.ts`.
 
 ### Serialization
 

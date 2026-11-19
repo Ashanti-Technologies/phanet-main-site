@@ -1,5 +1,6 @@
 "use server";
 
+import { log } from "@/lib/logger";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/app/generated/prisma/client";
@@ -103,7 +104,7 @@ export async function createEventAccount(input: {
       headers: h,
     });
   } catch (err) {
-    console.error("[event-registration] magic link failed:", err);
+    log.error("event-registration", "magic link failed", { err });
     return fail("We couldn't send the email. Please try again.");
   }
   return { success: true, data: undefined };
@@ -444,7 +445,7 @@ async function beginPayment(registrationId: string, fallbackEmail: string): Prom
   } catch (err) {
     if (err instanceof CheckoutError) return fail(err.message);
     // e.g. PAYSTACK_SECRET_KEY missing or Paystack unreachable.
-    console.error("[event-registration] checkout failed", err);
+    log.error("event-registration", "checkout failed", { err });
     return fail("Online payment isn't available right now. Please try again later.");
   }
 }

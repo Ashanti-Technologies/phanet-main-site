@@ -1,3 +1,4 @@
+import { log } from "@/lib/logger";
 import type {
   PaymentConfig,
   PaymentResult,
@@ -19,7 +20,7 @@ export class StripePaymentService implements PaymentService {
     // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     // const session = await stripe.checkout.sessions.create({...});
 
-    console.warn("Stripe payment not yet implemented");
+    log.warn("payments", "Stripe payment not yet implemented");
 
     return {
       success: false,
@@ -33,7 +34,7 @@ export class StripePaymentService implements PaymentService {
     // TODO: Implement payment verification
     // const session = await stripe.checkout.sessions.retrieve(reference);
 
-    console.warn("Stripe verification not yet implemented");
+    log.warn("payments", "Stripe verification not yet implemented");
 
     return {
       success: false,

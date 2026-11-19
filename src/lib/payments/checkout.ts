@@ -1,3 +1,4 @@
+import { log } from "@/lib/logger";
 import { headers } from "next/headers";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/database";
@@ -53,7 +54,7 @@ export async function checkout({
   });
   if (!result.success || !result.redirectUrl) {
     await prisma.paymentIntent.update({ where: { id: intent.id }, data: { status: "FAILED" } });
-    console.error("[payments] initialize failed", result.error);
+    log.error("payments", "initialize failed", { intentId: intent.id, err: result.error });
     throw new CheckoutError("We couldn't start the payment. Please try again in a moment.");
   }
   return { redirectUrl: result.redirectUrl };

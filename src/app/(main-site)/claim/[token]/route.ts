@@ -1,3 +1,4 @@
+import { log } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import {
   consumeClaimToken,
@@ -39,7 +40,7 @@ export async function GET(
     }
     return to("/me/profile?claimed=1");
   } catch (err) {
-    console.error("[claim] consume failed:", err);
+    log.error("claim", "consume failed", { err });
     return to("/claim?error=invalid");
   }
 }

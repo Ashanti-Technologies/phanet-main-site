@@ -1,5 +1,6 @@
 "use server";
 
+import { log } from "@/lib/logger";
 import { prisma } from "@/lib/database";
 import {
   requireAdmin,
@@ -84,7 +85,7 @@ export async function createCommitment(data: CommitmentCreateInput) {
     await sendAdminNotification(commitment);
     await sendDonorConfirmation(commitment);
   } catch (error) {
-    console.error("Failed to send notification emails:", error);
+    log.error("commitments", "notification emails failed", { commitmentId: commitment.id, err: error });
   }
 
   // Track server-side commitment creation

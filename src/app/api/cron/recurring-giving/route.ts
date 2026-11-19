@@ -1,3 +1,4 @@
+import { log } from "@/lib/logger";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/database";
 import { sendMonthlyGiftPaused } from "@/lib/email";
@@ -78,7 +79,7 @@ export async function GET(req: Request) {
         continue;
       }
     } catch (err) {
-      console.error("[recurring] charge error", gift.id, err);
+      log.error("recurring", "charge error", { giftId: gift.id, err });
     }
 
     tally.failed++;
@@ -93,7 +94,7 @@ export async function GET(req: Request) {
         amount: formatMoney(gift.amount),
         fund: gift.fund.name,
         giveUrl: `${process.env.BETTER_AUTH_URL ?? "https://phanerosisnetwork.com"}/give`,
-      }).catch((err) => console.error("[recurring] paused email failed", err));
+      }).catch((err) => log.error("recurring", "paused email failed", { giftId: gift.id, err }));
     }
   }
 

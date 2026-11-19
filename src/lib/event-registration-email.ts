@@ -1,3 +1,4 @@
+import { log } from "./logger";
 import { prisma } from "@/lib/database";
 import { getMessagingService } from "@/lib/messaging";
 import { renderEmail } from "@/lib/email-templates/render";
@@ -113,9 +114,9 @@ export async function sendRegistrationConfirmation({
         },
       ],
     });
-    if (!result.ok) console.error("[event-registration] email failed:", result.error);
+    if (!result.ok) log.error("event-registration", "email failed", { err: result.error });
   } catch (err) {
     // Never fail a saved registration because the email didn't go out.
-    console.error("[event-registration] email failed:", err);
+    log.error("event-registration", "email failed", { err });
   }
 }

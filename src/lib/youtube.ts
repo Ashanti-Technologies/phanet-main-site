@@ -1,3 +1,5 @@
+import { log } from "./logger";
+
 export type YoutubeVideo = {
   id: string;
   title: string;
@@ -101,7 +103,7 @@ export async function getVideosPage(
     );
     if (!res.ok) {
       const errBody = await res.text();
-      console.error("[YouTube API] HTTP", res.status, errBody);
+      log.error("youtube", "API HTTP error", { status: res.status, body: errBody });
       return { videos: [], totalResults: 0 };
     }
 
@@ -134,7 +136,7 @@ export async function getVideosPage(
       totalResults: data.pageInfo?.totalResults ?? 0,
     };
   } catch (err) {
-    console.error("[YouTube API] Unexpected error:", err);
+    log.error("youtube", "unexpected error", { err });
     return { videos: [], totalResults: 0 };
   }
 }

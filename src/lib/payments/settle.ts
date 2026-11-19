@@ -1,3 +1,4 @@
+import { log } from "@/lib/logger";
 import { prisma } from "@/lib/database";
 import { sendGiftReceipt } from "@/lib/email";
 import { syncCommitment, syncRegistrationPayment } from "@/lib/finance-ledger";
@@ -65,7 +66,7 @@ export async function settlePaymentIntent(reference: string): Promise<SettleResu
   const tampered = v.status === "completed" && (v.amountMinor !== expectedMinor || v.currency !== intent.currency);
   if (v.status === "failed" || tampered) {
     if (tampered) {
-      console.error("[payments] amount/currency mismatch", { reference, expectedMinor, got: v.amountMinor, currency: v.currency });
+      log.error("payments", "amount/currency mismatch", { reference, expectedMinor, got: v.amountMinor, currency: v.currency });
     }
     await prisma.paymentIntent.updateMany({
       where: { id: intent.id, status: { in: ["PENDING", "PROCESSING"] } },
@@ -138,7 +139,7 @@ export async function settlePaymentIntent(reference: string): Promise<SettleResu
       amount: formatMoney(intent.amount),
       reference,
       date: receivedAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
-    }).catch((err) => console.error("[payments] receipt email failed", err));
+    }).catch((err) => log.error("payments", "receipt email failed", { reference, err }));
   }
   return { status: "completed", ...base, monthly: await monthly() };
 }
