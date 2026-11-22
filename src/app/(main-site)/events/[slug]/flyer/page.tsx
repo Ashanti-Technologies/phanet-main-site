@@ -11,16 +11,38 @@ type Props = {
 };
 
 const TITLE = "I'm repping Heaven on Earth Camp 2026";
-const DESCRIPTION = "Add your photo and name to make your own Heaven on Earth Camp 2026 flyer, then share it on your status.";
+const DESCRIPTION =
+  "Add your photo and name to make your own Heaven on Earth Camp 2026 flyer, then share it on your status. 30 Dec 2026 – 3 Jan 2027, Pentecost Pensions Guest House, Gbawe.";
+// Rendered from the flyer artwork itself (placeholder flyer + gold title), 1200×630.
+const OG_IMAGE = {
+  url: "/images/hoe-2026-flyer-og.jpg",
+  width: 1200,
+  height: 630,
+  alt: "Make your own “I'm repping Heaven on Earth Camp 2026” flyer",
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   if (slug !== HOE.slug) return {};
+  const url = `/events/${slug}/flyer`;
   return {
     title: TITLE,
     description: DESCRIPTION,
-    alternates: { canonical: `/events/${slug}/flyer` },
-    openGraph: { title: TITLE, description: DESCRIPTION, url: `/events/${slug}/flyer` },
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      url,
+      siteName: "Phanerosis Prayer Network International",
+      title: TITLE,
+      description: DESCRIPTION,
+      images: [OG_IMAGE],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: TITLE,
+      description: DESCRIPTION,
+      images: [OG_IMAGE.url],
+    },
   };
 }
 
