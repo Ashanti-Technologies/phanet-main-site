@@ -14,15 +14,15 @@ export function proxy(request: NextRequest): NextResponse | undefined {
     hostname.startsWith("projects.") ||
     hostname.startsWith("projects.localhost");
 
-  // hoe.phanerosisnetwork.com → the Heaven on Earth event. Only "/" and
-  // "/register" are rewritten; everything else (/auth, /me, /events/…, /api)
-  // passes through so sign-in and the portal keep working on this host.
+  // hoe.phanerosisnetwork.com → the Heaven on Earth event. Only "/",
+  // "/register" and "/flyer" are rewritten; everything else (/auth, /me,
+  // /events/…, /api) passes through so sign-in and the portal keep working.
   if (isHoeHost(hostname)) {
     const target =
       url.pathname === "/"
         ? `/events/${HOE.slug}`
-        : url.pathname === "/register"
-          ? `/events/${HOE.slug}/register`
+        : url.pathname === "/register" || url.pathname === "/flyer"
+          ? `/events/${HOE.slug}${url.pathname}`
           : null;
     if (!target) return undefined;
     url.pathname = target;

@@ -9,7 +9,9 @@ import {
   ArrowLeft,
   ExternalLink,
   Ticket,
+  ImagePlus,
 } from "lucide-react";
+import { HOE } from "@/lib/event-subdomain";
 import { priceRangeLabel } from "@/lib/event-fees";
 import {
   type Event,
@@ -321,6 +323,15 @@ export default async function EventDetailPage({
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   ) : null}
+                  {event.slug === HOE.slug && (
+                    <Link
+                      href={`/events/${event.slug}/flyer`}
+                      className="flex items-center justify-center gap-2 w-full border border-primary text-primary hover:bg-primary/5 font-semibold py-3 px-6 rounded-xl transition-colors text-sm"
+                    >
+                      <ImagePlus className="w-4 h-4" />
+                      Make your &ldquo;I&apos;m repping&rdquo; flyer
+                    </Link>
+                  )}
                   <Link
                     href="/events"
                     className="flex items-center justify-center w-full border border-border text-muted-foreground hover:bg-muted font-medium py-3 px-6 rounded-xl transition-colors text-sm"

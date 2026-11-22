@@ -2,13 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, CalendarPlus, MapPin, Users, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, CalendarPlus, ImagePlus, MapPin, Users, XCircle } from "lucide-react";
 import { IconBrandWhatsapp } from "@tabler/icons-react";
 import { prisma } from "@/lib/database";
 import { getServerAuthSession } from "@/lib/auth";
 import { getCurrentMemberForPortal } from "@/lib/member-portal";
 import { getKnownPeople, isRegistrationOpen } from "@/lib/event-registration";
-import { registerEmailUrl, registerLocation } from "@/lib/event-subdomain";
+import { HOE, registerEmailUrl, registerLocation } from "@/lib/event-subdomain";
 import { fillShareMessage, whatsappShareUrl } from "@/lib/share-message";
 import { Button } from "@/app/components/ui/button";
 import { formatEventDate } from "@/lib/events";
@@ -419,6 +419,14 @@ async function RegistrationDone({
               Invite friends on WhatsApp
             </a>
           </Button>
+          {event.slug === HOE.slug && (
+            <Button asChild variant="outline" size="lg" className="h-12 w-full">
+              <Link href={`/events/${event.slug}/flyer${member ? `?name=${encodeURIComponent(member.preferredName || member.fullName)}` : ""}`}>
+                <ImagePlus className="h-4 w-4" aria-hidden />
+                Make your &ldquo;I&apos;m repping&rdquo; flyer
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline" size="lg" className="h-12 w-full">
             <a href={`/api/events/${event.id}/ics`} download>
               <CalendarPlus className="h-4 w-4" aria-hidden />
