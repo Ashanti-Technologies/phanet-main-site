@@ -456,7 +456,9 @@ export function RegistrationForm(props: Props) {
           ))}
         </StepperList>
 
-        <fieldset disabled={!open || isPending} className="space-y-5">
+        {/* min-w-0: fieldsets default to min-content width, so a long email
+            on the "You" card pushed the page wider than the phone. */}
+        <fieldset disabled={!open || isPending} className="min-w-0 space-y-5">
           <StepperContent value="you">
             <Section title="You">
               {me ? (

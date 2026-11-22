@@ -165,7 +165,9 @@ export default async function EventDetailPage({
             fill
             priority
             sizes="100vw"
-            className="object-cover"
+            // Header images are often posters with their own lettering; blur them
+            // so the title and details on top stay readable.
+            className="object-cover scale-110 blur-sm"
           />
         ) : (
           <div
@@ -177,7 +179,7 @@ export default async function EventDetailPage({
           />
         )}
         <div
-          className={`absolute inset-0 bg-gradient-to-b ${event.headerImageUrl ? "from-black/60 via-black/40 to-black/70" : "from-black/40 via-black/20 to-black/50"}`}
+          className={`absolute inset-0 bg-gradient-to-b ${event.headerImageUrl ? "from-black/75 via-black/60 to-black/80" : "from-black/40 via-black/20 to-black/50"}`}
         />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -210,7 +212,7 @@ export default async function EventDetailPage({
           </h1>
 
           {/* Quick details row */}
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-white/80 text-sm sm:text-base">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-white/90 text-sm sm:text-base">
             <span className="flex items-center gap-2">
               <CalendarDays className="w-4 h-4" />
               {formatEventDate(event.date, event.endDate)}

@@ -57,7 +57,9 @@ export function SuccessScreen({
         )}
       </div>
       {actions && (
-        <div className="sticky bottom-0 mx-auto flex w-full max-w-md flex-col gap-2 bg-background/95 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+        // Not sticky: a stack of 4–5 actions covered the summary above it on
+        // short phones. min-h on the wrapper still puts them at the bottom.
+        <div className="mx-auto flex w-full max-w-md flex-col gap-2 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {actions}
         </div>
       )}
