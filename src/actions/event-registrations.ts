@@ -284,13 +284,31 @@ export async function submitEventRegistration(
       let householdId = registrant.householdId;
       // Only spouses and children join the registrant's household.
       const inHousehold = (r: Resolved) => r.relationship === "SPOUSE" || r.relationship === "CHILD";
-      const needsHousehold = resolved.some((r) => r.newPerson && inHousehold(r));
+      // Existing spouses/children join too, but only if they have no household
+      // (never move someone) and no login of their own (they can't consent here;
+      // lookup-by-phone would otherwise let anyone claim a stranger).
+      const existingIds = resolved
+        .filter((r) => !r.isSelf && !r.newPerson && inHousehold(r))
+        .map((r) => r.memberId!);
+      const linkable = existingIds.length
+        ? await tx.member.findMany({
+            where: { id: { in: existingIds }, householdId: null, userId: null },
+            select: { id: true },
+          })
+        : [];
+      const needsHousehold = linkable.length > 0 || resolved.some((r) => r.newPerson && inHousehold(r));
       if (needsHousehold && !householdId) {
         const hh = await tx.household.create({
           data: { name: `${registrant.fullName} household` },
         });
         householdId = hh.id;
         await tx.member.update({ where: { id: registrant.id }, data: { householdId } });
+      }
+      if (linkable.length) {
+        await tx.member.updateMany({
+          where: { id: { in: linkable.map((m) => m.id) }, householdId: null },
+          data: { householdId },
+        });
       }
 
       for (const r of resolved) {
