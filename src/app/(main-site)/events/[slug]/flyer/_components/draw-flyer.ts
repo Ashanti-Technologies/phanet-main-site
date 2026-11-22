@@ -23,6 +23,7 @@ export type FlyerState = {
 export type FlyerAssets = {
   logo: HTMLImageElement | null;
   title: HTMLCanvasElement | null;
+  socials: HTMLImageElement | null;
   display: string; // CSS font-family for headings
   body: string; // CSS font-family for small caps text
 };
@@ -265,10 +266,11 @@ function divider(ctx: Ctx, cx: number, y: number, w: number) {
   ctx.fillRect(cx - w / 2, y, w, 5);
 }
 
-function footer(ctx: Ctx, a: FlyerAssets, W: number, H: number, h: number) {
-  ctx.fillStyle = "rgba(241,239,233,.94)";
-  ctx.fillRect(0, H - h, W, h);
-  centerText(ctx, "PHANEROSIS PRAYER NETWORK INTL   ·   @PHANET_OFFICIAL   ·   #HOE2026", W / 2, H - h / 2 + 8, 22, 700, a.body, C.ink, W - 80, 1);
+/** The socials strip cut straight from the original flyer (Facebook/YouTube + X/Instagram). */
+function footer(ctx: Ctx, a: FlyerAssets, W: number, H: number) {
+  if (!a.socials) return;
+  const h = (W * a.socials.height) / a.socials.width;
+  ctx.drawImage(a.socials, 0, H - h, W, h);
 }
 
 export function drawFlyer(ctx: Ctx, fmt: FlyerFormat, s: FlyerState, a: FlyerAssets) {
@@ -287,7 +289,7 @@ export function drawFlyer(ctx: Ctx, fmt: FlyerFormat, s: FlyerState, a: FlyerAss
     divider(ctx, W / 2, 796, 180);
     centerText(ctx, "IMPACTING WORLDS, TRANSFORMING GENERATIONS", W / 2, 858, 34, 800, a.display, C.red, 980);
     centerText(ctx, "30 DEC 2026 – 3 JAN 2027   |   PENTECOST PENSIONS GUEST HOUSE, GBAWE", W / 2, 908, 24, 800, a.body, C.ink, 990, 0.5);
-    footer(ctx, a, W, H, 92);
+    footer(ctx, a, W, H);
   } else {
     header(ctx, a, W, 120, 1.35);
     star(ctx, 110, 420, 80, 0.3);
@@ -301,6 +303,6 @@ export function drawFlyer(ctx: Ctx, fmt: FlyerFormat, s: FlyerState, a: FlyerAss
     divider(ctx, W / 2, 1694, 180);
     centerText(ctx, "30 DEC 2026 – 3 JAN 2027", W / 2, 1752, 34, 800, a.body, C.ink, 980, 1);
     centerText(ctx, "PENTECOST PENSIONS GUEST HOUSE, GBAWE", W / 2, 1796, 28, 800, a.body, C.ink, 980, 1);
-    footer(ctx, a, W, H, 96);
+    footer(ctx, a, W, H);
   }
 }

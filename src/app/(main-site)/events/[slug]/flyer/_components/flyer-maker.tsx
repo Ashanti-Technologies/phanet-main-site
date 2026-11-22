@@ -10,7 +10,7 @@ import { clampOffset, drawFlyer, FORMATS, keyTitle, type FlyerAssets, type Flyer
 
 // The flyer artwork uses the camp's own type (same as the video ad), not the site's.
 const display = Bricolage_Grotesque({ weight: "800", subsets: ["latin"] });
-const body = Manrope({ weight: ["700", "800"], subsets: ["latin"] });
+const body = Manrope({ weight: "800", subsets: ["latin"] });
 
 const loadImg = (src: string) =>
   new Promise<HTMLImageElement>((res, rej) => {
@@ -30,7 +30,7 @@ const SIZES: { value: FlyerFormat; label: string; hint: string }[] = [
 export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const [assets, setAssets] = useState<FlyerAssets>({ logo: null, title: null, display: display.style.fontFamily, body: body.style.fontFamily });
+  const [assets, setAssets] = useState<FlyerAssets>({ logo: null, title: null, socials: null, display: display.style.fontFamily, body: body.style.fontFamily });
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -48,10 +48,10 @@ export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
     Promise.all([
       loadImg("/images/logo.png").catch(() => null),
       loadImg("/images/hoe-2026-title.png").then(keyTitle).catch(() => null),
+      loadImg("/images/hoe-2026-socials.png").catch(() => null),
       document.fonts.load(`800 40px ${display.style.fontFamily}`),
       document.fonts.load(`800 40px ${body.style.fontFamily}`),
-      document.fonts.load(`700 40px ${body.style.fontFamily}`),
-    ]).then(([logo, title]) => live && setAssets((a) => ({ ...a, logo, title })));
+    ]).then(([logo, title, socials]) => live && setAssets((a) => ({ ...a, logo, title, socials })));
     return () => {
       live = false;
     };
@@ -114,7 +114,7 @@ export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
       // Phones: open the share sheet (WhatsApp, Instagram, Save Image). Computers: download.
       if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], text: "I'm repping Heaven on Earth Camp 2026! #HOE2026" });
+          await navigator.share({ files: [file], text: "I'm repping Heaven on Earth Camp 2026!" });
           setStatus("Shared! Thanks for spreading the word.");
         } catch (err) {
           setStatus((err as Error)?.name === "AbortError" ? "Your flyer is ready below." : "Your flyer is ready below. Press and hold it to save.");
