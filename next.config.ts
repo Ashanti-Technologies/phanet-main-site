@@ -39,6 +39,12 @@ const nextConfig: NextConfig = {
         destination: "/join",
         permanent: true,
       },
+      // HOE 2026's slug was renamed; keep already-shared links (WhatsApp etc.) working.
+      {
+        source: "/events/heaven-on-earth-2026/:path*",
+        destination: "/events/hoe-2026/:path*",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {

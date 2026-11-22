@@ -22,35 +22,14 @@ export type FlyerState = {
 
 export type FlyerAssets = {
   logo: HTMLImageElement | null;
-  title: HTMLCanvasElement | null;
+  /** Gold title already cut out of the original flyer (transparent WebP). */
+  title: HTMLImageElement | null;
   socials: HTMLImageElement | null;
   display: string; // CSS font-family for headings
   body: string; // CSS font-family for small caps text
 };
 
 const C = { cream: "#fffaf0", ink: "#351c17", red: "#bc3522" };
-
-// Title outline traced on the original flyer (same polygon as the Remotion video),
-// shifted by the crop offset of hoe-2026-title.png (190, 240).
-const OUTLINE = [[194.9,335.6],[220.5,307.9],[289.7,286.6],[334.5,299.4],[345.1,286.6],[393,282.3],[443.1,255.7],[501.7,245.1],[550.6,244],[616.7,254.6],[662.5,284.5],[696.6,311.1],[774.3,307.9],[819,316.4],[849.9,332.4],[862.7,392],[885.1,441],[869.1,461.2],[829.7,471.9],[819,475.1],[848.8,539],[857.4,581.6],[842.5,614.6],[805.2,640.2],[765.8,623.1],[742.4,643.4],[731.7,677.4],[704,691.3],[718.9,708.3],[699.8,724.3],[601.8,709.4],[527.2,712.6],[472.9,724.3],[384.5,733.9],[353.6,719],[341.9,701.9],[367.5,686],[343,674.2],[331.3,644.4],[279.1,633.8],[265.2,599.7],[274.8,559.2],[286.5,530.5],[254.6,515.6],[224.8,520.9],[201.3,499.6],[212,447.4],[229,399.5],[207.7,383.5],[194.9,361.1]];
-
-/** Cut the gold title out of its background: inside the outline, keep low-blue (gold) pixels. */
-export function keyTitle(img: HTMLImageElement) {
-  const c = document.createElement("canvas");
-  c.width = img.width;
-  c.height = img.height;
-  const x = c.getContext("2d")!;
-  x.beginPath();
-  OUTLINE.forEach(([px, py], i) => (i ? x.lineTo(px - 190, py - 240) : x.moveTo(px - 190, py - 240)));
-  x.closePath();
-  x.clip();
-  x.drawImage(img, 0, 0);
-  const d = x.getImageData(0, 0, c.width, c.height);
-  const p = d.data;
-  for (let i = 0; i < p.length; i += 4) p[i + 3] *= Math.min(1, Math.max(0, 9 - (10 * p[i + 2]) / 255));
-  x.putImageData(d, 0, 0);
-  return c;
-}
 
 /** Largest offset (diameter units) that still keeps the circle covered. */
 export function clampOffset(s: Pick<FlyerState, "img" | "zoom">, axis: "x" | "y", v: number) {

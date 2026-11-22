@@ -6,7 +6,7 @@ import { Download, ImagePlus, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { cn } from "@/lib/utils";
-import { clampOffset, drawFlyer, FORMATS, keyTitle, type FlyerAssets, type FlyerFormat } from "./draw-flyer";
+import { clampOffset, drawFlyer, FORMATS, type FlyerAssets, type FlyerFormat } from "./draw-flyer";
 
 // The flyer artwork uses the camp's own type (same as the video ad), not the site's.
 const display = Bricolage_Grotesque({ weight: "800", subsets: ["latin"] });
@@ -39,19 +39,35 @@ export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
   const [result, setResult] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  // Save stays off until the logo, title, socials strip and fonts are in, so a
+  // slow connection can't produce a flyer with the artwork missing.
+  const [artwork, setArtwork] = useState<"loading" | "ready" | "failed">("loading");
 
   const state = { img, zoom, ox: offset.x, oy: offset.y, name };
-  const ready = !!img && !!name.trim();
+  const ready = !!img && !!name.trim() && artwork === "ready";
 
   useEffect(() => {
     let live = true;
+    // Each piece appears in the preview as soon as it arrives.
+    const art = (key: "logo" | "title" | "socials", src: string) =>
+      loadImg(src).then((im) => void (live && setAssets((a) => ({ ...a, [key]: im }))));
+    // Fonts never hold Save back for long: after 8 s, go with what has loaded.
+    const fonts = Promise.race([
+      Promise.all([
+        document.fonts.load(`800 40px ${display.style.fontFamily}`),
+        document.fonts.load(`800 40px ${body.style.fontFamily}`),
+      ]),
+      new Promise((r) => setTimeout(r, 8000)),
+    ]).catch(() => {});
     Promise.all([
-      loadImg("/images/logo.png").catch(() => null),
-      loadImg("/images/hoe-2026-title.png").then(keyTitle).catch(() => null),
-      loadImg("/images/hoe-2026-socials.png").catch(() => null),
-      document.fonts.load(`800 40px ${display.style.fontFamily}`),
-      document.fonts.load(`800 40px ${body.style.fontFamily}`),
-    ]).then(([logo, title, socials]) => live && setAssets((a) => ({ ...a, logo, title, socials })));
+      art("logo", "/images/hoe-2026-logo.png"),
+      art("title", "/images/hoe-2026-title.webp"),
+      art("socials", "/images/hoe-2026-socials.png"),
+      fonts,
+    ]).then(
+      () => live && setArtwork("ready"),
+      () => live && setArtwork("failed"),
+    );
     return () => {
       live = false;
     };
@@ -134,7 +150,18 @@ export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
     }
   }
 
-  const hint = !img && !name.trim() ? "Add your photo and name to save." : !img ? "Add your photo to save." : !name.trim() ? "Add your name to save." : "";
+  const hint =
+    artwork === "failed"
+      ? "The flyer artwork didn't load. Check your connection and reload the page."
+      : !img && !name.trim()
+        ? "Add your photo and name to save."
+        : !img
+          ? "Add your photo to save."
+          : !name.trim()
+            ? "Add your name to save."
+            : artwork === "loading"
+              ? "Loading the flyer artwork…"
+              : "";
 
   return (
     <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-12">

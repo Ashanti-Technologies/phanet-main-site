@@ -6,7 +6,7 @@
  */
 export const HOE = {
   hostPrefix: "hoe.",
-  slug: "heaven-on-earth-2026",
+  slug: "hoe-2026",
   origin: "https://hoe.phanerosisnetwork.com",
 } as const;
 
@@ -28,9 +28,11 @@ export function registerLocation(slug: string, host: string | null | undefined) 
   return { path, url: path };
 }
 
-/** Absolute register link for emails (no request host available). */
+/**
+ * Absolute register link for emails, share messages and payment callbacks
+ * (no request host available). Always the main domain: hoe. has no DNS record
+ * yet. Once it does, return `${HOE.origin}/register` for HOE.slug again.
+ */
 export function registerEmailUrl(slug: string) {
-  return slug === HOE.slug
-    ? `${HOE.origin}/register`
-    : `${process.env.BETTER_AUTH_URL ?? ""}/events/${slug}/register`;
+  return `${process.env.BETTER_AUTH_URL ?? ""}/events/${slug}/register`;
 }
