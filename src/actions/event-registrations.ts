@@ -284,18 +284,28 @@ export async function submitEventRegistration(
       let householdId = registrant.householdId;
       // Only spouses and children join the registrant's household.
       const inHousehold = (r: Resolved) => r.relationship === "SPOUSE" || r.relationship === "CHILD";
-      // Existing spouses/children join too, but only if they have no household
-      // (never move someone) and no login of their own (they can't consent here;
-      // lookup-by-phone would otherwise let anyone claim a stranger).
-      const existingIds = resolved
-        .filter((r) => !r.isSelf && !r.newPerson && inHousehold(r))
-        .map((r) => r.memberId!);
-      const linkable = existingIds.length
+      // Existing spouses/children: no login and no household → join now (never
+      // move someone). With a login they get an invite to accept themselves —
+      // lookup-by-phone would otherwise let anyone claim a stranger.
+      const existingFamily = resolved.filter((r) => !r.isSelf && !r.newPerson && inHousehold(r));
+      const family = existingFamily.length
         ? await tx.member.findMany({
-            where: { id: { in: existingIds }, householdId: null, userId: null },
-            select: { id: true },
+            where: { id: { in: existingFamily.map((r) => r.memberId!) } },
+            select: { id: true, userId: true, householdId: true },
           })
         : [];
+      const linkable = family.filter((m) => !m.userId && !m.householdId);
+      const toInvite = family.filter((m) => m.userId && (!m.householdId || m.householdId !== householdId));
+      if (toInvite.length) {
+        await tx.householdInvite.createMany({
+          data: toInvite.map((m) => ({
+            fromMemberId: registrant.id,
+            toMemberId: m.id,
+            relationship: existingFamily.find((r) => r.memberId === m.id)!.relationship,
+          })),
+          skipDuplicates: true, // a declined invite stays declined
+        });
+      }
       const needsHousehold = linkable.length > 0 || resolved.some((r) => r.newPerson && inHousehold(r));
       if (needsHousehold && !householdId) {
         const hh = await tx.household.create({

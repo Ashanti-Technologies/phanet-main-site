@@ -8,6 +8,7 @@ import { getCurrentMemberForPortal } from "@/lib/member-portal";
 import { resolveMemberLocation } from "@/lib/member-location";
 import {
   eventRsvpSchema,
+  householdInviteResponseSchema,
   memberNotificationsUpdateSchema,
   memberProfileUpdateSchema,
   type EventRsvpInput,
@@ -193,4 +194,48 @@ export async function setMyEventRsvp(input: EventRsvpInput) {
   revalidatePath("/me");
   revalidatePath("/me/events");
   return { success: true, data: rsvp };
+}
+
+/**
+ * Answer a household invite sent to me. Accepting puts both of us in the
+ * inviter's household (or mine if they have none, or a new one). Only I can
+ * move myself, so an existing household of mine is left if I accept.
+ */
+export async function respondToHouseholdInvite(input: { inviteId: string; accept: boolean }) {
+  const { inviteId, accept } = householdInviteResponseSchema.parse(input);
+  const { session, member } = await requireLinkedMember();
+  await requirePermission("access", "MemberPortal");
+
+  const invite = await prisma.householdInvite.findFirst({
+    where: { id: inviteId, toMemberId: member.id, acceptedAt: null, declinedAt: null },
+    select: { id: true, from: { select: { id: true, fullName: true, householdId: true } } },
+  });
+  if (!invite) throw new Error("This invitation is no longer open.");
+
+  await prisma.$transaction(async (tx) => {
+    if (!accept) {
+      await tx.householdInvite.update({ where: { id: invite.id }, data: { declinedAt: new Date() } });
+      return;
+    }
+    const householdId =
+      invite.from.householdId ??
+      member.householdId ??
+      (await tx.household.create({ data: { name: `${invite.from.fullName} household` } })).id;
+    await tx.member.updateMany({
+      where: { id: { in: [invite.from.id, member.id] } },
+      data: { householdId },
+    });
+    await tx.householdInvite.update({ where: { id: invite.id }, data: { acceptedAt: new Date() } });
+  });
+
+  await logAudit({
+    action: accept ? "household_invite.accept" : "household_invite.decline",
+    subject: "Member",
+    subjectId: member.id,
+    actorId: session.user.id,
+    meta: { inviteId: invite.id, fromMemberId: invite.from.id },
+  });
+  revalidatePath("/me");
+  revalidatePath("/me/profile");
+  return { success: true };
 }

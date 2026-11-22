@@ -110,6 +110,11 @@ export const eventRsvpSchema = z.object({
   status: z.enum(["GOING", "CANCELLED"]),
 });
 
+export const householdInviteResponseSchema = z.object({
+  inviteId: z.string().min(1),
+  accept: z.boolean(),
+});
+
 export type MemberApplicationInput = z.input<typeof memberApplicationSchema>;
 export type MemberApprovalInput = z.input<typeof memberApprovalSchema>;
 export type MemberInviteSendInput = z.input<typeof memberInviteSendSchema>;

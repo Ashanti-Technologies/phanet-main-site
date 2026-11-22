@@ -299,6 +299,8 @@ model Member {
   incomes            Income[]
   paymentIntents     PaymentIntent[]
   recurringGifts     RecurringGift[]
+  householdInvitesSent     HouseholdInvite[] @relation("HouseholdInviteFrom")
+  householdInvitesReceived HouseholdInvite[] @relation("HouseholdInviteTo")
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @default(now()) @updatedAt
 
@@ -373,6 +375,24 @@ model Household {
   updatedAt   DateTime @default(now()) @updatedAt
 
   @@map("household")
+}
+
+/// A spouse/child with their own login, added to someone's booking. They join
+/// that household only once they accept (from the member portal).
+model HouseholdInvite {
+  id           String               @id @default(cuid())
+  fromMemberId String
+  from         Member               @relation("HouseholdInviteFrom", fields: [fromMemberId], references: [id], onDelete: Cascade)
+  toMemberId   String
+  to           Member               @relation("HouseholdInviteTo", fields: [toMemberId], references: [id], onDelete: Cascade)
+  relationship AttendeeRelationship
+  acceptedAt   DateTime?
+  declinedAt   DateTime?
+  createdAt    DateTime             @default(now())
+
+  @@unique([fromMemberId, toMemberId])
+  @@index([toMemberId])
+  @@map("household_invite")
 }
 
 model Tag {

@@ -31,6 +31,7 @@ import { Progress } from "@/app/components/ui/progress";
 import { Badge } from "@/app/components/ui/badge";
 import { EmptyState } from "./_components/empty-state";
 import { DashboardEventRsvp } from "./_components/dashboard-event-rsvp";
+import { HouseholdInvites } from "./_components/household-invites";
 
 export default async function MemberPortalPage() {
   const { session, member } = await getCurrentMemberOrRedirect();
@@ -45,7 +46,7 @@ export default async function MemberPortalPage() {
   const today = new Date();
   const yearStart = new Date(today.getFullYear(), 0, 1);
 
-  const [nextEventRow, latestPrayer, commitments] = await Promise.all([
+  const [nextEventRow, latestPrayer, commitments, householdInvites] = await Promise.all([
     prisma.event.findFirst({
       where: { status: "PUBLISHED", date: { gte: today } },
       orderBy: { date: "asc" },
@@ -79,7 +80,20 @@ export default async function MemberPortalPage() {
           },
         })
       : [],
+    prisma.householdInvite.findMany({
+      where: { toMemberId: member.id, acceptedAt: null, declinedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, relationship: true, from: { select: { fullName: true, householdId: true } } },
+    }),
   ]);
+  // Skip invites an admin already settled by putting us in the same household.
+  const openInvites = householdInvites
+    .filter((i) => !member.householdId || i.from.householdId !== member.householdId)
+    .map((i) => ({
+      id: i.id,
+      fromName: i.from.fullName,
+      relationship: i.relationship === "CHILD" ? ("CHILD" as const) : ("SPOUSE" as const),
+    }));
 
   const ytdConfirmed = commitments
     .filter(
@@ -165,6 +179,8 @@ export default async function MemberPortalPage() {
           ) : null}
         </div>
       </section>
+
+      {openInvites.length ? <HouseholdInvites invites={openInvites} /> : null}
 
       {/* What's next + Prayer wall */}
       <div className="grid gap-4 lg:grid-cols-2">
