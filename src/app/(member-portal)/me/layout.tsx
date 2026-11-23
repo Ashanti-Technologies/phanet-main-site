@@ -5,7 +5,6 @@ import { APP_CONFIG } from "@/constants";
 import { getCurrentMemberOrRedirect } from "@/lib/member-portal";
 import { PortalDesktopNav, PortalMobileNav } from "./_components/portal-nav";
 import { PortalUserMenu } from "./_components/portal-user-menu";
-import { portalSans } from "./_components/portal-font";
 
 export default async function MemberPortalLayout({
   children,
@@ -19,7 +18,7 @@ export default async function MemberPortalLayout({
 
   return (
     <div
-      className={`${portalSans.variable} min-h-svh bg-background font-sans text-foreground antialiased **:data-[slot=button]:active:scale-[0.97]`}
+      className={`min-h-svh bg-background font-sans text-foreground antialiased **:data-[slot=button]:active:scale-[0.97]`}
     >
       <header className="sticky top-0 z-30 border-b border-border/40 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">

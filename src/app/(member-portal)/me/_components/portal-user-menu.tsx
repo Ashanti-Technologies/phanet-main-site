@@ -18,7 +18,6 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/app/components/ui/avatar";
-import { portalSans } from "./portal-font";
 
 function initials(name: string) {
   return name
@@ -66,7 +65,7 @@ export function PortalUserMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className={`${portalSans.variable} w-60 rounded-xl border-border/50 font-sans shadow-(--shadow-float)`}
+        className={`w-60 rounded-xl border-border/50 font-sans shadow-(--shadow-float)`}
       >
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">

@@ -16,13 +16,13 @@ export default async function RootLayout({
 }) {
   const featured = await getFeaturedEvent();
   return (
-    <>
+    <div className="public-site contents">
       <Header banner={featured && <FeaturedEventBanner event={featured} />} />
       {children}
       <Analytics />
       <SpeedInsights />
       <Footer />
       <ChatWidget />
-    </>
+    </div>
   );
 }

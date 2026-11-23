@@ -183,6 +183,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Public site: Fraunces headings over Instrument Sans body. */
+  .public-site :is(h1, h2, h3) {
+    font-family: var(--font-serif);
+  }
 }
 
 /* Tiptap HTML: keep typed spaces and blank lines exactly as in the editor. */

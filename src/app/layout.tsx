@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, IBM_Plex_Mono, Inter } from "next/font/google";
+import { Fraunces, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import JsonLd from "./components/JsonLd";
 import { APP_CONFIG } from "@/constants";
@@ -13,7 +13,7 @@ const brandDisplay = Fraunces({
   variable: "--font-brand-serif",
 });
 
-const brandSans = Inter({
+const brandSans = Instrument_Sans({
   subsets: ["latin"],
   variable: "--font-brand-sans",
 });
