@@ -18,6 +18,7 @@ export type FlyerState = {
   ox: number;
   oy: number;
   name: string;
+  online: boolean;
 };
 
 export type FlyerAssets = {
@@ -254,6 +255,7 @@ function footer(ctx: Ctx, a: FlyerAssets, W: number, H: number) {
 
 export function drawFlyer(ctx: Ctx, fmt: FlyerFormat, s: FlyerState, a: FlyerAssets) {
   const F = FORMATS[fmt];
+  const where = s.online ? "JOINING ONLINE" : "PENTECOST PENSIONS GUEST HOUSE, GBAWE";
   const { W, H } = F;
   ctx.clearRect(0, 0, W, H);
   background(ctx, W, H);
@@ -267,7 +269,7 @@ export function drawFlyer(ctx: Ctx, fmt: FlyerFormat, s: FlyerState, a: FlyerAss
     nameLine(ctx, s, a, W / 2, 770, 960, 88);
     divider(ctx, W / 2, 796, 180);
     centerText(ctx, "IMPACTING WORLDS, TRANSFORMING GENERATIONS", W / 2, 858, 34, 800, a.display, C.red, 980);
-    centerText(ctx, "30 DEC 2026 – 3 JAN 2027   |   PENTECOST PENSIONS GUEST HOUSE, GBAWE", W / 2, 908, 24, 800, a.body, C.ink, 990, 0.5);
+    centerText(ctx, `30 DEC 2026 – 3 JAN 2027   |   ${where}`, W / 2, 908, 24, 800, a.body, C.ink, 990, 0.5);
     footer(ctx, a, W, H);
   } else {
     header(ctx, a, W, 120, 1.35);
@@ -281,7 +283,7 @@ export function drawFlyer(ctx: Ctx, fmt: FlyerFormat, s: FlyerState, a: FlyerAss
     centerText(ctx, "IMPACTING WORLDS, TRANSFORMING GENERATIONS", W / 2, 1666, 40, 800, a.display, C.red, 980);
     divider(ctx, W / 2, 1694, 180);
     centerText(ctx, "30 DEC 2026 – 3 JAN 2027", W / 2, 1752, 34, 800, a.body, C.ink, 980, 1);
-    centerText(ctx, "PENTECOST PENSIONS GUEST HOUSE, GBAWE", W / 2, 1796, 28, 800, a.body, C.ink, 980, 1);
+    centerText(ctx, where, W / 2, 1796, 28, 800, a.body, C.ink, 980, 1);
     footer(ctx, a, W, H);
   }
 }

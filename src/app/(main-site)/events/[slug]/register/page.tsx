@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, CalendarPlus, ImagePlus, MapPin, Users, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, CalendarPlus, Clock, ImagePlus, MapPin, Users, XCircle } from "lucide-react";
 import { IconBrandWhatsapp } from "@tabler/icons-react";
 import { prisma } from "@/lib/database";
 import { getServerAuthSession } from "@/lib/auth";
@@ -377,6 +377,8 @@ async function RegistrationDone({
     : null;
 
   const date = formatEventDate(event.date.toISOString().slice(0, 10), event.endDate?.toISOString().slice(0, 10));
+  // Times are Ghana time (= GMT); say so for people joining from abroad.
+  const time = event.time && !/GMT|UTC/i.test(event.time) ? `${event.time} GMT` : event.time;
   const people = registration?.attendees.length ?? 0;
   const online = registration?.attendees.filter((a) => a.attendance === "ONLINE").length ?? 0;
   const charges = chargesFees(event.paymentMode) && event.priceTiers.length > 0;
@@ -387,7 +389,7 @@ async function RegistrationDone({
   const shareText = fillShareMessage(event.shareMessage, {
     event: event.title,
     date,
-    time: event.time,
+    time,
     location: [event.location, event.address].filter(Boolean).join(", "),
     price:
       cheapest === 0 ? "Free" : prices.length === 1 ? formatMoney(cheapest) : `From ${formatMoney(cheapest)}`,
@@ -448,6 +450,12 @@ async function RegistrationDone({
           <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
           {date}
         </p>
+        {time && (
+          <p className="flex items-center gap-2 text-muted-foreground">
+            <Clock className="h-4 w-4 shrink-0" aria-hidden />
+            {time}
+          </p>
+        )}
         <p className="flex items-center gap-2 text-muted-foreground">
           <MapPin className="h-4 w-4 shrink-0" aria-hidden />
           {event.location}

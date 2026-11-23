@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { HOE } from "@/lib/event-subdomain";
+import { HOE, registerEmailUrl } from "@/lib/event-subdomain";
 import { FlyerMaker } from "./_components/flyer-maker";
 
 type Props = {
@@ -74,7 +74,7 @@ export default async function FlyerPage({ params, searchParams }: Props) {
       </section>
       <section className="bg-background py-10 sm:py-14">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <FlyerMaker defaultName={typeof name === "string" ? name.slice(0, 28) : ""} />
+          <FlyerMaker defaultName={typeof name === "string" ? name.slice(0, 28) : ""} registerUrl={registerEmailUrl(HOE.slug)} />
         </div>
       </section>
     </main>

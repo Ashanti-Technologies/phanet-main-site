@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bricolage_Grotesque, Manrope } from "next/font/google";
-import { Download, ImagePlus, Lock, Trash2 } from "lucide-react";
+import { Check, Copy, Download, ImagePlus, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,21 @@ const SIZES: { value: FlyerFormat; label: string; hint: string }[] = [
   { value: "story", label: "Story", hint: "Status · 1080 × 1920" },
 ];
 
-export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
+// Caption sent with the flyer; one picked at random per share so status feeds don't all read the same.
+const CAPTIONS: ((where: string) => string)[] = [
+  (w) => `I'm repping Heaven on Earth Camp 2026${w}! 🔥 30 Dec – 3 Jan. Come and experience heaven on earth with me.`,
+  (w) => `Ending 2026 and starting 2027 in God's presence. I'll be at Heaven on Earth Camp${w}. Who's coming with me? 🙌`,
+  (w) => `Heaven on Earth Camp 2026: Impacting Worlds, Transforming Generations. I'm joining${w}! Don't miss it. ✨`,
+  (w) => `5 days of prayer, worship and the Word to cross over into 2027. I'm repping Heaven on Earth Camp${w}. Join me! 🙏`,
+  (w) => `Count me in for Heaven on Earth Camp 2026${w}! 30 Dec 2026 – 3 Jan 2027. Register and let's go together. 💛`,
+];
+
+const MODES = [
+  { value: false, label: "In person", hint: "At the camp in Gbawe" },
+  { value: true, label: "Online", hint: "Joining from wherever I am" },
+];
+
+export function FlyerMaker({ defaultName = "", registerUrl }: { defaultName?: string; registerUrl: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const [assets, setAssets] = useState<FlyerAssets>({ logo: null, title: null, socials: null, display: display.style.fontFamily, body: body.style.fontFamily });
@@ -36,14 +50,17 @@ export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [name, setName] = useState(defaultName);
   const [fmt, setFmt] = useState<FlyerFormat>("square");
+  const [online, setOnline] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
+  const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   // Save stays off until the logo, title, socials strip and fonts are in, so a
   // slow connection can't produce a flyer with the artwork missing.
   const [artwork, setArtwork] = useState<"loading" | "ready" | "failed">("loading");
 
-  const state = { img, zoom, ox: offset.x, oy: offset.y, name };
+  const state = { img, zoom, ox: offset.x, oy: offset.y, name, online };
   const ready = !!img && !!name.trim() && artwork === "ready";
 
   useEffect(() => {
@@ -125,12 +142,15 @@ export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
       if (!blob) throw new Error("toBlob returned null");
       const filename = `HOE2026-${slug(name)}-${fmt}.png`;
       const url = URL.createObjectURL(blob);
+      const text = `${CAPTIONS[Math.floor(Math.random() * CAPTIONS.length)](online ? " online" : "")}\n\nRegister: ${registerUrl}`;
       setResult(url);
+      setCaption(text);
+      setCopied(false);
       const file = new File([blob], filename, { type: "image/png" });
       // Phones: open the share sheet (WhatsApp, Instagram, Save Image). Computers: download.
       if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], text: "I'm repping Heaven on Earth Camp 2026!" });
+          await navigator.share({ files: [file], text });
           setStatus("Shared! Thanks for spreading the word.");
         } catch (err) {
           setStatus((err as Error)?.name === "AbortError" ? "Your flyer is ready below." : "Your flyer is ready below. Press and hold it to save.");
@@ -235,25 +255,17 @@ export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
           />
         </Step>
 
-        <Step n={3} title="Size">
-          <div role="radiogroup" aria-label="Flyer size" className="grid grid-cols-2 gap-3">
-            {SIZES.map((s) => (
-              <button
-                key={s.value}
-                type="button"
-                role="radio"
-                aria-checked={fmt === s.value}
-                onClick={() => (setFmt(s.value), reset())}
-                className={cn(
-                  "rounded-xl border-2 p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                  fmt === s.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted",
-                )}
-              >
-                <span className="block font-semibold">{s.label}</span>
-                <span className="block text-xs text-muted-foreground">{s.hint}</span>
-              </button>
-            ))}
-          </div>
+        <Step n={3} title="How you'll be there">
+          <Choice
+            label="How you'll be there"
+            options={MODES}
+            value={online}
+            onChange={(v) => (setOnline(v), reset())}
+          />
+        </Step>
+
+        <Step n={4} title="Size">
+          <Choice label="Flyer size" options={SIZES} value={fmt} onChange={(v) => (setFmt(v), reset())} />
         </Step>
 
         <Button size="lg" className="h-14 w-full text-base" disabled={!ready || busy} onClick={save}>
@@ -275,11 +287,67 @@ export function FlyerMaker({ defaultName = "" }: { defaultName?: string }) {
           </figure>
         )}
 
+        {result && caption && (
+          <section className="space-y-3 rounded-2xl border border-border bg-card p-5">
+            <h2 className="font-semibold text-card-foreground">Your caption</h2>
+            <p className="whitespace-pre-line break-words text-sm text-muted-foreground">{caption}</p>
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-12 w-full"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(caption);
+                  setCopied(true);
+                } catch {
+                  setStatus("Couldn't copy. Press and hold the caption to copy it.");
+                }
+              }}
+            >
+              {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+              {copied ? "Copied! Paste it with your flyer" : "Copy caption"}
+            </Button>
+          </section>
+        )}
+
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Lock className="h-3.5 w-3.5" aria-hidden />
           Your photo stays on your device. Nothing is uploaded.
         </p>
       </div>
+    </div>
+  );
+}
+
+function Choice<T>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; label: string; hint: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="grid grid-cols-2 gap-3">
+      {options.map((o) => (
+        <button
+          key={o.label}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "rounded-xl border-2 p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+            value === o.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted",
+          )}
+        >
+          <span className="block font-semibold">{o.label}</span>
+          <span className="block text-xs text-muted-foreground">{o.hint}</span>
+        </button>
+      ))}
     </div>
   );
 }
