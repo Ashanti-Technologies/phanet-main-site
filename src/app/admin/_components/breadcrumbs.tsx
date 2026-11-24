@@ -15,6 +15,8 @@ const LABELS: Record<string, string> = {
   sermons: "Sermons",
   library: "Library",
   authors: "Authors",
+  gallery: "Gallery",
+  requests: "Removal requests",
   projects: "Projects",
   "prayer-requests": "Prayer requests",
   users: "Users",

@@ -56,6 +56,7 @@ const navigation: NavGroup[] = [
       { name: "Homepage", href: "/admin/content/homepage", icon: "homepage" },
       { name: "Sermons", href: "/admin/content/sermons", icon: "sermons" },
       { name: "Library", href: "/admin/content/library", icon: "library" },
+      { name: "Gallery", href: "/admin/content/gallery", icon: "gallery" },
     ],
   },
   {

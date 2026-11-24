@@ -7,9 +7,10 @@ import { prisma } from '@/lib/database'
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const [events, books] = await Promise.all([
+    const [events, books, albums] = await Promise.all([
         getAllEvents(),
         prisma.publication.findMany({ where: { status: 'PUBLISHED' }, select: { slug: true, updatedAt: true } }),
+        prisma.galleryAlbum.findMany({ where: { status: 'PUBLISHED', visibility: 'PUBLIC' }, select: { slug: true, updatedAt: true } }),
     ])
     return [
         {
@@ -47,6 +48,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             lastModified: book.updatedAt,
             changeFrequency: 'monthly' as const,
             priority: 0.6,
+        })),
+        {
+            url: `${APP_CONFIG.siteUrl}/gallery`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.7,
+        },
+        ...albums.map((album) => ({
+            url: `${APP_CONFIG.siteUrl}/gallery/${album.slug}`,
+            lastModified: album.updatedAt,
+            changeFrequency: 'monthly' as const,
+            priority: 0.5,
         })),
         ...events.map((event) => ({
             url: `${APP_CONFIG.siteUrl}/events/${event.slug}`,

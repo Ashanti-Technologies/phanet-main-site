@@ -50,6 +50,7 @@ model User {
   expensesRecorded    Expense[]                @relation("ExpenseRecordedBy")
   expensesApproved    Expense[]                @relation("ExpenseApprovedBy")
   registrationDrafts  EventRegistrationDraft[]
+  galleryTakedowns    GalleryTakedown[]        @relation("TakedownRequester")
 
   @@unique([email])
   @@unique([phoneNumber])
@@ -1131,6 +1132,7 @@ model Event {
   registrationDrafts   EventRegistrationDraft[]
   attendees            EventAttendee[]
   roomTypes            EventRoomType[]
+  galleryAlbums        GalleryAlbum[]
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
 
@@ -1490,6 +1492,88 @@ model Publication {
   @@index([authorId])
   @@index([status, order])
   @@map("publication")
+}
+
+// ============================================
+// GALLERY
+// ============================================
+
+enum AlbumVisibility {
+  PUBLIC
+  /// Any signed-in user.
+  MEMBERS
+}
+
+enum TakedownReason {
+  ME_IN_PHOTO
+  MY_CHILD_IN_PHOTO
+  OTHER
+}
+
+enum TakedownStatus {
+  PENDING
+  /// Photo deleted.
+  REMOVED
+  /// Photo restored.
+  DISMISSED
+}
+
+model GalleryAlbum {
+  id           String          @id @default(cuid())
+  slug         String          @unique
+  title        String
+  description  String?         @db.Text
+  date         DateTime
+  visibility   AlbumVisibility @default(PUBLIC)
+  status       PublishStatus   @default(DRAFT)
+  eventId      String?
+  event        Event?          @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  /// Falls back to the first visible photo.
+  coverPhotoId String?
+  photos       GalleryPhoto[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([status, date])
+  @@index([eventId])
+  @@map("gallery_album")
+}
+
+model GalleryPhoto {
+  id        String            @id @default(cuid())
+  albumId   String
+  album     GalleryAlbum      @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  /// Cloudinary public id, uploaded as `authenticated` so every URL is signed.
+  publicId  String            @unique
+  width     Int
+  height    Int
+  caption   String?
+  order     Int               @default(0)
+  /// Set while a takedown request is pending.
+  hidden    Boolean           @default(false)
+  takedowns GalleryTakedown[]
+  createdAt DateTime          @default(now())
+
+  @@index([albumId, order])
+  @@map("gallery_photo")
+}
+
+model GalleryTakedown {
+  id           String         @id @default(cuid())
+  photoId      String
+  photo        GalleryPhoto   @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User           @relation("TakedownRequester", fields: [userId], references: [id], onDelete: Cascade)
+  reason       TakedownReason
+  note         String?
+  status       TakedownStatus @default(PENDING)
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime       @default(now())
+
+  @@index([status, createdAt])
+  @@index([photoId])
+  @@map("gallery_takedown")
 }
 
 // ============================================

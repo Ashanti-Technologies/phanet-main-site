@@ -15,6 +15,7 @@ import {
   LogOut,
   MessageSquare,
   Library,
+  Images,
   Monitor,
   Moon,
   Plus,
@@ -112,6 +113,12 @@ export function CommandPalette({ allowed }: { allowed: string[] }) {
           icon: <Library className="h-4 w-4" />,
           href: "/admin/content/library",
           onSelect: go("/admin/content/library"),
+        },
+        {
+          label: "Gallery",
+          icon: <Images className="h-4 w-4" />,
+          href: "/admin/content/gallery",
+          onSelect: go("/admin/content/gallery"),
         },
         {
           label: "Projects",

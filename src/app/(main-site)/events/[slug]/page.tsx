@@ -10,7 +10,9 @@ import {
   ExternalLink,
   Ticket,
   ImagePlus,
+  Images,
 } from "lucide-react";
+import { prisma } from "@/lib/database";
 import { HOE } from "@/lib/event-subdomain";
 import { priceRangeLabel } from "@/lib/event-fees";
 import {
@@ -144,6 +146,11 @@ export default async function EventDetailPage({
   const { slug } = await params;
   const event = await getEventBySlug(slug);
   if (!event) notFound();
+  const albums = await prisma.galleryAlbum.findMany({
+    where: { eventId: event.id, status: "PUBLISHED" },
+    orderBy: { date: "asc" },
+    select: { slug: true, title: true },
+  });
 
   return (
     <main>
@@ -325,6 +332,16 @@ export default async function EventDetailPage({
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   ) : null}
+                  {albums.map((a) => (
+                    <Link
+                      key={a.slug}
+                      href={`/gallery/${a.slug}`}
+                      className="flex items-center justify-center gap-2 w-full border border-primary text-primary hover:bg-primary/5 font-semibold py-3 px-6 rounded-xl transition-colors text-sm"
+                    >
+                      <Images className="w-4 h-4" />
+                      {albums.length === 1 ? "View photos" : a.title}
+                    </Link>
+                  ))}
                   {event.slug === HOE.slug && (
                     <Link
                       href={`/events/${event.slug}/flyer`}

@@ -142,6 +142,7 @@ const PUBLIC_ACTIONS = new Set([
   "commitments.getMyCommitments", // caller's own, by session
   "commitments.getThankYouWallData", // public wall, non-anonymous only
   "event-registrations.*", // public registration; admin ones are checked (see below)
+  "gallery.requestTakedown", // signed-in self-service; hides the photo pending admin review
   "giving.*",
   "locations.*",
   "member-applications.submitMembershipApplication",
