@@ -29,6 +29,7 @@ import {
   Target,
   ScrollText,
   Repeat,
+  Plug,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,7 +60,8 @@ export type NavIconName =
   | "funds"
   | "budgets"
   | "statements"
-  | "monthly";
+  | "monthly"
+  | "integrations";
 
 const icons: Record<NavIconName, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -88,6 +90,7 @@ const icons: Record<NavIconName, LucideIcon> = {
   budgets: Target,
   statements: ScrollText,
   monthly: Repeat,
+  integrations: Plug,
 };
 
 type Props = {

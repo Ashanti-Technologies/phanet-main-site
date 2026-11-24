@@ -141,6 +141,7 @@ const navigation: NavGroup[] = [
         icon: "churchUnits",
       },
       { name: "Tags", href: "/admin/settings/tags", icon: "tags" },
+      { name: "Integrations", href: "/admin/settings/integrations", icon: "integrations" },
     ],
   },
 ];

@@ -39,4 +39,5 @@ export const ROUTE_NEEDS: Record<string, [Action, Subject]> = {
   "/admin/users": ["create", "RoleAssignment"], // Super Admins + unit delegates
   "/admin/settings/church-units": ["update", "ChurchUnit"],
   "/admin/settings/tags": ["update", "Tag"],
+  "/admin/settings/integrations": ["manage", "AdminRole"], // Super Admins only
 };

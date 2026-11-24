@@ -616,6 +616,8 @@ model MessageLog {
   channel     MessageChannel
   recipient   String
   status      DeliveryStatus @default(QUEUED)
+  /// Which adapter actually sent it (e.g. "arkesel", "hubtel") — failover can switch mid-batch.
+  provider    String?
   providerRef String?
   error       String?
   sentAt      DateTime?
@@ -623,7 +625,18 @@ model MessageLog {
 
   @@index([batchId])
   @@index([memberId])
+  @@index([providerRef])
   @@map("message_log")
+}
+
+/// Non-secret third-party config edited from /admin/settings/integrations
+/// (e.g. "sms.providers" = failover order). API keys stay in env vars.
+model IntegrationSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("integration_setting")
 }
 
 // ============================================

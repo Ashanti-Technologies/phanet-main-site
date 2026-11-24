@@ -151,6 +151,7 @@ export async function GET(req: Request) {
         channel: template.channel,
         recipient: to,
         status: res.ok ? "SENT" : "FAILED",
+        provider: res.provider ?? service.provider,
         providerRef: res.providerRef,
         error: res.error,
         sentAt: res.ok ? new Date() : undefined,

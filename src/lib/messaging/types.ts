@@ -23,6 +23,14 @@ export interface SendResult {
   error?: string;
   /** The recipient that was attempted — useful when batching. */
   recipient: string;
+  /** Adapter that produced this result (failover may pick a backup). */
+  provider?: string;
+  /**
+   * True only when the provider definitely did NOT send (bad key, no credit,
+   * gateway down) — safe to try the next provider. Timeouts are not retryable:
+   * the first provider may have sent it, and a retry would double-text.
+   */
+  retryable?: boolean;
 }
 
 export interface BatchResult {
@@ -38,4 +46,13 @@ export interface MessagingService {
   readonly provider: string;
   send(input: SendMessageInput): Promise<SendResult>;
   sendBatch(inputs: SendMessageInput[]): Promise<BatchResult>;
+  /** Are this provider's env vars set? */
+  isConfigured?(): boolean;
+  /** Remaining credit, for the integrations page. */
+  balance?(): Promise<ProviderBalance>;
+}
+
+export interface ProviderBalance {
+  label: string;
+  low: boolean;
 }

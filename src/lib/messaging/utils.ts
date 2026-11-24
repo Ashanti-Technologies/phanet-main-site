@@ -39,3 +39,13 @@ export function normalizeGhanaPhone(input: string | null | undefined): string | 
   if (input.startsWith("+")) return input;
   return null;
 }
+
+/** HTTP statuses where the provider certainly didn't send: auth, credit, outage. */
+export function retryableStatus(status: number): boolean {
+  return status === 401 || status === 402 || status === 403 || status >= 500;
+}
+
+/** A timeout may have reached the provider, so it never fails over (no double texts). */
+export function retryableError(err: unknown): boolean {
+  return !(err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError"));
+}

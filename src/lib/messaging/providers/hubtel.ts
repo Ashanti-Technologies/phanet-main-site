@@ -4,7 +4,7 @@ import type {
   SendMessageInput,
   SendResult,
 } from "../types";
-import { chunk, normalizeGhanaPhone } from "../utils";
+import { chunk, normalizeGhanaPhone, retryableError, retryableStatus } from "../utils";
 
 const HUBTEL_SMS_URL = "https://sms.hubtel.com/v1/messages/send";
 const BATCH_SIZE = 100;
@@ -27,10 +27,15 @@ export class HubtelSmsAdapter implements MessagingService {
     this.senderId = process.env.HUBTEL_SENDER_ID || "PHANET";
   }
 
+  isConfigured(): boolean {
+    return Boolean(this.clientId && this.clientSecret);
+  }
+
   async send(input: SendMessageInput): Promise<SendResult> {
     if (!this.clientId || !this.clientSecret) {
       return {
         ok: false,
+        retryable: true,
         recipient: input.to,
         error: "HUBTEL_CLIENT_ID / HUBTEL_CLIENT_SECRET not configured",
       };
@@ -46,11 +51,13 @@ export class HubtelSmsAdapter implements MessagingService {
     try {
       const res = await fetch(`${HUBTEL_SMS_URL}?${params.toString()}`, {
         method: "GET",
+        signal: AbortSignal.timeout(15_000),
       });
       const json: unknown = await res.json().catch(() => null);
       if (!res.ok) {
         return {
           ok: false,
+          retryable: retryableStatus(res.status),
           recipient: to,
           error: `Hubtel ${res.status}: ${JSON.stringify(json)}`,
         };
@@ -69,6 +76,7 @@ export class HubtelSmsAdapter implements MessagingService {
     } catch (err) {
       return {
         ok: false,
+        retryable: retryableError(err),
         recipient: to,
         error: err instanceof Error ? err.message : String(err),
       };
