@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/format";
 import { nextMonthlyCharge } from "@/lib/recurring";
 import type { PaymentMethod } from "@/app/generated/prisma/client";
 import { getPaymentService } from "./index";
+import { track } from "@/lib/posthog-server";
 
 export type SettleResult =
   | { status: "unknown" }
@@ -39,6 +40,7 @@ export async function settlePaymentIntent(reference: string): Promise<SettleResu
       commitment: { select: { project: { select: { title: true } } } },
       recurringGift: { select: { status: true, dayOfMonth: true } },
       eventRegistration: { select: { event: { select: { title: true } } } },
+      member: { select: { userId: true } },
     },
   });
   if (!intent) return { status: "unknown" };
@@ -127,6 +129,16 @@ export async function settlePaymentIntent(reference: string): Promise<SettleResu
     }
     return true;
   });
+
+  if (recorded) {
+    track("payment_completed", intent.member?.userId, {
+      kind: intent.commitmentId ? "pledge" : intent.eventRegistrationId ? "event_fee" : intent.recurringGiftId ? "monthly_gift" : "gift",
+      amount: Number(intent.amount),
+      currency: intent.currency,
+      provider: intent.provider,
+      channel: v.channel ?? null,
+    });
+  }
 
   if (recorded && intent.eventRegistrationId) {
     // Event fee, not a gift: the booking confirmation (with "Paid GH₵…") is the receipt.

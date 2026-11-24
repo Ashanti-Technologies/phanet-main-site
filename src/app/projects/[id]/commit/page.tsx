@@ -52,8 +52,6 @@ export default function CommitmentPage(props: Props) {
   const [useCustomChurchUnit, setUseCustomChurchUnit] = useState(false);
 
   useEffect(() => {
-    posthog.capture("commitment_page_viewed", { project_id: params.id });
-
     async function checkSession() {
       const result = await authClient.getSession();
       if (result?.data?.user) {
@@ -61,6 +59,8 @@ export default function CommitmentPage(props: Props) {
         setSession(result.data as { user: { name: string; email: string } });
         posthog.identify(user.id, { email: user.email, name: user.name });
       }
+      // After identify, so a signed-in visitor's view isn't anonymous.
+      posthog.capture("commitment_page_viewed", { project_id: params.id });
       setIsLoading(false);
     }
 

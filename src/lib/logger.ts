@@ -5,8 +5,8 @@
 // Prod: one JSON line per call (searchable in Vercel logs by scope/level).
 // Dev: one readable line. Level from LOG_LEVEL (debug|info|warn|error).
 // log.error also reports to PostHog error tracking (a no-op in dev).
-import { after } from "next/server";
-import { getPostHogClient } from "./posthog-server";
+import { headers } from "next/headers";
+import { distinctIdFromCookieHeader, getPostHogClient, keepAlive } from "./posthog-server";
 
 type Level = "debug" | "info" | "warn" | "error";
 type Ctx = Record<string, unknown>;
@@ -53,18 +53,28 @@ function write(level: Level, scope: string, msg: string, ctx?: Ctx) {
   if (level === "error") report(scope, msg, ctx, fields);
 }
 
+/** Browser distinct_id of the current request, so server errors join the client person. */
+async function requestDistinctId(): Promise<string | undefined> {
+  try {
+    return distinctIdFromCookieHeader((await headers()).get("cookie"));
+  } catch {
+    return undefined; // outside a request
+  }
+}
+
 function report(scope: string, msg: string, ctx: Ctx | undefined, fields: Ctx) {
   try {
     const err = ctx?.err instanceof Error ? ctx.err : new Error(`[${scope}] ${msg}`);
-    const { err: _omit, ...props } = fields;
-    const sent = getPostHogClient()
-      .captureExceptionImmediate(err, undefined, { scope, msg, ...props })
-      .catch(() => {});
-    try {
-      after(sent); // keep the function alive until it's sent (request scope only)
-    } catch {
-      // outside a request (scripts, module init) — fire and forget
-    }
+    const { err: _omit, distinctId: given, ...props } = fields;
+    keepAlive(
+      (async () => {
+        const distinctId = typeof given === "string" ? given : await requestDistinctId();
+        await getPostHogClient().captureExceptionImmediate(err, {
+          distinctId,
+          properties: { scope, msg, ...props },
+        });
+      })(),
+    );
   } catch {
     // logging must never throw
   }

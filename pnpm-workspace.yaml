@@ -7,3 +7,7 @@ allowBuilds:
   prisma: true
   protobufjs: true
   sharp: true
+minimumReleaseAgeExclude:
+  - '@posthog/browser-common@0.13.1'
+  - '@posthog/types@1.427.1'
+  - posthog-js@1.454.2

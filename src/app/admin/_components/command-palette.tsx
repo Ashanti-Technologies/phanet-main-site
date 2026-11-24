@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Command } from "cmdk";
-import { authClient } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth-client";
 import {
   CalendarDays,
   FileText,
@@ -66,7 +66,7 @@ export function CommandPalette({ allowed }: { allowed: string[] }) {
 
   async function handleSignOut() {
     setOpen(false);
-    await authClient.signOut();
+    await signOut();
     router.push("/admin/login");
     router.refresh();
   }

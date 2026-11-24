@@ -1,0 +1,40 @@
+{
+  "id": "nextjs-app-router",
+  "displayName": "Next.js App Router",
+  "match": {
+    "framework": "nextjs",
+    "frameworkVariant": "app-router"
+  },
+  "rules": {
+    "file": "references/COMMANDMENTS.md",
+    "description": "Framework-specific rules the integration must follow"
+  },
+  "products": {
+    "integration": [
+      {
+        "file": "references/next-js.md",
+        "description": "Next.js"
+      }
+    ],
+    "error-tracking": [
+      {
+        "file": "references/error-tracking/nextjs.md",
+        "description": "Next.js error tracking installation"
+      }
+    ],
+    "feature-flags": [
+      {
+        "file": "references/feature-flags/react.md",
+        "description": "React feature flags installation"
+      },
+      {
+        "file": "references/feature-flags/next-js.md",
+        "description": "Next.js"
+      },
+      {
+        "file": "references/feature-flags/nodejs.md",
+        "description": "Node.js feature flags installation"
+      }
+    ]
+  }
+}

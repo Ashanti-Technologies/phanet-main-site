@@ -1,3 +1,4 @@
+import posthog from "posthog-js";
 import { createAuthClient } from "better-auth/react";
 import {
   magicLinkClient,
@@ -17,6 +18,13 @@ export const authClient = createAuthClient({
     }),
   ],
 });
+
+/** Sign out and forget the PostHog person, so the next user on this device isn't merged into them. */
+export async function signOut() {
+  const result = await authClient.signOut();
+  posthog.reset();
+  return result;
+}
 
 export const getClientAuthSession = async () => {
   const session = await authClient.getSession();

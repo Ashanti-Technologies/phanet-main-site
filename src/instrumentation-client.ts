@@ -1,14 +1,20 @@
 import posthog from "posthog-js";
 
+const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
+
 // Not initialised in development: no events, recordings or network calls.
 // posthog.capture() etc. become no-ops until init runs.
 if (process.env.NODE_ENV !== "development") {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
-    api_host: "/ingest",
-    ui_host: "https://us.posthog.com",
-    defaults: "2026-01-30",
-    capture_exceptions: true,
-  });
+  if (token) {
+    posthog.init(token, {
+      api_host: "/ingest",
+      ui_host: "https://us.posthog.com",
+      defaults: "2026-01-30",
+      capture_exceptions: true,
+    });
+  } else {
+    console.error("PostHog disabled: NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN is not set");
+  }
 }
 
 // IMPORTANT: Never combine this approach with other client-side PostHog initialization approaches,

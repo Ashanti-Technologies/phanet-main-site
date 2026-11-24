@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { LogOut, User as UserIcon } from "lucide-react";
-import { authClient } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth-client";
 import { Button } from "@/app/components/ui/button";
 import {
   DropdownMenu,
@@ -34,7 +34,7 @@ export function UserMenu({ name, email, image }: Props) {
   const router = useRouter();
 
   async function handleSignOut() {
-    await authClient.signOut();
+    await signOut();
     router.push("/admin/login");
     router.refresh();
   }

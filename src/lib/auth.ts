@@ -1,4 +1,5 @@
 import { log } from "./logger";
+import { track } from "./posthog-server";
 import { headers } from "next/headers";
 import { cache } from "react";
 import { betterAuth } from "better-auth";
@@ -57,6 +58,13 @@ export const auth = betterAuth({
     max: 30,
   },
   databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          track("user_signed_up", user.id, { email_verified: user.emailVerified });
+        },
+      },
+    },
     session: {
       create: {
         after: async (session) => {

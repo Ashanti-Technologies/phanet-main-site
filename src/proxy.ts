@@ -65,10 +65,11 @@ export const config = {
     /*
      * Match all request paths except for:
      * - api (API routes)
+     * - ingest (PostHog proxy — on projects.* it'd become /projects/ingest and 404)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api|ingest|_next/static|_next/image|favicon.ico).*)",
   ],
 };
