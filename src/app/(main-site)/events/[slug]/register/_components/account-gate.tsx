@@ -35,10 +35,22 @@ export function AccountGate({ slug, callbackUrl }: { slug: string; callbackUrl: 
           Let&apos;s get you registered
         </h2>
         <p className="text-sm text-muted-foreground">
-          We&apos;ll email you a link that brings you straight back here. Your
-          account lets you view and change your booking. It doesn&apos;t make
-          you a member.
+          Your account lets you view and change your booking. It doesn&apos;t
+          make you a member.
         </p>
+      </div>
+
+      <div className="space-y-2">
+        <GoogleLoginButton callbackUrl={callbackUrl} variant="default" className="h-12 w-full" />
+        <p className="text-center text-xs text-muted-foreground">
+          Quickest: one tap with the Google account on this phone, no email to check.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        or use your email
+        <span className="h-px flex-1 bg-border" />
       </div>
 
       {sentTo ? (
@@ -66,7 +78,7 @@ export function AccountGate({ slug, callbackUrl }: { slug: string; callbackUrl: 
         <form action={submit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="gate-name">Full name</Label>
-            <Input id="gate-name" name="name" autoComplete="name" required />
+            <Input id="gate-name" name="name" autoComplete="name" placeholder="e.g. Ama Mensah" required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="gate-email">Email</Label>
@@ -76,28 +88,26 @@ export function AccountGate({ slug, callbackUrl }: { slug: string; callbackUrl: 
               type="email"
               inputMode="email"
               autoComplete="email"
+              placeholder="e.g. ama.mensah@gmail.com"
+              aria-describedby="gate-email-hint"
               required
             />
+            <p id="gate-email-hint" className="text-xs text-muted-foreground">
+              Use a personal email you can open on this phone (not a work
+              address). We&apos;ll send a link that brings you back here.
+            </p>
           </div>
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
-          <Button type="submit" size="lg" className="h-12 w-full" disabled={isPending}>
+          <Button type="submit" size="lg" variant="outline" className="h-12 w-full" disabled={isPending}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Continue with email
           </Button>
         </form>
       )}
-
-      <div className="flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
-        <span className="h-px flex-1 bg-border" />
-        or
-        <span className="h-px flex-1 bg-border" />
-      </div>
-
-      <GoogleLoginButton callbackUrl={callbackUrl} className="h-12 w-full" />
 
       <p className="text-center text-sm text-muted-foreground">
         Have a PHANET password?{" "}

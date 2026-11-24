@@ -219,7 +219,7 @@ export function LocationInput({
             <ComboboxInput
               id={id}
               className="h-12 w-full"
-              placeholder={cityReady ? "Start typing your town" : "Pick a region first"}
+              placeholder={cityReady ? "Just the town, e.g. Teshie" : "Pick a region first"}
               aria-invalid={invalid}
               showClear={!!value.city}
               disabled={!cityReady}
@@ -244,6 +244,12 @@ export function LocationInput({
           </Combobox>
         </div>
       </div>
+
+      {(typed.includes(",") || value.city.includes(",")) && (
+        <p className="text-xs text-amber-700 dark:text-amber-400" aria-live="polite">
+          Just one town, please, e.g. &ldquo;Teshie&rdquo; rather than &ldquo;Accra, Teshie&rdquo;.
+        </p>
+      )}
 
       {value.city && (
         <p className="flex items-center gap-1.5 text-sm" aria-live="polite">
