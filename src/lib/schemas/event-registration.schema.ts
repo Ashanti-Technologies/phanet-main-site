@@ -319,6 +319,15 @@ export const createEventAccountSchema = z.object({
   email: z.email("Enter a valid email").trim().toLowerCase(),
 });
 
+/** Form progress. `data` is the form's own state, only ever read back by the form. */
+export const registrationDraftSchema = z.object({
+  step: z.enum(["you", "people", "details", "review"]),
+  data: z
+    .record(z.string(), z.unknown())
+    .refine((d) => JSON.stringify(d).length <= 64_000, "Draft too large"),
+});
+export type RegistrationDraftInput = z.input<typeof registrationDraftSchema>;
+
 export type AttendeeInput = z.input<typeof attendeeInputSchema>;
 export type RegistrationSubmitInput = z.input<typeof registrationSubmitSchema>;
 

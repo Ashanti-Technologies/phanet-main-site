@@ -14,41 +14,42 @@ datasource db {
 }
 
 model User {
-  id                  String                @id
+  id                  String                   @id
   name                String
   email               String
-  emailVerified       Boolean               @default(false)
+  emailVerified       Boolean                  @default(false)
   image               String?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
   phoneNumber         String?
   phoneNumberVerified Boolean?
   // Better Auth admin-plugin field. NOT used for authorization — admin access
   // comes from AdminRoleAssignment (see src/lib/rbac). Always "user"/"member".
   role                String?
-  banned              Boolean?              @default(false)
+  banned              Boolean?                 @default(false)
   banReason           String?
   banExpires          DateTime?
-  twoFactorEnabled    Boolean               @default(false)
+  twoFactorEnabled    Boolean                  @default(false)
   lastLoginMethod     String?
   twoFactors          TwoFactor[]
   sessions            Session[]
   accounts            Account[]
   commitments         Commitment[]
-  adminAccess         AdminRoleAssignment[] @relation("AccessHolder")
-  accessGranted       AdminRoleAssignment[] @relation("AccessGranter")
-  auditLogs           AuditLog[]            @relation("AuditActor")
+  adminAccess         AdminRoleAssignment[]    @relation("AccessHolder")
+  accessGranted       AdminRoleAssignment[]    @relation("AccessGranter")
+  auditLogs           AuditLog[]               @relation("AuditActor")
   member              Member?
   importJobs          ImportJob[]
-  visitations         Visitation[]          @relation("VisitedBy")
-  assignedTasks       FollowUpTask[]        @relation("TaskAssignee")
-  createdTasks        FollowUpTask[]        @relation("TaskCreator")
-  memberNotes         MemberNote[]          @relation("NoteAuthor")
-  createdInvites      MemberInvite[]        @relation("InviteCreator")
-  incomesRecorded     Income[]              @relation("IncomeRecordedBy")
+  visitations         Visitation[]             @relation("VisitedBy")
+  assignedTasks       FollowUpTask[]           @relation("TaskAssignee")
+  createdTasks        FollowUpTask[]           @relation("TaskCreator")
+  memberNotes         MemberNote[]             @relation("NoteAuthor")
+  createdInvites      MemberInvite[]           @relation("InviteCreator")
+  incomesRecorded     Income[]                 @relation("IncomeRecordedBy")
   recurringGifts      RecurringGift[]
-  expensesRecorded    Expense[]             @relation("ExpenseRecordedBy")
-  expensesApproved    Expense[]             @relation("ExpenseApprovedBy")
+  expensesRecorded    Expense[]                @relation("ExpenseRecordedBy")
+  expensesApproved    Expense[]                @relation("ExpenseApprovedBy")
+  registrationDrafts  EventRegistrationDraft[]
 
   @@unique([email])
   @@unique([phoneNumber])
@@ -250,59 +251,59 @@ model City {
 }
 
 model Member {
-  id                 String               @id @default(cuid())
-  userId             String?              @unique
-  user               User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
-  fullName           String
-  preferredName      String?
-  dob                DateTime?
-  gender             Gender?
-  maritalStatus      MaritalStatus?
-  email              String?
-  phone              String?
-  whatsapp           String?
-  addressLine        String?
-  city               String?
-  cityId             String?
-  cityRef            City?                @relation(fields: [cityId], references: [id], onDelete: SetNull)
-  countryId          String?
-  countryRef         Country?             @relation(fields: [countryId], references: [id], onDelete: SetNull)
-  regionId           String?
-  regionRef          Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  region             String?
-  country            String?              @default("Ghana")
-  occupation         String?
-  bio                String?              @db.Text
-  photoUrl           String?
-  photoPublicId      String?
-  salvationDate      DateTime?
-  baptismDate        DateTime?
-  weddingAnniversary DateTime?
-  joinDate           DateTime?
-  status             MemberStatus         @default(VISITOR)
-  notes              String?              @db.Text
-  notifyByEmail      Boolean              @default(true)
-  notifyBySms        Boolean              @default(true)
-  householdId        String?
-  household          Household?           @relation(fields: [householdId], references: [id], onDelete: SetNull)
-  units              MemberUnit[]
-  tags               MemberTag[]
-  attendance         Attendance[]
-  visitations        Visitation[]
-  followUpTasks      FollowUpTask[]
-  notesList          MemberNote[]
-  invites            MemberInvite[]
-  eventRsvps         EventRsvp[]
-  eventRegistrations EventRegistration[]
-  eventAttendances   EventAttendee[]
-  phanetProfile      MemberPhanetProfile?
-  incomes            Income[]
-  paymentIntents     PaymentIntent[]
-  recurringGifts     RecurringGift[]
-  householdInvitesSent     HouseholdInvite[] @relation("HouseholdInviteFrom")
-  householdInvitesReceived HouseholdInvite[] @relation("HouseholdInviteTo")
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @default(now()) @updatedAt
+  id                       String               @id @default(cuid())
+  userId                   String?              @unique
+  user                     User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  fullName                 String
+  preferredName            String?
+  dob                      DateTime?
+  gender                   Gender?
+  maritalStatus            MaritalStatus?
+  email                    String?
+  phone                    String?
+  whatsapp                 String?
+  addressLine              String?
+  city                     String?
+  cityId                   String?
+  cityRef                  City?                @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  countryId                String?
+  countryRef               Country?             @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  regionId                 String?
+  regionRef                Region?              @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  region                   String?
+  country                  String?              @default("Ghana")
+  occupation               String?
+  bio                      String?              @db.Text
+  photoUrl                 String?
+  photoPublicId            String?
+  salvationDate            DateTime?
+  baptismDate              DateTime?
+  weddingAnniversary       DateTime?
+  joinDate                 DateTime?
+  status                   MemberStatus         @default(VISITOR)
+  notes                    String?              @db.Text
+  notifyByEmail            Boolean              @default(true)
+  notifyBySms              Boolean              @default(true)
+  householdId              String?
+  household                Household?           @relation(fields: [householdId], references: [id], onDelete: SetNull)
+  units                    MemberUnit[]
+  tags                     MemberTag[]
+  attendance               Attendance[]
+  visitations              Visitation[]
+  followUpTasks            FollowUpTask[]
+  notesList                MemberNote[]
+  invites                  MemberInvite[]
+  eventRsvps               EventRsvp[]
+  eventRegistrations       EventRegistration[]
+  eventAttendances         EventAttendee[]
+  phanetProfile            MemberPhanetProfile?
+  incomes                  Income[]
+  paymentIntents           PaymentIntent[]
+  recurringGifts           RecurringGift[]
+  householdInvitesSent     HouseholdInvite[]    @relation("HouseholdInviteFrom")
+  householdInvitesReceived HouseholdInvite[]    @relation("HouseholdInviteTo")
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @default(now()) @updatedAt
 
   @@index([email])
   @@index([phone])
@@ -1075,8 +1076,8 @@ model Expense {
 // ============================================
 
 model Event {
-  id                   String              @id @default(cuid())
-  slug                 String              @unique
+  id                   String                   @id @default(cuid())
+  slug                 String                   @unique
   title                String
   category             String
   date                 DateTime
@@ -1084,10 +1085,10 @@ model Event {
   time                 String
   location             String
   address              String?
-  description          String              @db.Text
+  description          String                   @db.Text
   bodyJson             Json?
-  bodyHtml             String              @db.Text
-  isFeatured           Boolean             @default(false)
+  bodyHtml             String                   @db.Text
+  isFeatured           Boolean                  @default(false)
   registrationUrl      String?
   imageUrl             String?
   imagePublicId        String?
@@ -1095,29 +1096,30 @@ model Event {
   /// Optional hero background on the public event page
   headerImageUrl       String?
   headerImagePublicId  String?
-  status               PublishStatus       @default(DRAFT)
-  type                 EventType           @default(MEETING)
-  registrationEnabled  Boolean             @default(false)
+  status               PublishStatus            @default(DRAFT)
+  type                 EventType                @default(MEETING)
+  registrationEnabled  Boolean                  @default(false)
   registrationClosesAt DateTime?
   /// Admin-built registration form; shape: eventRegistrationFieldsSchema
   registrationFields   Json?
   /// People may register to follow online instead of attending in person
-  allowOnline          Boolean             @default(false)
+  allowOnline          Boolean                  @default(false)
   /// WhatsApp share text on the "you're registered" screen; null = DEFAULT_SHARE_MESSAGE.
   shareMessage         String?
   /// Calendar reminders (minutes before start) in the .ics file; see src/lib/event-calendar.ts
-  calendarReminders    Int[]               @default([10080, 1440])
-  paymentMode          EventPaymentMode    @default(FREE)
+  calendarReminders    Int[]                    @default([10080, 1440])
+  paymentMode          EventPaymentMode         @default(FREE)
   /// Ledger fund for this event's fees (PAY_AT_EVENT / ONLINE)
   feeFundId            String?
-  feeFund              Fund?               @relation(fields: [feeFundId], references: [id], onDelete: SetNull)
+  feeFund              Fund?                    @relation(fields: [feeFundId], references: [id], onDelete: SetNull)
   priceTiers           EventPriceTier[]
   rsvps                EventRsvp[]
   registrations        EventRegistration[]
+  registrationDrafts   EventRegistrationDraft[]
   attendees            EventAttendee[]
   roomTypes            EventRoomType[]
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   @@index([status, date])
   @@index([category])
@@ -1227,6 +1229,41 @@ model EventRegistration {
   @@unique([eventId, registrantId])
   @@index([eventId, status])
   @@map("event_registration")
+}
+
+/// Registration form steps, in order. ACCOUNT = asked for the sign-in email.
+enum RegistrationStep {
+  ACCOUNT
+  YOU
+  PEOPLE
+  DETAILS
+  REVIEW
+}
+
+/// Someone's progress through an event's registration form. Kept after they
+/// book (`completedAt` set, `data` cleared) so drop-off and reminders can be
+/// measured. Deleted with the event or the user.
+model EventRegistrationDraft {
+  id             String           @id @default(cuid())
+  eventId        String
+  event          Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Furthest step reached
+  step           RegistrationStep @default(ACCOUNT)
+  /// Form contents as the form keeps them; null once completed
+  data           Json?
+  /// Last save by the participant (admin edits don't count), for reminders
+  lastActiveAt   DateTime         @default(now())
+  remindersSent  Int              @default(0)
+  lastRemindedAt DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([completedAt, lastActiveAt])
+  @@map("event_registration_draft")
 }
 
 /// One person on a booking. Every attendee is a Member row (VISITOR if new).

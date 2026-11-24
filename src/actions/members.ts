@@ -16,6 +16,7 @@ import {
 
 type MemberListFilter = z.output<typeof memberListFilterSchema>;
 import { logAudit } from "@/lib/audit";
+import { mergeMembers } from "@/lib/member-merge";
 
 const memberInclude = {
   units: { include: { unit: { select: { id: true, name: true } } } },
@@ -267,6 +268,29 @@ export async function deleteMember(id: string) {
   });
   revalidatePath("/admin/members");
   return { success: true };
+}
+
+/** Merge duplicate `dropId` into `keepId` (see mergeMembers); the duplicate is deleted. */
+export async function mergeMemberInto(keepId: string, dropId: string) {
+  const [keep, drop] = await Promise.all([memberUnitIds(keepId), memberUnitIds(dropId)]);
+  const session = await requirePermission("update", "Member", keep);
+  await requirePermission("delete", "Member", drop);
+  // Contact fields move between the records, so both must be fully visible.
+  await requirePermission("read", "MemberContact", keep);
+  await requirePermission("read", "MemberContact", drop);
+
+  const res = await mergeMembers(keepId, dropId);
+  if (!res.ok) return { success: false as const, error: res.error };
+  await logAudit({
+    action: "member.merge",
+    subject: "Member",
+    subjectId: keepId,
+    actorId: session.user.id,
+    meta: { mergedId: dropId, mergedName: res.droppedName },
+  });
+  revalidatePath("/admin/members");
+  revalidatePath(`/admin/members/${keepId}`);
+  return { success: true as const };
 }
 
 export async function getBirthdays(days = 7) {

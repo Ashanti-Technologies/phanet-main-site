@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import posthog from "posthog-js";
 import { createEventAccount } from "@/actions/event-registrations";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -23,7 +24,10 @@ export function AccountGate({ slug, callbackUrl }: { slug: string; callbackUrl: 
         name: String(formData.get("name") ?? ""),
         email,
       });
-      if (result.success) setSentTo(email);
+      if (result.success) {
+        setSentTo(email);
+        posthog.capture("registration_gate_submitted", { event_slug: slug });
+      }
       else setError(result.error);
     });
   }

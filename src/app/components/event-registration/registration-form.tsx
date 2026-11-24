@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import posthog from "posthog-js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, MapPin, Plus, Search, Trash2 } from "lucide-react";
 import {
   cancelEventRegistration,
   findPersonForRegistration,
+  saveRegistrationDraft,
   submitEventRegistration,
 } from "@/actions/event-registrations";
 import { Button } from "@/app/components/ui/button";
@@ -34,7 +36,9 @@ import {
   type Answers,
   type AttendanceMode,
   type AttendeeInput,
+  type RegistrationDraftInput,
   type RegistrationField,
+  type RegistrationSubmitInput,
 } from "@/lib/schemas/event-registration.schema";
 
 type AgeGroup = "ADULT" | "TEEN" | "CHILD" | "INFANT";
@@ -90,7 +94,7 @@ type Props = {
     phone: string | null;
     location: string[] | null;
   } | null;
-  sessionUser: { name: string; email: string };
+  sessionUser: { id: string; name: string; email: string };
   /** Household plus anyone booked before, with their last relationship. */
   household: { id: string; fullName: string; relationship: Exclude<Relationship, "SELF"> }[];
   /** Person answers from each member's latest booking, to pre-fill. */
@@ -98,9 +102,29 @@ type Props = {
   /** Profile location per member id, to pre-fill. */
   locations: Record<string, LocationValue>;
   existing: { rows: FormRow[]; answers: Answers } | null;
+  /** Saved progress on a new booking, restored as-is. */
+  draft: DraftData | null;
+  /** An admin filling the form in for someone (server actions bound to their userId). */
+  admin?: {
+    submit: (
+      input: RegistrationSubmitInput,
+      opts?: { notify?: boolean },
+    ) => Promise<{ success: true; data: unknown } | { success: false; error: string }>;
+    saveDraft: (eventId: string, input: RegistrationDraftInput) => Promise<unknown>;
+    doneHref: string;
+  };
 };
 
 type StepId = "you" | "people" | "details" | "review";
+
+/** What autosave stores; only this form reads it back. */
+export type DraftData = {
+  step: StepId;
+  self: { fullName: string; phone: string; gender?: "MALE" | "FEMALE" };
+  myLocation: LocationValue;
+  rows: FormRow[];
+  answers: Answers;
+};
 const STEP_TITLES: Record<StepId, string> = {
   you: "You",
   people: "Who's coming",
@@ -159,7 +183,7 @@ const sameLocation = (a: LocationValue, b: LocationValue) =>
 const travelsWithMe = (rel: Relationship) => rel === "SPOUSE" || rel === "CHILD";
 
 export function RegistrationForm(props: Props) {
-  const { event, open, me, household, previous, locations, existing } = props;
+  const { event, open, me, household, previous, locations, existing, draft, admin } = props;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -169,7 +193,10 @@ export function RegistrationForm(props: Props) {
 
   // Where the registrant travels from: everyone ticked "same place" copies it.
   const initialMyLocation =
-    existing?.rows.find((r) => r.kind === "self")?.location ?? (me && locations[me.id]) ?? EMPTY_LOCATION;
+    existing?.rows.find((r) => r.kind === "self")?.location ??
+    draft?.myLocation ??
+    (me && locations[me.id]) ??
+    EMPTY_LOCATION;
   const [myLocation, setMyLocation] = useState<LocationValue>(initialMyLocation);
 
   const blank = (memberId: string | undefined, relationship: Relationship) => {
@@ -185,18 +212,18 @@ export function RegistrationForm(props: Props) {
     };
   };
 
-  const [self, setSelf] = useState({
-    fullName: props.sessionUser.name,
-    phone: "",
-    gender: undefined as "MALE" | "FEMALE" | undefined,
-  });
+  const [self, setSelf] = useState<DraftData["self"]>(
+    () => draft?.self ?? { fullName: props.sessionUser.name, phone: "", gender: undefined },
+  );
   const [rows, setRows] = useState<FormRow[]>(() =>
     existing
       ? existing.rows.map((r) => ({
           ...r,
           sameAsMe: r.kind !== "self" && sameLocation(r.location, initialMyLocation),
         }))
-      : [
+      : draft
+        ? draft.rows
+        : [
           {
             key: "self",
             kind: "self",
@@ -210,6 +237,7 @@ export function RegistrationForm(props: Props) {
   const [answers, setAnswers] = useState<Answers>(
     () =>
       existing?.answers ??
+      draft?.answers ??
       // New booking: start location questions from the member's profile.
       Object.fromEntries(
         me?.location
@@ -246,8 +274,45 @@ export function RegistrationForm(props: Props) {
   const placeOf = (r: FormRow) => (r.kind === "self" || r.sameAsMe ? myLocation : r.location);
 
   const steps: StepId[] = ["you", "people", ...(bookingFields.length ? (["details"] as const) : []), "review"];
-  const [step, setStep] = useState<StepId>("you");
+  // A restored "details" step may have gone (e.g. everyone switched to online).
+  const [step, setStep] = useState<StepId>(() =>
+    draft?.step === "details" && !steps.includes("details") ? "review" : (draft?.step ?? "you"),
+  );
   const stepIndex = Math.max(0, steps.indexOf(step));
+
+  // Autosave new bookings so nothing is lost and organisers can see (and help
+  // with) unfinished registrations. Admins only save once they change
+  // something, so opening a draft never overwrites the participant's edits.
+  const saveDraft = admin?.saveDraft ?? saveRegistrationDraft;
+  const stopAutosave = useRef(false);
+  const skipFirstSave = useRef(!!admin);
+  useEffect(() => {
+    if (existing || !open || stopAutosave.current) return;
+    if (skipFirstSave.current) {
+      skipFirstSave.current = false;
+      return;
+    }
+    const t = setTimeout(() => {
+      if (stopAutosave.current) return;
+      const data: DraftData = { step, self, myLocation, rows, answers };
+      saveDraft(event.id, { step, data }).catch(() => undefined); // best effort
+    }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- save when the form's contents change
+  }, [step, self, myLocation, rows, answers]);
+
+  // Funnel analytics (participants only; admins filling in would skew it).
+  useEffect(() => {
+    if (admin) return;
+    posthog.identify(props.sessionUser.id, { email: props.sessionUser.email, name: props.sessionUser.name });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per mount
+  }, []);
+  useEffect(() => {
+    if (admin) return;
+    posthog.capture("registration_step_viewed", { event_slug: event.slug, step, editing: !!existing });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per step
+  }, [step]);
+  const [notify, setNotify] = useState(true);
 
   const updateRow = (key: string, patch: Partial<FormRow>) =>
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -393,15 +458,33 @@ export function RegistrationForm(props: Props) {
       }
     });
 
+    const input = { eventId: event.id, self: me ? undefined : self, answers, attendees };
+    stopAutosave.current = true;
     startTransition(async () => {
-      const res = await submitEventRegistration({
-        eventId: event.id,
-        self: me ? undefined : self,
-        answers,
-        attendees,
+      if (admin) {
+        const res = await admin.submit(input, { notify });
+        if (!res.success) {
+          stopAutosave.current = false;
+          return setError(res.error);
+        }
+        router.push(admin.doneHref);
+        router.refresh();
+        return;
+      }
+      const res = await submitEventRegistration(input);
+      if (!res.success) {
+        stopAutosave.current = false;
+        return setError(res.error);
+      }
+      posthog.capture("registration_submitted", {
+        event_slug: event.slug,
+        people: rows.length,
+        online: onlineCount,
+        amount: total,
+        updated: !!existing,
       });
-      if (!res.success) return setError(res.error);
       if (res.data.payUrl) {
+        posthog.capture("registration_payment_started", { event_slug: event.slug, amount: toPay });
         // Paystack's hosted checkout; it returns to this page with ?reference=….
         window.location.href = res.data.payUrl;
         return;
@@ -469,12 +552,14 @@ export function RegistrationForm(props: Props) {
                     <p className="truncate text-muted-foreground">
                       {[me.email, me.phone].filter(Boolean).join(" · ")}
                     </p>
-                    <Link
-                      href="/me/profile/edit"
-                      className="text-xs font-medium text-primary underline-offset-4 hover:underline"
-                    >
-                      Not right? Update your profile
-                    </Link>
+                    {!admin && (
+                      <Link
+                        href="/me/profile/edit"
+                        className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        Not right? Update your profile
+                      </Link>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -786,6 +871,12 @@ export function RegistrationForm(props: Props) {
                   {error}
                 </p>
               )}
+              {admin && step === "review" && (
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <Checkbox checked={notify} onCheckedChange={(v) => setNotify(v === true)} />
+                  Email them a confirmation
+                </label>
+              )}
               <div className="flex items-center gap-3">
                 <p className="min-w-0 flex-1 text-sm text-muted-foreground">
                   <span className="font-mono font-semibold tabular-nums text-foreground">
@@ -826,7 +917,15 @@ export function RegistrationForm(props: Props) {
                     disabled={isPending || rows.length === 0}
                   >
                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {paysOnline ? "Continue to payment" : existing ? "Save changes" : "Complete registration"}
+                    {admin
+                      ? existing
+                        ? "Save changes"
+                        : "Complete registration for them"
+                      : paysOnline
+                        ? "Continue to payment"
+                        : existing
+                          ? "Save changes"
+                          : "Complete registration"}
                   </Button>
                 ) : (
                   <Button type="submit" size="lg" className="h-12 flex-1 sm:flex-none sm:px-8">
@@ -837,7 +936,7 @@ export function RegistrationForm(props: Props) {
               </div>
             </div>
 
-            {existing && (
+            {existing && !admin && (
               <div className="flex justify-center pt-2 text-sm">
                 {confirmCancel ? (
                   <div className="flex flex-wrap items-center justify-center gap-2">

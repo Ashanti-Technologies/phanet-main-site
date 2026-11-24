@@ -7,18 +7,14 @@ import { IconBrandWhatsapp } from "@tabler/icons-react";
 import { prisma } from "@/lib/database";
 import { getServerAuthSession } from "@/lib/auth";
 import { getCurrentMemberForPortal } from "@/lib/member-portal";
-import { getKnownPeople, isRegistrationOpen } from "@/lib/event-registration";
+import { isRegistrationOpen } from "@/lib/event-registration";
 import { HOE, registerEmailUrl, registerLocation } from "@/lib/event-subdomain";
 import { fillShareMessage, whatsappShareUrl } from "@/lib/share-message";
 import { Button } from "@/app/components/ui/button";
 import { formatEventDate } from "@/lib/events";
-import {
-  parseRegistrationFields,
-  type Answers,
-} from "@/lib/schemas/event-registration.schema";
 import { AccountGate } from "./_components/account-gate";
-import { RegistrationForm, type FormRow } from "./_components/registration-form";
-import type { LocationValue } from "@/app/components/location-input";
+import { RegistrationForm } from "@/app/components/event-registration/registration-form";
+import { loadRegistrationForm } from "@/app/components/event-registration/load-form";
 import { SuccessScreen } from "@/app/components/success-celebration";
 import { CompletePaymentButton } from "./_components/complete-payment-button";
 import { settlePaymentIntent } from "@/lib/payments/settle";
@@ -170,26 +166,13 @@ async function SignedIn({
     Awaited<ReturnType<typeof prisma.event.findFirst<{ include: { priceTiers: true } }>>>
   >;
   open: boolean;
-  sessionUser: { name: string; email: string };
+  sessionUser: { id: string; name: string; email: string };
   registerPath: string;
 }) {
-  const { member } = await getCurrentMemberForPortal();
-
-  const registration = member
-    ? await prisma.eventRegistration.findUnique({
-        where: { eventId_registrantId: { eventId: event.id, registrantId: member.id } },
-        include: {
-          attendees: {
-            orderBy: { createdAt: "asc" },
-            include: {
-              member: { select: { id: true, fullName: true } },
-              country: { select: { name: true } },
-              region: { select: { name: true } },
-            },
-          },
-        },
-      })
-    : null;
+  // Links a login to its member record by verified email on first visit.
+  await getCurrentMemberForPortal();
+  const { registration, formProps } = await loadRegistrationForm(event, sessionUser);
+  const { key, ...form } = formProps;
 
   if (!open && !registration) return <Closed />;
 
@@ -225,129 +208,15 @@ async function SignedIn({
       </div>
     ) : null;
 
-  const household = member ? await getKnownPeople(member) : [];
-
-  const fields = parseRegistrationFields(event.registrationFields);
-
-  // Pre-fill person questions (food, allergies, …) from each person's most
-  // recent booking at another event. Matches by field id, so it works for
-  // the default fields and for forms copied between events.
-  const personFieldIds = new Set(
-    fields.filter((f) => f.scope === "person").map((f) => f.id),
-  );
-  const ids = [member?.id, ...household.map((h) => h.id)].filter(
-    (id): id is string => !!id,
-  );
-  const profiles = ids.length
-    ? await prisma.member.findMany({
-        where: { id: { in: ids } },
-        select: {
-          id: true,
-          countryId: true,
-          regionId: true,
-          cityId: true,
-          city: true,
-          countryRef: { select: { name: true } },
-          regionRef: { select: { name: true } },
-        },
-      })
-    : [];
-  const locations: Record<string, LocationValue> = Object.fromEntries(
-    profiles
-      .filter((p) => p.countryId)
-      .map((p) => [
-        p.id,
-        toLocation({ ...p, country: p.countryRef, region: p.regionRef }),
-      ]),
-  );
-
-  const previous = ids.length && personFieldIds.size
-    ? await prisma.eventAttendee.findMany({
-        where: { memberId: { in: ids }, eventId: { not: event.id } },
-        orderBy: { createdAt: "desc" },
-        distinct: ["memberId"],
-        select: { memberId: true, answers: true },
-      })
-    : [];
-
-  const existingRows: FormRow[] | null = registration
-    ? registration.attendees.map((a) => ({
-        key: a.id,
-        kind: a.memberId === member?.id ? "self" : "known",
-        memberId: a.memberId,
-        label: a.member.fullName,
-        relationship: a.relationship,
-        ageGroup: a.ageGroup ?? undefined,
-        priceTierId: a.priceTierId ?? undefined,
-        attendance: a.attendance,
-        location: a.countryId ? toLocation(a) : (locations[a.memberId] ?? toLocation(a)),
-        booked: { priceTierId: a.priceTierId, amount: a.amount?.toNumber() ?? null },
-        answers: (a.answers as Answers) ?? {},
-      }))
-    : null;
-
   return (
     <>
-    {paymentCard}
-    <RegistrationForm
-      // remount after save so new people become saved rows (no double-create)
-      key={registration?.updatedAt.toISOString() ?? "new"}
-      registerPath={registerPath}
-      event={{
-        id: event.id,
-        slug: event.slug,
-        type: event.type,
-        fields,
-        allowOnline: event.allowOnline,
-        paymentMode: event.paymentMode,
-        tiers: charges
-          ? event.priceTiers.map((t) => ({
-              id: t.id,
-              name: t.name,
-              description: t.description,
-              amount: t.amount.toNumber(),
-            }))
-          : [],
-        amountPaid: registration?.amountPaid.toNumber() ?? 0,
-      }}
-      open={open}
-      me={
-        member
-          ? {
-              id: member.id,
-              fullName: member.fullName,
-              email: member.email ?? sessionUser.email,
-              phone: member.phone,
-              // [city, region, country] to pre-fill location questions.
-              location: member.city
-                ? [
-                    member.city,
-                    member.regionRef?.name ?? member.region ?? "",
-                    member.countryRef?.name ?? member.country ?? "",
-                  ]
-                : null,
-            }
-          : null
-      }
-      sessionUser={{ name: sessionUser.name, email: sessionUser.email }}
-      household={household}
-      locations={locations}
-      previous={Object.fromEntries(
-        previous.map((p) => [
-          p.memberId,
-          Object.fromEntries(
-            Object.entries((p.answers ?? {}) as Answers).filter(([id]) =>
-              personFieldIds.has(id),
-            ),
-          ),
-        ]),
+      {paymentCard}
+      {form.draft && (
+        <p className="rounded-2xl border bg-muted p-4 text-sm">
+          Welcome back — we kept what you filled in last time.
+        </p>
       )}
-      existing={
-        registration && existingRows
-          ? { rows: existingRows, answers: (registration.answers as Answers) ?? {} }
-          : null
-      }
-    />
+      <RegistrationForm key={key} {...form} open={open} registerPath={registerPath} />
     </>
   );
 }
@@ -483,24 +352,6 @@ async function RegistrationDone({
       </p>
     </SuccessScreen>
   );
-}
-
-function toLocation(p: {
-  countryId: string | null;
-  regionId: string | null;
-  cityId: string | null;
-  city: string | null;
-  country: { name: string } | null;
-  region: { name: string } | null;
-}): LocationValue {
-  return {
-    countryId: p.countryId,
-    country: p.country?.name ?? "",
-    regionId: p.regionId,
-    region: p.region?.name ?? "",
-    cityId: p.cityId,
-    city: p.city ?? "",
-  };
 }
 
 function Closed() {

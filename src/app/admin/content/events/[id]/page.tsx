@@ -11,6 +11,7 @@ import {
   isRegistrationOpen,
 } from "@/lib/event-registration";
 import { chargesFees } from "@/lib/event-fees";
+import { getRegistrationProgress } from "@/lib/registration-drafts";
 import {
   CATEGORY_LABELS,
   eventTiming,
@@ -43,21 +44,25 @@ export default async function EventPage({ params }: Props) {
 
   // Registrations and rooms show people's details → only for roles with
   // registration access (content editors still get the overview and Edit).
-  const [canSeePeople, canEdit, canExport] = await Promise.all([
+  const [canSeePeople, canEdit, canExport, canManage, showContact] = await Promise.all([
     can("read", "EventRegistration"),
     can("update", "Event"),
     can("export", "EventRegistration"),
+    can("update", "EventRegistration"),
+    can("read", "MemberContact"),
   ]);
   const isCamp = event.type === "CAMP";
   // ponytail: loads every tab's data up front; fine for camp-sized events.
   const showFees = chargesFees(event.paymentMode);
-  const [rows, rooms, pending] = await Promise.all([
+  const [rows, rooms, pending, progress] = await Promise.all([
     canSeePeople ? getEventAttendeeRows(id) : null,
     canSeePeople && isCamp ? getEventRooms(id) : null,
     canSeePeople && event.paymentMode === "ONLINE" ? getPendingPaymentBookings(id) : [],
+    canSeePeople ? getRegistrationProgress(id) : null,
   ]);
   // Keep the tab after registration is switched off, if people registered.
-  const showRegistrations = !!rows && (event.registrationEnabled || rows.length > 0);
+  const showRegistrations =
+    !!rows && (event.registrationEnabled || rows.length > 0 || !!progress?.inProgress.length);
 
   const editHref = `/admin/content/events/${event.id}/edit`;
   const registerPath = `/events/${event.slug}/register`;
@@ -224,6 +229,9 @@ export default async function EventPage({ params }: Props) {
               fields={parseRegistrationFields(event.registrationFields)}
               showFees={showFees}
               pending={pending}
+              progress={progress!}
+              canManage={canManage}
+              showContact={showContact}
             />
           </TabsContent>
         )}

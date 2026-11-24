@@ -23,6 +23,8 @@ import { checkout, CheckoutError } from "@/lib/payments/checkout";
 import { resolveMemberLocation } from "@/lib/member-location";
 import { settlePaymentIntent } from "@/lib/payments/settle";
 import { formatMoney } from "@/lib/format";
+import { furthest, maxReminders, sendDraftReminder } from "@/lib/registration-drafts";
+import type { RegistrationStep } from "@/app/generated/prisma/client";
 import {
   createEventAccountSchema,
   parseRegistrationFields,
@@ -31,6 +33,8 @@ import {
   type Answers,
   type RegistrationSubmitInput,
   eventPaymentInputSchema,
+  registrationDraftSchema,
+  type RegistrationDraftInput,
 } from "@/lib/schemas/event-registration.schema";
 
 // Member-facing actions return errors instead of throwing: thrown messages
@@ -84,17 +88,30 @@ export async function createEventAccount(input: {
   // limit only covers its HTTP routes). Add one if sign-up spam shows up.
   const ctx = await auth.$context;
   const existing = await ctx.internalAdapter.findUserByEmail(email);
+  let userId = existing?.user.id;
   if (!existing) {
     try {
-      await ctx.internalAdapter.createUser({
+      const created = await ctx.internalAdapter.createUser({
         email,
         name,
         emailVerified: false,
         role: "member", // portal access only, not membership
       });
+      userId = created.id;
     } catch {
       // Lost a race with a parallel request — the user exists now; carry on.
+      userId = (await ctx.internalAdapter.findUserByEmail(email))?.user.id;
     }
+  }
+  // Start their draft so admins see who asked for a link but never came back.
+  if (userId) {
+    await prisma.eventRegistrationDraft
+      .upsert({
+        where: { eventId_userId: { eventId: event.id, userId } },
+        create: { eventId: event.id, userId },
+        update: {},
+      })
+      .catch((err) => log.error("event-registration", "draft start failed", { err }));
   }
 
   try {
@@ -107,6 +124,58 @@ export async function createEventAccount(input: {
     log.error("event-registration", "magic link failed", { err });
     return fail("We couldn't send the email. Please try again.");
   }
+  return { success: true, data: undefined };
+}
+
+/** Autosave of the signed-in person's own form. No-op once they have a booking. */
+export async function saveRegistrationDraft(eventId: string, input: RegistrationDraftInput): Promise<Result> {
+  const session = await getServerAuthSession();
+  if (!session) return fail("Please sign in first.");
+  return writeDraft(String(eventId), session.user.id, input, { admin: false });
+}
+
+/** Admin: save progress on someone's form for them. Bound to `userId` by the admin page. */
+export async function adminSaveRegistrationDraft(
+  userId: string,
+  eventId: string,
+  input: RegistrationDraftInput,
+): Promise<Result> {
+  await requirePermission("update", "EventRegistration");
+  return writeDraft(String(eventId), String(userId), input, { admin: true });
+}
+
+async function writeDraft(
+  eventId: string,
+  userId: string,
+  input: RegistrationDraftInput,
+  { admin }: { admin: boolean },
+): Promise<Result> {
+  const parsed = registrationDraftSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid draft");
+  const event = await prisma.event.findUnique({ where: { id: eventId }, select: eventSelect });
+  if (!event || (!admin && !isRegistrationOpen(event))) return fail("Registration is closed.");
+
+  // A late autosave after submitting must not reopen a finished registration.
+  const booked = await prisma.eventRegistration.findFirst({
+    where: { eventId, registrant: { userId } },
+    select: { id: true },
+  });
+  if (booked) return { success: true, data: undefined };
+
+  const step = parsed.data.step.toUpperCase() as RegistrationStep;
+  const prev = await prisma.eventRegistrationDraft.findUnique({
+    where: { eventId_userId: { eventId, userId } },
+    select: { step: true },
+  });
+  const data = parsed.data.data as Prisma.InputJsonObject;
+  // Admin edits don't count as the participant being active (reminders).
+  const activity = admin ? {} : { lastActiveAt: new Date() };
+  await prisma.eventRegistrationDraft.upsert({
+    where: { eventId_userId: { eventId, userId } },
+    create: { eventId, userId, step, data },
+    // completedAt cleared: they cancelled a booking and are starting again.
+    update: { step: prev ? furthest(prev.step, step) : step, data, completedAt: null, ...activity },
+  });
   return { success: true, data: undefined };
 }
 
@@ -126,7 +195,51 @@ export async function submitEventRegistration(
 ): Promise<Result<{ registrationId: string; payUrl?: string; paymentError?: string }>> {
   const session = await getServerAuthSession();
   if (!session) return fail("Please sign in first.");
+  return saveRegistration(input, {
+    user: session.user,
+    actorId: session.user.id,
+    admin: false,
+    notify: true,
+  });
+}
 
+/**
+ * Admin: save a booking on someone's behalf (also after registration closes).
+ * Never starts a checkout; an online balance stays owed and the emailed
+ * confirmation links them to pay. Bound to `userId` by the admin page.
+ */
+export async function adminSaveRegistration(
+  userId: string,
+  input: RegistrationSubmitInput,
+  opts?: { notify?: boolean },
+): Promise<Result<{ registrationId: string; payUrl?: string; paymentError?: string }>> {
+  const session = await requirePermission("update", "EventRegistration");
+  const user = await prisma.user.findUnique({
+    where: { id: String(userId) },
+    select: { id: true, email: true },
+  });
+  if (!user) return fail("That person's account no longer exists.");
+  return saveRegistration(input, {
+    user,
+    actorId: session.user.id,
+    admin: true,
+    notify: opts?.notify !== false,
+  });
+}
+
+type SaveContext = {
+  /** The registrant's login (the booking belongs to their Member). */
+  user: { id: string; email: string };
+  actorId: string;
+  /** Admin on their behalf: skips the open check and never starts payment. */
+  admin: boolean;
+  notify: boolean;
+};
+
+async function saveRegistration(
+  input: RegistrationSubmitInput,
+  ctx: SaveContext,
+): Promise<Result<{ registrationId: string; payUrl?: string; paymentError?: string }>> {
   const parsed = registrationSubmitSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Please check the form");
   const data = parsed.data;
@@ -135,7 +248,7 @@ export async function submitEventRegistration(
     where: { id: data.eventId },
     select: eventSelect,
   });
-  if (!event || !isRegistrationOpen(event)) return fail("Registration is closed.");
+  if (!event || (!ctx.admin && !isRegistrationOpen(event))) return fail("Registration is closed.");
 
   const fields = parseRegistrationFields(event.registrationFields);
   const isOnline = (a: { attendance: string }) => a.attendance === "ONLINE";
@@ -147,7 +260,7 @@ export async function submitEventRegistration(
   if (!bookingAnswers.ok) return fail(bookingAnswers.error);
 
   let me = await prisma.member.findUnique({
-    where: { userId: session.user.id },
+    where: { userId: ctx.user.id },
     select: { id: true, fullName: true, email: true, householdId: true },
   });
   if (!me && !data.self) return fail("Please fill in your details.");
@@ -269,11 +382,11 @@ export async function submitEventRegistration(
       if (!me) {
         me = await tx.member.create({
           data: {
-            userId: session.user.id,
+            userId: ctx.user.id,
             fullName: data.self!.fullName,
             phone: data.self!.phone,
             gender: data.self!.gender,
-            email: session.user.email,
+            email: ctx.user.email,
             // status defaults to VISITOR — registering never grants membership
           },
           select: { id: true, fullName: true, email: true, householdId: true },
@@ -389,6 +502,15 @@ export async function submitEventRegistration(
       }
 
       await syncRegistrationPayment(tx, registration.id);
+      if (!existing) {
+        // Keep the draft row (funnel + reminder stats); drop its answers.
+        const done = { step: "REVIEW" as const, data: Prisma.DbNull, completedAt: new Date() };
+        await tx.eventRegistrationDraft.upsert({
+          where: { eventId_userId: { eventId: event.id, userId: ctx.user.id } },
+          create: { eventId: event.id, userId: ctx.user.id, ...done },
+          update: done,
+        });
+      }
       // Tag everyone with the event (member-list filters) — not while awaiting payment.
       if (status === "CONFIRMED") await tagRegistrationAttendees(tx, [registration.id]);
 
@@ -405,15 +527,21 @@ export async function submitEventRegistration(
     action: existing ? "event_registration.update" : "event_registration.create",
     subject: "EventRegistration",
     subjectId: registrationId,
-    actorId: session.user.id,
-    meta: { eventId: event.id, attendees: resolved.length },
+    actorId: ctx.actorId,
+    meta: {
+      eventId: event.id,
+      attendees: resolved.length,
+      ...(ctx.admin ? { onBehalfOfUserId: ctx.user.id } : {}),
+    },
   });
 
-  if (status === "CONFIRMED") {
+  // Online bookings get their email once paid (settle), except when an admin
+  // books for them: then the email carries the balance and the pay link.
+  if (ctx.notify && (status === "CONFIRMED" || ctx.admin)) {
     await sendRegistrationConfirmation({
       registrationId,
       updated: !!existing,
-      to: me!.email ?? session.user.email,
+      to: me!.email ?? ctx.user.email,
     });
   }
 
@@ -421,8 +549,8 @@ export async function submitEventRegistration(
   revalidatePath(`/events/${event.slug}/register`);
   revalidatePath(`/admin/content/events/${event.id}`);
 
-  if (event.paymentMode === "ONLINE" && owes) {
-    const pay = await beginPayment(registrationId, session.user.email);
+  if (!ctx.admin && event.paymentMode === "ONLINE" && owes) {
+    const pay = await beginPayment(registrationId, ctx.user.email);
     // The booking is saved either way; the page offers "Complete payment".
     return pay.success
       ? { success: true, data: { registrationId, payUrl: pay.data.payUrl } }
@@ -617,7 +745,48 @@ export async function recordEventPayment(
   return { success: true, data: undefined };
 }
 
-/** Clear an abandoned online booking so the people on it can book again. */
+/** Admin: send one "finish your registration" reminder now (counts toward the limit). */
+export async function sendRegistrationReminder(draftId: string): Promise<Result> {
+  const session = await requirePermission("update", "EventRegistration");
+  const draft = await prisma.eventRegistrationDraft.findUnique({
+    where: { id: String(draftId) },
+    select: { id: true, eventId: true, remindersSent: true, user: { select: { emailVerified: true } } },
+  });
+  if (!draft) return fail("That registration is no longer in progress.");
+  if (draft.remindersSent >= maxReminders(draft.user.emailVerified)) {
+    return fail("They've already had the maximum number of reminders.");
+  }
+  const sent = await sendDraftReminder(draft.id, draft.remindersSent);
+  if (!sent) return fail("No reminder sent: they've booked, or registration has closed.");
+  await logAudit({
+    action: "event_registration.remind",
+    subject: "EventRegistration",
+    subjectId: draft.id,
+    actorId: session.user.id,
+    meta: { eventId: draft.eventId },
+  });
+  revalidatePath(`/admin/content/events/${draft.eventId}`);
+  return { success: true, data: undefined };
+}
+
+/** Admin: remove a draft (e.g. a duplicate or someone who isn't coming). */
+export async function discardRegistrationDraft(draftId: string): Promise<Result> {
+  const session = await requirePermission("delete", "EventRegistration");
+  const draft = await prisma.eventRegistrationDraft
+    .delete({ where: { id: String(draftId) }, select: { eventId: true } })
+    .catch(() => null);
+  if (!draft) return fail("That registration is no longer in progress.");
+  await logAudit({
+    action: "event_registration.discard_draft",
+    subject: "EventRegistration",
+    subjectId: String(draftId),
+    actorId: session.user.id,
+    meta: { eventId: draft.eventId },
+  });
+  revalidatePath(`/admin/content/events/${draft.eventId}`);
+  return { success: true, data: undefined };
+}
+
 /**
  * Admin: delete a whole booking and its attendees. Bookings with money
  * against them are refused (deleting would orphan ledger incomes); finance

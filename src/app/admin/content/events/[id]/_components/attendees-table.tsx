@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useOptimistic, useTransition } from "react";
+import Link from "next/link";
+import { Button } from "@/app/components/ui/button";
 import { setAttendeeCheckIn } from "@/actions/event-registrations";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -169,12 +171,21 @@ const actionsColumn = col.display({
   header: () => <span className="sr-only">Actions</span>,
   cell: ({ row }) =>
     row.original.leadsBooking ? (
-      <DeleteBookingButton
-        registrationId={row.original.registrationId}
-        bookedBy={row.original.bookedBy}
-        people={row.original.bookingPeople}
-        amountPaid={row.original.payment.amountPaid}
-      />
+      <div className="flex justify-end">
+        {row.original.bookedByUserId && (
+          <Button asChild variant="ghost" size="sm">
+            <Link href={`/admin/content/events/${row.original.eventId}/register/${row.original.bookedByUserId}`}>
+              Edit
+            </Link>
+          </Button>
+        )}
+        <DeleteBookingButton
+          registrationId={row.original.registrationId}
+          bookedBy={row.original.bookedBy}
+          people={row.original.bookingPeople}
+          amountPaid={row.original.payment.amountPaid}
+        />
+      </div>
     ) : null,
   enableSorting: false,
   enableHiding: false,

@@ -127,7 +127,7 @@ export async function getEventAttendeeRows(eventId: string) {
       country: { select: { name: true } },
       region: { select: { name: true } },
       registration: {
-        include: { registrant: { select: { fullName: true, phone: true, email: true } } },
+        include: { registrant: { select: { fullName: true, phone: true, email: true, userId: true } } },
       },
     },
   });
@@ -136,6 +136,7 @@ export async function getEventAttendeeRows(eventId: string) {
     const r = a.registration;
     return {
       id: a.id,
+      eventId: a.eventId,
       registrationId: r.id,
       name: a.member.fullName,
       phone: a.member.phone ?? "",
@@ -145,6 +146,8 @@ export async function getEventAttendeeRows(eventId: string) {
       relationship: REL_LABELS[a.relationship] ?? a.relationship,
       bookedBy: r.registrant.fullName,
       bookedByContact: r.registrant.phone || r.registrant.email || "",
+      /** Login of the person who booked, for "edit on their behalf". */
+      bookedByUserId: r.registrant.userId,
       ageGroup: a.ageGroup ? AGE_LABELS[a.ageGroup] : "",
       attendance: a.attendance === "ONLINE" ? "Online" : "In person",
       country: a.country?.name ?? "",

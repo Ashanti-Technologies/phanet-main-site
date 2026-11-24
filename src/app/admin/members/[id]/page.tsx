@@ -30,6 +30,8 @@ import {
 } from "@/app/components/ui/tabs";
 import { MemberActions } from "./_components/member-actions";
 import { PastoralCareTabs } from "./_components/pastoral-care-tabs";
+import { DuplicateMembers, type DuplicateRow } from "./_components/duplicate-members";
+import { findLikelyDuplicates } from "@/lib/member-merge";
 
 function initials(name: string) {
   return (
@@ -111,6 +113,8 @@ export default async function MemberDetailPage({
     }),
     canSeePrayers ? getPrayerMatchesForMember({ ...member, email: matchEmail, phone: contact?.phone ?? null }) : [],
   ]);
+
+  const duplicates = await loadDuplicates(member.id, canEdit);
 
   const pastoralProps = {
     memberId: member.id,
@@ -203,6 +207,10 @@ export default async function MemberDetailPage({
           />
         </div>
       </div>
+
+      {duplicates.length > 0 && (
+        <DuplicateMembers memberId={member.id} memberName={member.fullName} rows={duplicates} />
+      )}
 
       <Tabs defaultValue="profile" className="space-y-4">
         <TabsList>
@@ -441,6 +449,34 @@ export default async function MemberDetailPage({
       </Tabs>
     </div>
   );
+}
+
+/** Look-alike records this admin may see; merge is offered only where they could also edit and delete. */
+async function loadDuplicates(memberId: string, canEditThis: boolean): Promise<DuplicateRow[]> {
+  const found = await findLikelyDuplicates(memberId);
+  if (!found.length) return [];
+  const others = await prisma.member.findMany({
+    where: { id: { in: found.map((f) => f.id) } },
+    select: { id: true, fullName: true, status: true, userId: true, createdAt: true, units: { select: { unitId: true } } },
+  });
+  const rows = await Promise.all(
+    others.map(async (o) => {
+      const policy = { userId: o.userId, unitIds: o.units.map((u) => u.unitId) };
+      if (!(await can("read", "Member", policy))) return null;
+      const canMerge =
+        canEditThis && (await can("delete", "Member", policy)) && (await can("read", "MemberContact", policy));
+      return {
+        id: o.id,
+        name: o.fullName,
+        status: o.status,
+        hasLogin: !!o.userId,
+        createdAt: o.createdAt.toISOString(),
+        reasons: found.find((f) => f.id === o.id)!.reasons,
+        canMerge,
+      };
+    }),
+  );
+  return rows.filter((r) => r !== null);
 }
 
 async function getPrayerMatchesForMember(member: NonNullable<Awaited<ReturnType<typeof getMemberById>>>) {

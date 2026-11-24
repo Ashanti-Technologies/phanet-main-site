@@ -16,6 +16,8 @@ import {
   AccordionTrigger,
 } from "@/app/components/animate-ui/components/radix/accordion";
 import { AttendeesTable } from "./attendees-table";
+import { DiscardDraftButton, RemindButton } from "./draft-actions";
+import type { RegistrationProgress } from "@/lib/registration-drafts";
 
 export function RegistrationsPanel({
   eventId,
@@ -24,6 +26,9 @@ export function RegistrationsPanel({
   fields,
   showFees,
   pending,
+  progress,
+  canManage,
+  showContact,
 }: {
   eventId: string;
   isCamp: boolean;
@@ -33,7 +38,15 @@ export function RegistrationsPanel({
   showFees: boolean;
   /** Online bookings awaiting payment; not in `rows` until paid. */
   pending: PendingBooking[];
+  /** Registration funnel and unfinished forms. */
+  progress: RegistrationProgress;
+  /** May open, remind and discard drafts (events.manage). */
+  canManage: boolean;
+  /** May see email/phone (members.contact). */
+  showContact: boolean;
 }) {
+  const hasDetailsStep = fields.some((f) => f.scope === "booking");
+  const funnelSteps = progress.funnel.steps.filter((s) => s.step !== "DETAILS" || hasDetailsStep);
   const fees = showFees ? feeTotals(rows) : null;
   const bookings = new Set(rows.map((r) => r.registrationId)).size;
   const checkedIn = rows.filter((r) => r.checkedIn).length;
@@ -138,6 +151,76 @@ export function RegistrationsPanel({
             </AccordionItem>
           ))}
         </Accordion>
+      )}
+
+      {progress.funnel.started > 0 && (
+        <section className="rounded-xl border bg-card">
+          <div className="border-b px-5 py-3">
+            <h3 className="text-sm font-medium">Registration progress</h3>
+            <p className="text-xs text-muted-foreground">
+              Everyone who started the form since progress tracking began, by the furthest step they reached.
+              {progress.funnel.reminded > 0 &&
+                ` ${progress.funnel.completedAfterReminder} of ${progress.funnel.reminded} reminded finished afterwards.`}
+            </p>
+          </div>
+          <ol className="flex flex-wrap gap-px bg-border">
+            {[
+              ...funnelSteps.map((s, i) => ({ label: i === 0 ? "Started" : s.label, count: s.count })),
+              { label: "Booked", count: progress.funnel.completed },
+            ].map((s) => (
+              <li key={s.label} className="min-w-28 flex-1 bg-card px-4 py-3">
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+                <p className="font-mono text-lg font-semibold tabular-nums">
+                  {s.count}
+                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                    {Math.round((s.count / progress.funnel.started) * 100)}%
+                  </span>
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {progress.inProgress.length > 0 && (
+        <section className="rounded-xl border bg-card">
+          <div className="border-b px-5 py-3">
+            <h3 className="text-sm font-medium">In progress ({progress.inProgress.length})</h3>
+            <p className="text-xs text-muted-foreground">
+              Started but not finished. Reminders go out automatically after a day without activity.
+            </p>
+          </div>
+          <ul className="divide-y">
+            {progress.inProgress.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium">{d.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[
+                      showContact && [d.email, d.phone].filter(Boolean).join(" · "),
+                      `Reached: ${d.stepLabel}`,
+                      d.people > 0 && `${d.people} ${d.people === 1 ? "person" : "people"}`,
+                      `active ${relTime(d.lastActiveAt)}`,
+                      d.remindersSent > 0 &&
+                        `reminded ${d.remindersSent}× (last ${relTime(d.lastRemindedAt!)})`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                {canManage && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/admin/content/events/${eventId}/register/${d.userId}`}>Open</Link>
+                    </Button>
+                    <RemindButton draftId={d.id} disabled={!d.canRemind} />
+                    <DiscardDraftButton draftId={d.id} name={d.name} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {pending.length > 0 && (
