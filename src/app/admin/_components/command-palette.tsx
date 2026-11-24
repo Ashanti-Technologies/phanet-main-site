@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  Library,
   Monitor,
   Moon,
   Plus,
@@ -105,6 +106,12 @@ export function CommandPalette({ allowed }: { allowed: string[] }) {
           icon: <MessageSquare className="h-4 w-4" />,
           href: "/admin/content/sermons",
           onSelect: go("/admin/content/sermons"),
+        },
+        {
+          label: "Library",
+          icon: <Library className="h-4 w-4" />,
+          href: "/admin/content/library",
+          onSelect: go("/admin/content/library"),
         },
         {
           label: "Projects",

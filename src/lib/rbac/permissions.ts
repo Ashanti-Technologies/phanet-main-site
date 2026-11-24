@@ -42,6 +42,7 @@ export const SUBJECTS = [
   "Event",
   "ContentPage",
   "Sermon",
+  "Publication",
   "HomepageSection",
   "MediaAsset",
   "PrayerRequest",

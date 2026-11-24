@@ -1424,6 +1424,75 @@ model SermonFeature {
 }
 
 // ============================================
+// LIBRARY (publications by network members)
+// ============================================
+
+enum PublicationKind {
+  BOOK
+  DEVOTIONAL
+  BOOKLET
+  MAGAZINE
+}
+
+/// FREE: read in full (+ download if allowed). AMAZON: no PDF, buy link only.
+/// PAID: preview pages only until Paystack sales ship.
+enum PublicationAccess {
+  FREE
+  AMAZON
+  PAID
+}
+
+model Author {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  /// One line under the name, e.g. "Founder, PHANET".
+  subtext      String?
+  avatarUrl    String?
+  order        Int           @default(0)
+  publications Publication[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([order])
+  @@map("author")
+}
+
+model Publication {
+  id           String            @id @default(cuid())
+  slug         String            @unique
+  title        String
+  subtitle     String?
+  description  String?           @db.Text
+  kind         PublicationKind   @default(BOOK)
+  year         Int?
+  authorId     String
+  author       Author            @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  access       PublicationAccess @default(FREE)
+  /// Cloudinary public id of the PDF, uploaded as `authenticated` so pages are only reachable through signed URLs.
+  pdfPublicId  String?
+  pageCount    Int?
+  /// PAID: pages anyone can read before buying.
+  previewPages Int               @default(10)
+  /// FREE: download allowed. PAID: download after purchase (Phase 2).
+  downloadable Boolean           @default(true)
+  /// Overrides page 1 of the PDF; required when there is no PDF.
+  coverUrl     String?
+  backCoverUrl String?
+  spineColor   String            @default("#7c2d12")
+  /// AMAZON: the store page.
+  buyUrl       String?
+  status       PublishStatus     @default(DRAFT)
+  order        Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([authorId])
+  @@index([status, order])
+  @@map("publication")
+}
+
+// ============================================
 // PRAYER REQUESTS
 // ============================================
 

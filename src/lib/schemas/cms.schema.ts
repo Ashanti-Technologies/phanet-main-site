@@ -6,7 +6,7 @@ import {
 
 export const publishStatusSchema = z.enum(["DRAFT", "PUBLISHED"]);
 
-const optionalUrlSchema = z
+export const optionalUrlSchema = z
   .url("Must be a valid URL")
   .trim()
   .or(z.literal(""))

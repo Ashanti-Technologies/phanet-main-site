@@ -30,6 +30,7 @@ import {
   ScrollText,
   Repeat,
   Plug,
+  Library,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ export type NavIconName =
   | "pages"
   | "homepage"
   | "sermons"
+  | "library"
   | "projects"
   | "prayerRequests"
   | "users"
@@ -69,6 +71,7 @@ const icons: Record<NavIconName, LucideIcon> = {
   pages: FileText,
   homepage: Home,
   sermons: MessageSquare,
+  library: Library,
   projects: FolderKanban,
   prayerRequests: HeartHandshake,
   users: Users,

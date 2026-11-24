@@ -12,6 +12,7 @@ const navItems = [
   { label: "New Here?", href: "/new-here" },
   { label: "About", href: "/about" },
   { label: "Messages", href: "/messages" },
+  { label: "Library", href: "/library" },
   { label: "Events", href: "/events" },
   { label: "eGroups", href: "/egroups" },
   { label: "Chapters", href: "/chapters" },

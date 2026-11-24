@@ -1,12 +1,16 @@
 import { APP_CONFIG } from '@/constants'
 import { MetadataRoute } from 'next'
 import { getAllEvents } from '@/lib/events-data'
+import { prisma } from '@/lib/database'
 
 // Hourly, so newly published events show up without a redeploy.
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const events = await getAllEvents()
+    const [events, books] = await Promise.all([
+        getAllEvents(),
+        prisma.publication.findMany({ where: { status: 'PUBLISHED' }, select: { slug: true, updatedAt: true } }),
+    ])
     return [
         {
             url: APP_CONFIG.siteUrl,
@@ -32,6 +36,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'daily',
             priority: 0.9,
         },
+        {
+            url: `${APP_CONFIG.siteUrl}/library`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        ...books.map((book) => ({
+            url: `${APP_CONFIG.siteUrl}/library/${book.slug}`,
+            lastModified: book.updatedAt,
+            changeFrequency: 'monthly' as const,
+            priority: 0.6,
+        })),
         ...events.map((event) => ({
             url: `${APP_CONFIG.siteUrl}/events/${event.slug}`,
             lastModified: event.updatedAt ? new Date(event.updatedAt) : new Date(),
