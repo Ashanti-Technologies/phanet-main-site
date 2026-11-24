@@ -1,4 +1,4 @@
-import { EmailLayout } from "./_layout/EmailLayout";
+import { BRAND, EmailLayout } from "./_layout/EmailLayout";
 
 export interface BrandedTextEmailProps {
   preview: string;
@@ -17,7 +17,7 @@ export function BrandedTextEmail({ preview, htmlBody }: BrandedTextEmailProps) {
         style={{
           fontSize: "15px",
           lineHeight: "24px",
-          color: "#334155",
+          color: BRAND.body,
         }}
         dangerouslySetInnerHTML={{ __html: htmlBody }}
       />
