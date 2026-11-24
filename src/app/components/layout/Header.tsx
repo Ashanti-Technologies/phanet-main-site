@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Sheet, SheetTrigger, SheetContent } from "../ui/sheet";
@@ -31,6 +32,7 @@ function initialsFor(name: string | null | undefined) {
 }
 
 export default function Header({ banner }: { banner?: React.ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const { data: session, isPending } = authClient.useSession();
   const sessionUser = session?.user as
     | ({ role?: string } & NonNullable<typeof session>["user"])
@@ -45,7 +47,7 @@ export default function Header({ banner }: { banner?: React.ReactNode }) {
   return (
     <div className="fixed top-0 left-0 z-50 w-full">
       {banner}
-    <header className="w-full flex items-center justify-between px-12 py-3 transition-colors duration-300 border-b border-b-black/40 bg-black/70 backdrop-blur-md">
+    <header className="w-full flex items-center justify-between px-6 sm:px-8 lg:px-12 py-3 transition-colors duration-300 border-b border-b-black/40 bg-black/70 backdrop-blur-md">
       <div className="flex items-center">
         <Link href="/">
           <Image
@@ -93,7 +95,7 @@ export default function Header({ banner }: { banner?: React.ReactNode }) {
       </nav>
 
       {/* Mobile Navigation */}
-      <Sheet>
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetTrigger asChild>
           <button
             aria-label="Open menu"
@@ -118,9 +120,15 @@ export default function Header({ banner }: { banner?: React.ReactNode }) {
         </SheetTrigger>
         <SheetContent
           side="left"
-          className="p-0 w-72 bg-black/95 border-r border-white/10"
+          className="p-0 w-72 bg-black/95 border-r border-white/10 text-white"
         >
-          <div className="flex flex-col h-full">
+          {/* Any link tap closes the drawer -- incl. same-page links like the logo on "/". */}
+          <div
+            className="flex flex-col h-full"
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest("a")) setMenuOpen(false);
+            }}
+          >
             {/* Sheet Header with Logo */}
             <div className="p-6 border-b border-white/10">
               <Link href="/">
