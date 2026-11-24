@@ -24,15 +24,13 @@ export async function getSessionOrNull() {
 }
 
 /**
- * Require authentication — redirects to login if missing.
+ * Require authentication — redirects to `loginPath` if missing.
  */
-export async function requireAuth(redirectTo?: string) {
+export async function requireAuth(loginPath = "/auth/login") {
   const session = await getServerAuthSession();
   if (!session?.user) {
-    const headersList = await headers();
-    const pathname = headersList.get("x-pathname") || "/";
-    const callbackUrl = redirectTo || pathname;
-    redirect(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    const pathname = (await headers()).get("x-pathname") || "/";
+    redirect(`${loginPath}?callbackUrl=${encodeURIComponent(pathname)}`);
   }
   return session;
 }
