@@ -13,6 +13,7 @@ const LABELS: Record<string, string> = {
   pages: "Pages",
   homepage: "Homepage",
   testimonials: "Testimonials",
+  guests: "New guests",
   sermons: "Sermons",
   library: "Library",
   authors: "Authors",

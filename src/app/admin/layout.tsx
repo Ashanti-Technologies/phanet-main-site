@@ -106,6 +106,7 @@ const navigation: NavGroup[] = [
         href: "/admin/tasks",
         icon: "tasks",
       },
+      { name: "New guests", href: "/admin/guests", icon: "guests" },
       {
         name: "Prayer requests",
         href: "/admin/prayer-requests",

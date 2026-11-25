@@ -37,6 +37,7 @@ export async function createChurchUnit(data: ChurchUnitCreateInput) {
     data: {
       name: validated.name,
       isActive: validated.isActive,
+      kind: validated.kind,
       order: validated.order ?? (maxOrder._max.order ?? 0) + 1,
     },
   });
@@ -63,10 +64,12 @@ export async function updateChurchUnit(data: ChurchUnitUpdateInput) {
         isActive: updateData.isActive,
       }),
       ...(typeof updateData.order === "number" && { order: updateData.order }),
+      ...(updateData.kind && { kind: updateData.kind }),
     },
   });
 
   revalidatePath("/admin/settings/church-units");
+  revalidatePath("/new-here"); // chapter list on the guest form
 
   return { success: true, churchUnit };
 }

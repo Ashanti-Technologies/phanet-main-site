@@ -39,6 +39,7 @@ export const ROUTE_NEEDS: Record<string, [Action, Subject]> = {
   "/admin/projects": ["read", "Project"],
   "/admin/projects/new": ["create", "Project"],
   "/admin/tasks": ["access", "AdminPanel"],
+  "/admin/guests": ["read", "Guest"],
   "/admin/prayer-requests": ["read", "PrayerRequest"],
   "/admin/reports/growth": ["read", "Report"],
   "/admin/reports/demographics": ["read", "Report"],

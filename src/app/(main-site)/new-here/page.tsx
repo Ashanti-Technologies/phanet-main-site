@@ -6,6 +6,8 @@ import ElimHourLiveCard from "../_components/ElimHourLiveCard";
 import LatestMessage from "../_components/LatestMessage";
 import Testimonials from "../_components/Testimonials";
 import AskElimButton from "./_components/AskElimButton";
+import PlanVisitForm from "./_components/PlanVisitForm";
+import { getFirstVisitOptions } from "@/actions/guests";
 import {
   Accordion,
   AccordionContent,
@@ -85,8 +87,8 @@ const STEPS = [
   {
     title: "Come",
     text: "Join Elim Hour this Sunday. Watch, worship and pray along.",
-    href: "#elim-hour",
-    cta: "Next service",
+    href: "#plan-your-visit",
+    cta: "Plan your first Sunday",
   },
   {
     title: "Connect",
@@ -178,7 +180,7 @@ async function getChairmanNote() {
 }
 
 export default async function NewHerePage() {
-  const chairmanNote = await getChairmanNote();
+  const [chairmanNote, visitOptions] = await Promise.all([getChairmanNote(), getFirstVisitOptions()]);
 
   return (
     <main>
@@ -218,10 +220,10 @@ export default async function NewHerePage() {
           </ul>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <a
-              href="#elim-hour"
+              href="#plan-your-visit"
               className="px-6 py-3 rounded-full font-medium bg-crayola text-white hover:bg-crayola/90 transition-colors"
             >
-              Join Elim Hour this Sunday
+              Plan your first Sunday
             </a>
             <a
               href="#faq"
@@ -264,8 +266,32 @@ export default async function NewHerePage() {
         </div>
       </section>
 
+      {/* Plan your first Sunday */}
+      <section id="plan-your-visit" className="scroll-mt-24 py-20 bg-antiflash-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-10 lg:gap-16 items-start max-w-6xl">
+          <div>
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-crayola text-white">
+              Plan your visit
+            </span>
+            <h2 className="mt-5 text-3xl sm:text-4xl font-bold text-gray-900">
+              Plan your first Sunday
+            </h2>
+            <p className="mt-4 text-lg text-gray-700">
+              Tell us you&apos;re coming and we&apos;ll make sure you don&apos;t
+              miss it.
+            </p>
+            <ul className="mt-6 space-y-3 text-gray-700">
+              <li>• A reminder on the day, with the YouTube link</li>
+              <li>• A welcome from your nearest chapter</li>
+              <li>• Prayer for anything you&apos;re carrying</li>
+            </ul>
+          </div>
+          <PlanVisitForm sundays={visitOptions.sundays} chapters={visitOptions.chapters} />
+        </div>
+      </section>
+
       {/* A note from the Chairman */}
-      <section id="chairman" className="scroll-mt-24 py-20 bg-antiflash-white">
+      <section id="chairman" className="scroll-mt-24 py-20 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,18rem)_1fr] gap-10 lg:gap-16 items-center max-w-5xl mx-auto">
             <div className="relative aspect-square w-full max-w-xs mx-auto rounded-2xl overflow-hidden shadow-xl">
@@ -317,7 +343,7 @@ export default async function NewHerePage() {
       </section>
 
       {/* Find your place */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-antiflash-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 max-w-2xl mx-auto">
             <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-cerulean text-white">
@@ -329,7 +355,7 @@ export default async function NewHerePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {PATHS.map((path) => (
-              <div key={path.eyebrow} className="bg-antiflash-white rounded-2xl p-7 flex flex-col">
+              <div key={path.eyebrow} className="bg-white rounded-2xl p-7 flex flex-col">
                 <span className={`text-sm font-semibold uppercase tracking-wider ${path.accent}`}>
                   {path.eyebrow}
                 </span>
@@ -436,10 +462,10 @@ export default async function NewHerePage() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <AskElimButton className="px-6 py-3 rounded-full font-medium bg-crayola text-white hover:bg-crayola/90 transition-colors" />
             <a
-              href="#elim-hour"
+              href="#plan-your-visit"
               className="px-6 py-3 rounded-full font-medium border-2 border-white/80 text-white hover:bg-white/10 transition-colors"
             >
-              Next Elim Hour
+              Plan your first Sunday
             </a>
           </div>
         </div>

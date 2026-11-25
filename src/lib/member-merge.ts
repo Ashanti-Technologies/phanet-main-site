@@ -68,6 +68,7 @@ export async function mergeMembers(keepId: string, dropId: string): Promise<Merg
     await Promise.all([
       tx.visitation.updateMany({ where: from, data: to }),
       tx.followUpTask.updateMany({ where: from, data: to }),
+      tx.guest.updateMany({ where: from, data: to }),
       tx.memberNote.updateMany({ where: from, data: to }),
       tx.income.updateMany({ where: from, data: to }),
       tx.paymentIntent.updateMany({ where: from, data: to }),

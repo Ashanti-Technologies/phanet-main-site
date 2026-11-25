@@ -8,6 +8,7 @@ export async function GET() {
     ...report.ageBuckets.map((row) => ({ section: "age", ...row })),
     ...report.genderSplit.map((row) => ({ section: "gender", ...row })),
     ...report.unitDistribution.map((row) => ({ section: "unit", ...row })),
+    ...report.heardFrom.map((row) => ({ section: "heard_from", ...row })),
   ]);
   return new Response(csv, {
     headers: {

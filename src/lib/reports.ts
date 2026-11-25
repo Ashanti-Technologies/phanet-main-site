@@ -1,3 +1,4 @@
+import { HEARD_FROM_LABELS } from "@/lib/schemas/guest.schema";
 import { prisma } from "@/lib/database";
 import { summarizeLedger } from "@/lib/finance-summary";
 
@@ -72,6 +73,8 @@ export async function getDemographicsReport() {
     },
   });
 
+  const heard = await prisma.guest.groupBy({ by: ["heardFrom"], _count: { _all: true } });
+
   const ages = new Map<string, number>();
   const genders = new Map<string, number>();
   const units = new Map<string, number>();
@@ -95,6 +98,10 @@ export async function getDemographicsReport() {
     })),
     unitDistribution: Array.from(units.entries())
       .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value),
+    /** New Here guest sign-ups, by "How did you hear about PHANET?". */
+    heardFrom: heard
+      .map((h) => ({ label: HEARD_FROM_LABELS[h.heardFrom], value: h._count._all }))
       .sort((a, b) => b.value - a.value),
   };
 }

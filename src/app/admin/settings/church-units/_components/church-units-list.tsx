@@ -24,6 +24,7 @@ interface ChurchUnit {
   id: string;
   name: string;
   isActive: boolean;
+  kind: "DEPARTMENT" | "CHAPTER";
   order: number;
 }
 
@@ -74,6 +75,23 @@ export function ChurchUnitsList({ initialUnits }: ChurchUnitsListProps) {
     }
   }
 
+  async function handleToggleChapter(unit: ChurchUnit) {
+    const kind = unit.kind === "CHAPTER" ? "DEPARTMENT" : "CHAPTER";
+    setUpdatingIds(new Set([...updatingIds, unit.id]));
+    try {
+      await updateChurchUnit({ id: unit.id, kind });
+      setUnits(units.map((u) => (u.id === unit.id ? { ...u, kind } : u)));
+    } catch (error) {
+      console.error("Failed to update:", error);
+    } finally {
+      setUpdatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(unit.id);
+        return next;
+      });
+    }
+  }
+
   async function handleDelete(id: string) {
     await deleteChurchUnit(id);
     setUnits((us) => us.filter((u) => u.id !== id));
@@ -85,7 +103,9 @@ export function ChurchUnitsList({ initialUnits }: ChurchUnitsListProps) {
         <CardTitle>Ministry family options</CardTitle>
         <CardDescription>
           Define the options available in the commitment form dropdown. Users
-          can also enter free text if their unit is not listed.
+          can also enter free text if their unit is not listed. Units marked
+          &ldquo;Chapter&rdquo; are offered to new guests on the New Here page,
+          and each chapter&apos;s team sees its own guests.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -120,6 +140,20 @@ export function ChurchUnitsList({ initialUnits }: ChurchUnitsListProps) {
               >
                 <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
                 <span className="flex-1 font-medium">{unit.name}</span>
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor={`chapter-${unit.id}`}
+                    className="text-xs text-muted-foreground"
+                  >
+                    Chapter
+                  </Label>
+                  <Switch
+                    id={`chapter-${unit.id}`}
+                    checked={unit.kind === "CHAPTER"}
+                    onCheckedChange={() => handleToggleChapter(unit)}
+                    disabled={updatingIds.has(unit.id)}
+                  />
+                </div>
                 <div className="flex items-center gap-2">
                   <Label
                     htmlFor={`active-${unit.id}`}

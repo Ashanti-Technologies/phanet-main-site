@@ -81,16 +81,17 @@ const DEFS: PermissionDef[] = [
 
   // Pastoral care (instances carry the member's unitIds)
   {
-    key: "care.view", area: "care", level: "view", label: "View visits, tasks and general notes",
+    key: "care.view", area: "care", level: "view", label: "View visits, tasks, new guests and general notes",
     rules: [
-      { action: "read", subject: ["Visitation", "FollowUpTask"], unit: true },
+      { action: "read", subject: ["Visitation", "FollowUpTask", "Guest"], unit: true },
       { action: "read", subject: "Note", conditions: { visibility: "GENERAL" }, unit: true },
     ],
   },
   {
-    key: "care.edit", area: "care", level: "edit", label: "Log visits, assign tasks, write general notes",
+    key: "care.edit", area: "care", level: "edit", label: "Log visits, assign tasks and guests, write general notes",
     rules: [
       { action: WRITE, subject: ["Visitation", "FollowUpTask"], unit: true },
+      { action: "update", subject: "Guest", unit: true },
       { action: WRITE, subject: "Note", conditions: { visibility: "GENERAL" }, unit: true },
     ],
   },

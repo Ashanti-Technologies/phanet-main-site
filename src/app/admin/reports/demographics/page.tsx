@@ -13,7 +13,7 @@ export default async function DemographicsReportPage() {
     <div className="space-y-6">
       <ReportHeader
         title="Demographics report"
-        description="Age, gender, and unit distribution across the directory."
+        description="Age, gender, unit distribution, and how new guests heard about us."
         exportHref="/admin/reports/demographics/export"
       />
       <Stat label="Members counted" value={report.totalMembers} />
@@ -41,6 +41,20 @@ export default async function DemographicsReportPage() {
         </CardHeader>
         <CardContent>
           <ReportBarChart data={report.unitDistribution.slice(0, 12)} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">How new guests heard about PHANET</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {report.heardFrom.length ? (
+            <ReportBarChart data={report.heardFrom} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No guest sign-ups yet. They come from the New Here page.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

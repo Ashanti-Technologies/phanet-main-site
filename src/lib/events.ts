@@ -159,6 +159,12 @@ export function getNextOccurrence(
   return next;
 }
 
+/** The next `count` Elim Hours (weekly, so each is 7 days after the last). */
+export function upcomingElimHours(count: number, now?: Date): Date[] {
+  const first = getNextOccurrence(ELIM_HOUR.recurrence!, now);
+  return Array.from({ length: count }, (_, i) => new Date(first.getTime() + i * 7 * 86_400_000));
+}
+
 export function getNextElimHour(now?: Date): { date: Date; event: Event } {
   return {
     date: getNextOccurrence(ELIM_HOUR.recurrence!, now),

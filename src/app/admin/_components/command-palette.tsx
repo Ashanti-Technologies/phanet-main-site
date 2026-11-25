@@ -27,6 +27,7 @@ import {
   BarChart3,
   Wallet,
   Quote,
+  UserPlus,
 } from "lucide-react";
 
 type Item = {
@@ -160,6 +161,13 @@ export function CommandPalette({ allowed }: { allowed: string[] }) {
           href: "/admin/tasks",
           onSelect: go("/admin/tasks"),
           keywords: ["follow up", "pastoral"],
+        },
+        {
+          label: "New guests",
+          icon: <UserPlus className="h-4 w-4" />,
+          href: "/admin/guests",
+          onSelect: go("/admin/guests"),
+          keywords: ["visitors", "first time", "follow up"],
         },
         {
           label: "Prayer requests",

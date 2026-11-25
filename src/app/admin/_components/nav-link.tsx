@@ -33,6 +33,7 @@ import {
   Library,
   Images,
   Quote,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ export type NavIconName =
   | "pages"
   | "homepage"
   | "testimonials"
+  | "guests"
   | "sermons"
   | "library"
   | "gallery"
@@ -80,6 +82,7 @@ const icons: Record<NavIconName, LucideIcon> = {
   gallery: Images,
   projects: FolderKanban,
   prayerRequests: HeartHandshake,
+  guests: UserPlus,
   users: Users,
   churchUnits: Settings,
   members: UsersRound,

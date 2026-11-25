@@ -158,6 +158,24 @@ enum EventRsvpStatus {
   CANCELLED
 }
 
+/// "How did you hear about PHANET?" on the /new-here guest form.
+enum HeardFrom {
+  FRIEND_FAMILY
+  SOCIAL_MEDIA
+  YOUTUBE
+  CHURCH
+  CAMPUS
+  EVENT
+  SEARCH
+  OTHER
+}
+
+/// Departments (Choir, Protocol…) vs chapters (regional/campus). Guests pick a chapter.
+enum UnitKind {
+  DEPARTMENT
+  CHAPTER
+}
+
 enum PhanetLifeStage {
   WORKING_PROFESSIONAL
   TERTIARY_STUDENT
@@ -303,6 +321,7 @@ model Member {
   recurringGifts           RecurringGift[]
   householdInvitesSent     HouseholdInvite[]    @relation("HouseholdInviteFrom")
   householdInvitesReceived HouseholdInvite[]    @relation("HouseholdInviteTo")
+  guests                   Guest[]
   createdAt                DateTime             @default(now())
   updatedAt                DateTime             @default(now()) @updatedAt
 
@@ -450,6 +469,7 @@ model FollowUpTask {
   notes        String?            @db.Text
   dueAt        DateTime?
   status       FollowUpTaskStatus @default(OPEN)
+  guest        Guest?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @default(now()) @updatedAt
 
@@ -457,6 +477,29 @@ model FollowUpTask {
   @@index([assignedToId, status, dueAt])
   @@index([createdById])
   @@map("follow_up_task")
+}
+
+/// A "Plan your first Sunday" sign-up from /new-here. Routed to a chapter
+/// (unitId) or, when null, to the national team; follow-up runs through the
+/// linked FollowUpTask (none = new, OPEN = in progress, DONE = welcomed).
+model Guest {
+  id             String            @id @default(cuid())
+  memberId       String
+  member         Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  unitId         String?
+  unit           ChurchUnitOption? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  heardFrom      HeardFrom
+  heardFromOther String?
+  plannedFor     DateTime
+  remindedAt     DateTime?
+  followUpTaskId String?           @unique
+  followUpTask   FollowUpTask?     @relation(fields: [followUpTaskId], references: [id], onDelete: SetNull)
+  createdAt      DateTime          @default(now())
+
+  @@index([unitId, createdAt])
+  @@index([plannedFor, remindedAt])
+  @@index([memberId])
+  @@map("guest")
 }
 
 model MemberNote {
@@ -811,6 +854,7 @@ model ProjectImage {
 model ChurchUnitOption {
   id          String                @id @default(cuid())
   name        String                @unique
+  kind        UnitKind              @default(DEPARTMENT)
   isActive    Boolean               @default(true)
   order       Int                   @default(0)
   createdAt   DateTime              @default(now())
@@ -818,6 +862,7 @@ model ChurchUnitOption {
   members     MemberUnit[]
   expenses    Expense[]
   budgets     Budget[]
+  guests      Guest[]
 
   @@map("church_unit_option")
 }

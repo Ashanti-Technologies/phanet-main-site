@@ -25,6 +25,7 @@ export const SUBJECTS = [
   "Attendance",
   "Visitation",
   "FollowUpTask",
+  "Guest",
   "Note",
   "MemberInvite",
   "User",

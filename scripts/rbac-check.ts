@@ -75,6 +75,15 @@ expect(
   "two unit grants union",
 );
 expect(scopeOf(ctx([leaderA, { permissions: ["members.view"], unitId: null }]), "read", "Member") === "all", "org-wide grant wins");
+
+// New guests (/new-here): chapter teams see and handle only their chapter's guests;
+// national guests (no unit) need org-wide care access.
+expect(JSON.stringify(scopeOf(ctx([leaderA]), "read", "Guest")) === JSON.stringify([UNIT_A]), "chapter team sees its guests");
+expect(ability([leaderA]).can("update", subject("Guest", { unitIds: [UNIT_A] }) as never), "chapter team takes its guests");
+expect(!ability([leaderA]).can("update", subject("Guest", { unitIds: [UNIT_B] }) as never), "not another chapter's guests");
+expect(!ability([leaderA]).can("update", subject("Guest", { unitIds: [] }) as never), "not national guests");
+expect(scopeOf(ctx([{ permissions: ["care.view"], unitId: null }]), "read", "Guest") === "all", "national team sees all guests");
+expect(!typeLevel([editor], "read", "Guest"), "editor can't see guests");
 expect(JSON.stringify(scopeOf(ctx([editor]), "read", "Member")) === "[]", "no grant → empty scope");
 
 // Assigned tasks: anyone with admin access, own tasks only
@@ -142,6 +151,8 @@ const PUBLIC_ACTIONS = new Set([
   "commitments.getMyCommitments", // caller's own, by session
   "commitments.getThankYouWallData", // public wall, non-anonymous only
   "event-registrations.*", // public registration; admin ones are checked (see below)
+  "guests.planFirstVisit", // public /new-here "Plan your first Sunday" form
+  "guests.getFirstVisitOptions", // upcoming Sundays + chapter names for that form
   "gallery.requestTakedown", // signed-in self-service; hides the photo pending admin review
   "giving.*",
   "locations.*",

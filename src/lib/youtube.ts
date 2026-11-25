@@ -16,6 +16,8 @@ export type VideosPage = {
 };
 
 const CHANNEL_ID = "UCdELEZVm0jBWivOyKZyaFoA";
+/** Opens the current (or next) live stream — where Elim Hour is streamed. */
+export const YOUTUBE_LIVE_URL = `https://www.youtube.com/channel/${CHANNEL_ID}/live`;
 const UPLOADS_PLAYLIST_ID = "UUdELEZVm0jBWivOyKZyaFoA";
 const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
 
