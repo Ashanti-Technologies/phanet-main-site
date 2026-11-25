@@ -79,14 +79,30 @@ export function RegistrationFieldInput({ field, id, value, onChange, error }: Pr
     );
   }
 
-  if (field.type === "checkboxes") {
+  if (field.type === "checkboxes" || field.type === "days" || field.type === "nights") {
     const picked = Array.isArray(value) ? value : [];
+    // Days/nights get an "all" shortcut (most people stay for the whole camp).
+    const allLabel = field.type === "days" ? "All the days" : field.type === "nights" ? "All the nights" : null;
+    const all = field.options.length > 0 && field.options.every((o) => picked.includes(o));
     return (
       <FieldSet data-invalid={invalid} data-field-id={id} className="gap-3">
         <FieldLegend variant="label" className="mb-0">
           {label}
         </FieldLegend>
         {description}
+        {allLabel && field.options.length > 1 && (
+          <Field orientation="horizontal">
+            <Checkbox
+              id={`${id}-all`}
+              checked={all}
+              onCheckedChange={(v) => onChange(v === true ? [...field.options] : [])}
+            />
+            <FieldLabel htmlFor={`${id}-all`}>{allLabel}</FieldLabel>
+          </Field>
+        )}
+        {allLabel && field.options.length === 0 && (
+          <p className="text-sm text-muted-foreground">Filled in from the event dates when you save.</p>
+        )}
         <div className="grid gap-2 sm:grid-cols-2">
           {field.options.map((o, i) => (
             <Field key={o} orientation="horizontal">

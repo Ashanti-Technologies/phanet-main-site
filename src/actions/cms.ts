@@ -19,6 +19,7 @@ import { sanitizeRichTextHtml } from "@/lib/rich-text";
 import { feeSettingsError } from "@/lib/schemas/cms.schema";
 import { tagRegistrationAttendees } from "@/lib/event-registration";
 import { storedShareMessage } from "@/lib/share-message";
+import { withEventDayOptions } from "@/lib/schemas/event-registration.schema";
 
 class EventSaveError extends Error {}
 
@@ -116,7 +117,7 @@ export async function saveEvent(
     shareMessage: storedShareMessage(data.shareMessage),
     calendarReminders: [...new Set(data.calendarReminders)].sort((a, b) => b - a),
     registrationClosesAt: data.registrationClosesAt ?? null,
-    registrationFields: data.registrationFields,
+    registrationFields: withEventDayOptions(data.registrationFields, data.date, data.endDate),
     paymentMode: data.paymentMode,
     feeFundId: data.paymentMode === "PAY_AT_EVENT" || data.paymentMode === "ONLINE" ? data.feeFundId : null,
   };

@@ -15,12 +15,73 @@ export const registrationFieldTypes = [
   "checkboxes",
   "switch",
   "location",
+  "days",
+  "nights",
 ] as const;
 
 export type RegistrationFieldType = (typeof registrationFieldTypes)[number];
 
 /** Types whose answers come from `options`. */
-export const OPTION_FIELD_TYPES: readonly RegistrationFieldType[] = ["select", "checkboxes"];
+export const OPTION_FIELD_TYPES: readonly RegistrationFieldType[] = ["select", "checkboxes", "days", "nights"];
+
+/**
+ * Multi-pick of the event's days / nights. Options are generated from the
+ * event dates on every save (`withEventDayOptions`), never typed. Asked per
+ * booking, and again on each Guest's card (guests may come on other days).
+ */
+export const EVENT_DAY_TYPES: readonly RegistrationFieldType[] = ["days", "nights"];
+export const isEventDayField = (f: { type: RegistrationFieldType }) => EVENT_DAY_TYPES.includes(f.type);
+
+/** "Day 1 · Wed 30 Dec" … for days; "Wed 30 Dec" … (all but the last day) for nights. */
+export function eventDayOptions(type: "days" | "nights", start: Date, end?: Date | null): string[] {
+  const DAY = 86_400_000;
+  const first = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
+  const last = end ? Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()) : first;
+  const out: string[] = [];
+  for (let t = first, i = 1; t <= last && i <= 31; t += DAY, i++) {
+    const label = new Date(t).toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    });
+    if (type === "days") out.push(`Day ${i} · ${label}`);
+    else if (t < last) out.push(label);
+  }
+  return out;
+}
+
+/** Fill days/nights options from the event dates (call when saving an event). */
+export function withEventDayOptions<T extends { type: RegistrationFieldType; options: string[] }>(
+  fields: T[],
+  start: Date,
+  end?: Date | null,
+): T[] {
+  return fields.map((f) =>
+    f.type === "days" || f.type === "nights" ? { ...f, options: eventDayOptions(f.type, start, end) } : f,
+  );
+}
+
+/** Arrival time as a part of the day (the clock times give context). */
+export const ARRIVAL_BLOCKS = [
+  "Dawn (4am–6am)",
+  "Morning (6am–12pm)",
+  "Afternoon (12pm–5pm)",
+  "Evening (5pm–9pm)",
+  "Midnight (9pm–4am)",
+] as const;
+
+/** "14:30" → "Afternoon (12pm–5pm)"; null when it isn't an HH:MM time. */
+export function arrivalBlock(hhmm: string): (typeof ARRIVAL_BLOCKS)[number] | null {
+  const m = /^\s*([01]?\d|2[0-3]):([0-5]\d)\s*$/.exec(hhmm);
+  if (!m) return null;
+  const h = Number(m[1]);
+  if (h >= 4 && h < 6) return ARRIVAL_BLOCKS[0];
+  if (h >= 6 && h < 12) return ARRIVAL_BLOCKS[1];
+  if (h >= 12 && h < 17) return ARRIVAL_BLOCKS[2];
+  if (h >= 17 && h < 21) return ARRIVAL_BLOCKS[3];
+  return ARRIVAL_BLOCKS[4];
+}
 
 /**
  * One admin-defined question on an event's registration form.
@@ -45,7 +106,7 @@ export const registrationFieldSchema = z
     summary: z.boolean().default(false),
     inPersonOnly: z.boolean().optional(),
   })
-  .refine((f) => !OPTION_FIELD_TYPES.includes(f.type) || f.options.length > 0, {
+  .refine((f) => !OPTION_FIELD_TYPES.includes(f.type) || isEventDayField(f) || f.options.length > 0, {
     message: "Choice questions need at least one option",
     path: ["options"],
   })
@@ -90,7 +151,7 @@ export const DIETARY_OPTIONS = [
  */
 export const DEFAULT_REGISTRATION_FIELDS: RegistrationField[] = [
   { id: "arrival_date", inPersonOnly: true, label: "Arrival date", type: "date", required: true, scope: "booking", summary: true, options: [] },
-  { id: "arrival_time", inPersonOnly: true, label: "Arrival time", type: "time", required: false, scope: "booking", summary: false, options: [] },
+  { id: "arrival_time", inPersonOnly: true, label: "Arrival time", type: "select", required: false, scope: "booking", summary: true, options: [...ARRIVAL_BLOCKS] },
   {
     id: "travel_mode",
     label: "Travelling by",
@@ -140,7 +201,9 @@ export function checkAnswer(
     case "switch":
       // Off is a valid answer, so a switch can't be "required".
       return ok(raw === true);
-    case "checkboxes": {
+    case "checkboxes":
+    case "days":
+    case "nights": {
       const picked = Array.isArray(raw) ? raw : [];
       if (picked.some((v) => !f.options.includes(v))) return err("Pick from the listed options");
       if (!picked.length) return f.required ? err("Pick at least one") : ok(undefined);
@@ -180,8 +243,22 @@ export function checkAnswer(
  * Questions asked for one scope. `inPerson` = the person (or, for booking
  * questions, anyone on the booking) is attending in person.
  */
-export function fieldsFor(fields: RegistrationField[], scope: RegistrationField["scope"], inPerson: boolean) {
-  return fields.filter((f) => f.scope === scope && (inPerson || !f.inPersonOnly));
+export function fieldsFor(
+  fields: RegistrationField[],
+  scope: RegistrationField["scope"],
+  inPerson: boolean,
+  /** A Guest's card also asks the booking's days/nights questions for them. */
+  guest = false,
+) {
+  const asked = (f: RegistrationField) => inPerson || !f.inPersonOnly;
+  return [
+    ...fields.filter((f) => f.scope === scope && asked(f)),
+    ...(scope === "person" && guest
+      ? fields
+          .filter((f) => f.scope === "booking" && isEventDayField(f) && asked(f))
+          .map((f) => ({ ...f, description: "Fill this in for your guest." }))
+      : []),
+  ];
 }
 
 /**
@@ -194,9 +271,10 @@ export function validateAnswers(
   scope: RegistrationField["scope"],
   answers: Answers,
   inPerson = true,
+  guest = false,
 ): { ok: true; value: Answers } | { ok: false; error: string } {
   const value: Answers = {};
-  for (const f of fieldsFor(fields, scope, inPerson)) {
+  for (const f of fieldsFor(fields, scope, inPerson, guest)) {
     const res = checkAnswer(f, answers[f.id]);
     if (!res.ok) return { ok: false, error: `${f.label}: ${res.error}` };
     if (res.value !== undefined) value[f.id] = res.value;
@@ -209,6 +287,8 @@ export function fieldAnswer(
   row: { personAnswers: Answers; bookingAnswers: Answers },
   field: RegistrationField,
 ): AnswerValue | undefined {
+  // Guests answer days/nights for themselves; everyone else shares the booking's answer.
+  if (isEventDayField(field)) return row.personAnswers[field.id] ?? row.bookingAnswers[field.id];
   return (field.scope === "person" ? row.personAnswers : row.bookingAnswers)[field.id];
 }
 
@@ -257,7 +337,7 @@ export const ATTENDANCE_MODES = ["IN_PERSON", "ONLINE"] as const;
 export type AttendanceMode = (typeof ATTENDANCE_MODES)[number];
 
 const attendeeDetails = {
-  ageGroup: z.enum(["ADULT", "TEEN", "CHILD", "INFANT"]).optional(),
+  ageGroup: z.enum(["ADULT", "TEEN", "CHILD", "INFANT"], { error: "Pick an age group" }),
   /** Event price tier; re-priced on the server, never trusted for the amount. */
   priceTierId: z.string().min(1).optional(),
   attendance: z.enum(ATTENDANCE_MODES).default("IN_PERSON"),
@@ -295,7 +375,6 @@ export const attendeeInputSchema = z.discriminatedUnion("kind", [
     phone: optionalText(40),
     email: z.email().trim().toLowerCase().optional().or(z.literal("").transform(() => undefined)),
     ...attendeeDetails,
-    ageGroup: z.enum(["ADULT", "TEEN", "CHILD", "INFANT"]),
   }),
 ]);
 

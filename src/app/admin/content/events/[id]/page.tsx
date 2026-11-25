@@ -28,6 +28,7 @@ import { EventTabs, type EventTab } from "./_components/event-tabs";
 import { EventMoreMenu } from "./_components/event-actions";
 import { OverviewPanel, type ChecklistItem } from "./_components/overview-panel";
 import { RegistrationsPanel } from "./_components/registrations-panel";
+import { AnalyticsPanel } from "./_components/analytics-panel";
 import { RoomsPanel } from "./_components/rooms-panel";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +56,12 @@ export default async function EventPage({ params }: Props) {
   // ponytail: loads every tab's data up front; fine for camp-sized events.
   const showFees = chargesFees(event.paymentMode);
   const [rows, rooms, pending, progress] = await Promise.all([
-    canSeePeople ? getEventAttendeeRows(id) : null,
+    canSeePeople
+      ? getEventAttendeeRows(id).then((rs) =>
+          // Rows go to client tables; contact only for members.contact.
+          showContact ? rs : rs.map((r) => ({ ...r, phone: "", email: "", bookedByContact: "" })),
+        )
+      : null,
     canSeePeople && isCamp ? getEventRooms(id) : null,
     canSeePeople && event.paymentMode === "ONLINE" ? getPendingPaymentBookings(id) : [],
     canSeePeople ? getRegistrationProgress(id) : null,
@@ -64,6 +70,7 @@ export default async function EventPage({ params }: Props) {
   const showRegistrations =
     !!rows && (event.registrationEnabled || rows.length > 0 || !!progress?.inProgress.length);
 
+  const fields = parseRegistrationFields(event.registrationFields);
   const editHref = `/admin/content/events/${event.id}/edit`;
   const registerPath = `/events/${event.slug}/register`;
   const isOpen = isRegistrationOpen(event);
@@ -86,7 +93,7 @@ export default async function EventPage({ params }: Props) {
             ? [
                 {
                   label: "Registration form has questions",
-                  done: parseRegistrationFields(event.registrationFields).length > 0,
+                  done: fields.length > 0,
                   href: `${editHref}`,
                   cta: "Build form",
                 },
@@ -103,7 +110,12 @@ export default async function EventPage({ params }: Props) {
 
   const tabs: EventTab[] = [
     { value: "overview", label: "Overview" },
-    ...(showRegistrations ? [{ value: "registrations", label: "Registrations", badge: String(rows!.length) }] : []),
+    ...(showRegistrations
+      ? [
+          { value: "registrations", label: "Registrations", badge: String(rows!.length) },
+          { value: "analytics", label: "Analytics" },
+        ]
+      : []),
     ...(rooms
       ? [
           unassigned
@@ -146,8 +158,8 @@ export default async function EventPage({ params }: Props) {
             <span className="font-mono text-2xl font-semibold leading-none tabular-nums">{tile.day}</span>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
+          <div className="min-w-0 flex-[1_1_16rem] space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">{event.title}</h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <CalendarDays className="h-4 w-4" />
@@ -184,7 +196,7 @@ export default async function EventPage({ params }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {event.status === "PUBLISHED" && (
               <Button asChild variant="outline">
                 <Link href={`/events/${event.slug}`} target="_blank">
@@ -226,13 +238,18 @@ export default async function EventPage({ params }: Props) {
               eventId={event.id}
               isCamp={isCamp}
               rows={rows!}
-              fields={parseRegistrationFields(event.registrationFields)}
+              fields={fields}
               showFees={showFees}
               pending={pending}
               progress={progress!}
               canManage={canManage}
               showContact={showContact}
             />
+          </TabsContent>
+        )}
+        {showRegistrations && (
+          <TabsContent value="analytics">
+            <AnalyticsPanel rows={rows!} fields={fields} showFees={showFees} progress={progress!} />
           </TabsContent>
         )}
         {rooms && (

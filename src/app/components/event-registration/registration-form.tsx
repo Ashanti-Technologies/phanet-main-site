@@ -263,7 +263,8 @@ export function RegistrationForm(props: Props) {
   const anyoneInPerson = rows.length === 0 || rows.some((r) => r.attendance === "IN_PERSON");
   const onlineCount = rows.filter((r) => r.attendance === "ONLINE").length;
   const bookingFields = fieldsFor(event.fields, "booking", anyoneInPerson);
-  const personFieldsFor = (r: FormRow) => fieldsFor(event.fields, "person", r.attendance === "IN_PERSON");
+  const personFieldsFor = (r: FormRow) =>
+    fieldsFor(event.fields, "person", r.attendance === "IN_PERSON", r.relationship === "GUEST");
   const addableHousehold = household.filter(
     (h) => !rows.some((r) => r.memberId === h.id),
   );
@@ -342,8 +343,8 @@ export function RegistrationForm(props: Props) {
         if (r.kind === "new") {
           if (!r.fullName?.trim()) fields[`${k}-name`] = "Enter their name";
           if (!r.gender) fields[`${k}-gender`] = "Pick one";
-          if (!r.ageGroup) fields[`${k}-age`] = "Pick an age group";
         }
+        if (!r.ageGroup) fields[`${k}-age`] = "Pick an age group";
         if (charges && r.attendance === "IN_PERSON" && !r.priceTierId) fields[`${k}-price`] = "Pick a price";
         if (!locationDone(placeOf(r))) fields[`${k}-location`] = "Pick a country, region and town";
         for (const f of personFieldsFor(r)) check(`${k}-${f.id}`, f, r.answers[f.id]);
@@ -430,7 +431,7 @@ export function RegistrationForm(props: Props) {
       const online = r.attendance === "ONLINE";
       const { countryId, regionId, cityId, city } = placeOf(r);
       const details = {
-        ageGroup: r.ageGroup,
+        ageGroup: r.ageGroup!, // checkStep("people") requires it
         priceTierId: charges && !online ? r.priceTierId : undefined,
         attendance: r.attendance,
         location: { countryId: countryId ?? "", regionId, cityId, city },
@@ -453,7 +454,6 @@ export function RegistrationForm(props: Props) {
             email: r.email ?? "",
             relationship: rel,
             ...details,
-            ageGroup: r.ageGroup!,
           };
       }
     });
@@ -1063,7 +1063,7 @@ function PersonCard({
           />
         </Field>
       )}
-      <Field label={row.kind === "new" ? "Age group *" : "Age group"} id={`${k}-age`} error={fieldErrors[`${k}-age`]}>
+      <Field label="Age group *" id={`${k}-age`} error={fieldErrors[`${k}-age`]}>
         <Pick
           id={`${k}-age`}
           value={row.ageGroup}

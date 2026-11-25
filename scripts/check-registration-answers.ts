@@ -4,6 +4,9 @@ import assert from "node:assert/strict";
 import {
   checkAnswer,
   DEFAULT_REGISTRATION_FIELDS,
+  eventDayOptions,
+  fieldAnswer,
+  withEventDayOptions,
   eventRegistrationFieldsSchema,
   parseRegistrationFields,
   validateAnswers,
@@ -56,6 +59,28 @@ assert.equal(checkAnswer(many, []).ok, false);
 assert.equal(checkAnswer(many, ["Z"]).ok, false);
 assert.equal(checkAnswer(field({ type: "checkbox", required: true }), false).ok, false);
 assert.deepEqual(checkAnswer(field({ type: "switch", required: true }), undefined), { ok: true, value: false });
+
+// Camp days / nights: options from the event dates; guests answer for themselves.
+const camp = [new Date("2026-12-30T12:00:00Z"), new Date("2027-01-03T00:00:00Z")] as const;
+assert.deepEqual(eventDayOptions("days", ...camp), [
+  "Day 1 · Wed 30 Dec", "Day 2 · Thu 31 Dec", "Day 3 · Fri 1 Jan", "Day 4 · Sat 2 Jan", "Day 5 · Sun 3 Jan",
+]);
+assert.deepEqual(eventDayOptions("nights", ...camp), ["Wed 30 Dec", "Thu 31 Dec", "Fri 1 Jan", "Sat 2 Jan"]);
+assert.deepEqual(eventDayOptions("nights", camp[0]), []); // one-day event: no nights
+const [days] = withEventDayOptions([field({ id: "days", type: "days", required: true })], ...camp);
+assert.equal(eventRegistrationFieldsSchema.safeParse([{ ...days, options: [] }]).success, true); // filled on save
+assert.equal(checkAnswer(days, ["Day 1 · Wed 30 Dec"]).ok, true);
+assert.equal(checkAnswer(days, []).ok, false);
+// Booking-scoped days are dropped for a non-guest's own answers, kept (and required) for a guest.
+assert.deepEqual(validateAnswers([days], "person", { days: ["Day 2 · Thu 31 Dec"] }), { ok: true, value: {} });
+assert.equal(validateAnswers([days], "person", {}, true, true).ok, false);
+assert.deepEqual(validateAnswers([days], "person", { days: ["Day 2 · Thu 31 Dec"] }, true, true), {
+  ok: true,
+  value: { days: ["Day 2 · Thu 31 Dec"] },
+});
+// Guest's own answer wins over the booking's.
+assert.deepEqual(fieldAnswer({ personAnswers: { days: ["Day 2 · Thu 31 Dec"] }, bookingAnswers: { days: ["Day 1 · Wed 30 Dec"] } }, days), ["Day 2 · Thu 31 Dec"]);
+assert.deepEqual(fieldAnswer({ personAnswers: {}, bookingAnswers: { days: ["Day 1 · Wed 30 Dec"] } }, days), ["Day 1 · Wed 30 Dec"]);
 
 // CSV export: formulas neutralised, phone numbers untouched.
 assert.equal(

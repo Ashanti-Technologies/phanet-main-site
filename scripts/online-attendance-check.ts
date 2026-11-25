@@ -30,8 +30,9 @@ assert.equal(priced?.totalMinor, 25000);
 
 // Attendance defaults to in person; a location needs a country and a city.
 const location = { countryId: "gh", city: "Kumasi" };
-assert.equal(attendeeInputSchema.parse({ kind: "self", location }).attendance, "IN_PERSON");
-assert.equal(attendeeInputSchema.safeParse({ kind: "self", location: { countryId: "", city: "Kumasi" } }).success, false);
+assert.equal(attendeeInputSchema.parse({ kind: "self", ageGroup: "ADULT", location }).attendance, "IN_PERSON");
+assert.equal(attendeeInputSchema.safeParse({ kind: "self", location }).success, false); // age group required
+assert.equal(attendeeInputSchema.safeParse({ kind: "self", ageGroup: "ADULT", location: { countryId: "", city: "Kumasi" } }).success, false);
 assert.equal(attendeeInputSchema.safeParse({ kind: "self" }).success, false);
 
 console.log("online attendance: ok");

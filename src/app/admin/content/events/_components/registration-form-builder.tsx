@@ -21,6 +21,8 @@ import {
   ToggleRight,
   Trash2,
   Type,
+  CalendarRange,
+  Moon,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -60,6 +62,7 @@ import { cn } from "@/lib/utils";
 import {
   DEFAULT_REGISTRATION_FIELDS,
   OPTION_FIELD_TYPES,
+  isEventDayField,
   parseRegistrationFields,
   type AnswerValue,
   type RegistrationField,
@@ -79,6 +82,8 @@ const TYPES: Record<RegistrationFieldType, { label: string; icon: LucideIcon }> 
   checkboxes: { label: "Checkboxes (pick many)", icon: ListChecks },
   switch: { label: "Switch (on / off)", icon: ToggleRight },
   location: { label: "Location (country, region, town)", icon: MapPin },
+  days: { label: "Event days (from the dates)", icon: CalendarRange },
+  nights: { label: "Event nights (from the dates)", icon: Moon },
 };
 const TYPE_KEYS = Object.keys(TYPES) as RegistrationFieldType[];
 const HAS_PLACEHOLDER: RegistrationFieldType[] = [
@@ -116,7 +121,7 @@ export function RegistrationFormBuilder({ value, onChange, otherForms }: Props) 
       id: crypto.randomUUID(),
       label: "",
       type,
-      options: OPTION_FIELD_TYPES.includes(type) ? ["Option 1", "Option 2"] : [],
+      options: OPTION_FIELD_TYPES.includes(type) && !isEventDayField({ type }) ? ["Option 1", "Option 2"] : [],
       required: false,
       scope: "booking",
       summary: OPTION_FIELD_TYPES.includes(type) || type === "location",
@@ -320,7 +325,8 @@ function FieldCard({
 
   function changeType(type: RegistrationFieldType) {
     const patch: Partial<RegistrationField> = { type };
-    if (OPTION_FIELD_TYPES.includes(type) && f.options.length === 0) {
+    if (isEventDayField({ type })) patch.options = [];
+    else if (OPTION_FIELD_TYPES.includes(type) && (f.options.length === 0 || isEventDayField(f))) {
       patch.options = ["Option 1", "Option 2"];
     }
     if (type === "switch") patch.required = false;
@@ -425,7 +431,13 @@ function FieldCard({
           </div>
         )}
 
-        {OPTION_FIELD_TYPES.includes(f.type) && (
+        {isEventDayField(f) && (
+          <p className="text-sm text-muted-foreground">
+            One option per {f.type === "days" ? "day" : "night"} of the event, filled in from its dates when you save.
+            Guests on a booking answer this for themselves.
+          </p>
+        )}
+        {OPTION_FIELD_TYPES.includes(f.type) && !isEventDayField(f) && (
           <OptionsEditor
             id={id("options")}
             options={f.options}

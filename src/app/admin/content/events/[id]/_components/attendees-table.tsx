@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useOptimistic, useTransition } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
 import { setAttendeeCheckIn } from "@/actions/event-registrations";
@@ -11,6 +11,7 @@ import { columnHelper, facetFilterFn } from "@/app/components/data-table/feature
 import type { AttendeeRow } from "@/lib/event-registration";
 import { TONE_TEXT } from "@/app/admin/_components/status-badge";
 import { DeleteBookingButton, RecordPaymentDialog } from "./payment-actions";
+import { AttendeeSheet } from "./attendee-sheet";
 import {
   answerText,
   fieldAnswer,
@@ -41,6 +42,8 @@ const PAYMENT_TONE: Record<AttendeeRow["payment"]["state"], string> = {
   paid: TONE_TEXT.success,
   overpaid: TONE_TEXT.danger,
 };
+// Controls inside a clickable row must not also open the sheet.
+const stop = (e: React.MouseEvent) => e.stopPropagation();
 const cedis = (n: number) => `GH₵${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 // Payment is per booking: its first row carries the action (the booker may not be attending).
@@ -71,7 +74,9 @@ const feeColumns = [
             )}
           </p>
           {leadsBooking && payment.balance > 0 && (
+            <div onClick={stop} className="w-fit">
             <RecordPaymentDialog registrationId={registrationId} bookedBy={bookedBy} balance={payment.balance} />
+            </div>
           )}
         </div>
       );
@@ -104,7 +109,11 @@ const baseColumns = [
   // Filterable by "Checked in" / "Not yet"; renders as a checkbox.
   col.accessor("checkedInLabel", {
     header: "In",
-    cell: ({ row }) => <CheckInCell row={row.original} />,
+    cell: ({ row }) => (
+      <div onClick={stop} className="w-fit">
+        <CheckInCell row={row.original} />
+      </div>
+    ),
     filterFn: facetFilterFn,
     enableSorting: false,
   }),
@@ -171,7 +180,7 @@ const actionsColumn = col.display({
   header: () => <span className="sr-only">Actions</span>,
   cell: ({ row }) =>
     row.original.leadsBooking ? (
-      <div className="flex justify-end">
+      <div className="flex justify-end" onClick={stop}>
         {row.original.bookedByUserId && (
           <Button asChild variant="ghost" size="sm">
             <Link href={`/admin/content/events/${row.original.eventId}/register/${row.original.bookedByUserId}`}>
@@ -199,13 +208,17 @@ export function AttendeesTable({
   fields,
   showRoom,
   showFees,
+  showContact,
 }: {
   rows: AttendeeRow[];
   fields: RegistrationField[];
   showRoom: boolean;
   /** Event charges fees (pay at the event / online). */
   showFees: boolean;
+  showContact: boolean;
 }) {
+  // By id, so the sheet follows the row through refreshes.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const seen = new Set<string>();
   const peopleByBooking = new Map<string, string[]>();
   for (const r of rows) peopleByBooking.set(r.registrationId, [...(peopleByBooking.get(r.registrationId) ?? []), r.name]);
@@ -229,9 +242,11 @@ export function AttendeesTable({
   );
 
   return (
+    <>
     <DataTable
       columns={columns}
       data={data}
+      onRowClick={(r) => setSelectedId(r.id)}
       searchPlaceholder="Search names and answers…"
       emptyMessage="No one has registered yet."
       filters={[
@@ -259,5 +274,15 @@ export function AttendeesTable({
         },
       ]}
     />
+    <AttendeeSheet
+      row={rows.find((r) => r.id === selectedId) ?? null}
+      rows={rows}
+      fields={fields}
+      showFees={showFees}
+      showRoom={showRoom}
+      showContact={showContact}
+      onSelect={setSelectedId}
+    />
+    </>
   );
 }

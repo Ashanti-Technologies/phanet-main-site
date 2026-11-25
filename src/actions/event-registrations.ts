@@ -301,7 +301,8 @@ async function saveRegistration(
   const resolved: Resolved[] = [];
   for (const a of data.attendees) {
     const online = isOnline(a);
-    const answers = validateAnswers(fields, "person", a.answers, !online);
+    const guest = a.kind !== "self" && a.relationship === "GUEST";
+    const answers = validateAnswers(fields, "person", a.answers, !online, guest);
     if (!answers.ok) return fail(answers.error);
     const location = places.get(JSON.stringify(a.location))!;
     if (!location.countryId) return fail("Pick a country for everyone on the booking.");
@@ -836,4 +837,34 @@ export async function deleteEventRegistration(registrationId: string): Promise<R
   });
   revalidatePath(`/admin/content/events/${reg.eventId}`);
   return { success: true, data: undefined };
+}
+
+/**
+ * Cheap change signal for the admin event page's live bookings: polled every
+ * ~20s, the page refreshes when it changes. Count catches cancellations,
+ * latest catches new bookings.
+ */
+export async function bookingPulse(eventId: string) {
+  await requirePermission("read", "EventRegistration");
+  const where = { eventId, status: "CONFIRMED" as const };
+  const [count, latest] = await Promise.all([
+    prisma.eventRegistration.count({ where }),
+    prisma.eventRegistration.findFirst({
+      where,
+      orderBy: { createdAt: "desc" },
+      select: {
+        createdAt: true,
+        registrant: { select: { fullName: true } },
+        _count: { select: { attendees: true } },
+      },
+    }),
+  ]);
+  return {
+    count,
+    latest: latest && {
+      at: latest.createdAt.toISOString(),
+      by: latest.registrant.fullName,
+      people: latest._count.attendees,
+    },
+  };
 }

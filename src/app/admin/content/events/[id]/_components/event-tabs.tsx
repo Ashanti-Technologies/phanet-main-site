@@ -47,23 +47,26 @@ export function EventTabs({
       className="gap-6"
     >
       {tabs.length > 1 && (
-        <TabsList className="h-10">
-          {tabs.map((t) => (
-            <TabsTrigger key={t.value} value={t.value} className="px-3">
-              {t.label}
-              {t.badge && (
-                <span
-                  className={cn(
-                    "rounded-full bg-current/15 px-1.5 py-px font-mono text-xs tabular-nums",
-                    t.attention && t.value !== value && TONE_TEXT.warning,
-                  )}
-                >
-                  {t.badge}
-                </span>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        // Scrolls sideways on phones instead of squeezing the labels.
+        <div className="-mx-1 max-w-full overflow-x-auto px-1">
+          <TabsList className="h-14">
+            {tabs.map((t) => (
+              <TabsTrigger key={t.value} value={t.value} className="px-5 text-base whitespace-nowrap">
+                {t.label}
+                {t.badge && (
+                  <span
+                    className={cn(
+                      "rounded-full bg-current/15 px-2 py-0.5 font-mono text-sm tabular-nums",
+                      t.attention && t.value !== value && TONE_TEXT.warning,
+                    )}
+                  >
+                    {t.badge}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       )}
       <TabsContents>{children}</TabsContents>
     </Tabs>
