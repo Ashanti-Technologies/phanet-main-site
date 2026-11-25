@@ -18,7 +18,7 @@ Required env vars (see `.env`): `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AU
 
 ### Subdomain proxy
 
-`src/proxy.ts` is a Next.js 16 **proxy** (the renamed middleware). It rewrites `projects.phanerosisnetwork.com` (and `projects.localhost`) to the `/projects` path tree. When adding new top-level routes, remember they're invisible on the `projects.` host unless rewritten. API routes, `_next`, and any path with a dot are skipped.
+`src/proxy.ts` is a Next.js 16 **proxy** (the renamed middleware). It rewrites a few `hoe.` paths to the Heaven on Earth event, and 308-redirects the retired `projects.` host to `/projects` on the main domain. Projects are ordinary main-site pages (`src/app/(main-site)/projects`).
 
 ### Logging
 

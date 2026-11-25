@@ -22,15 +22,13 @@ import { loadGrants, userHasAdminAccess } from "./rbac/access";
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   // Accept callbacks from every host the site is reachable on. The apex domain
-  // is canonical, but `www.` and the `projects.` subdomain (proxied to the
-  // fundraising routes) both live on the same Next app and need to be trusted.
+  // is canonical, but `www.` and the `hoe.` event subdomain both live on the
+  // same Next app and need to be trusted.
   trustedOrigins: [
     "https://phanerosisnetwork.com",
     "https://www.phanerosisnetwork.com",
-    "https://projects.phanerosisnetwork.com",
     "https://hoe.phanerosisnetwork.com",
     "http://localhost:3000",
-    "http://projects.localhost:3000",
     "http://hoe.localhost:3000",
   ],
   advanced: {

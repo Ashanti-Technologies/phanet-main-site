@@ -2,17 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { HOE, isHoeHost } from "@/lib/event-subdomain";
 
 /**
- * Next.js 16 Proxy for subdomain-based routing
- * Routes requests from projects.phanerosisnetwork.com to /projects routes
+ * Next.js 16 Proxy for subdomain-based routing (hoe.* event site, old projects.* host).
  */
 export function proxy(request: NextRequest): NextResponse | undefined {
   const hostname = request.headers.get("host") || "";
   const url = request.nextUrl.clone();
 
-  // Define subdomain patterns
-  const isProjectsSubdomain =
-    hostname.startsWith("projects.") ||
-    hostname.startsWith("projects.localhost");
+  const isProjectsSubdomain = hostname.startsWith("projects.");
 
   // hoe.phanerosisnetwork.com → the Heaven on Earth event. Only "/",
   // "/register" and "/flyer" are rewritten; everything else (/auth, /me,
@@ -29,32 +25,15 @@ export function proxy(request: NextRequest): NextResponse | undefined {
     return NextResponse.rewrite(url);
   }
 
-  // Handle projects subdomain routing
+  // The old projects.* subdomain: projects now live on the main site, so send
+  // shared links there (projects.x/abc → x/projects/abc).
   if (isProjectsSubdomain) {
-    // Rewrite to /projects path internally
-    const pathname = url.pathname;
-
-    // Don't rewrite API routes, static files, or _next
-    if (
-      pathname.startsWith("/api") ||
-      pathname.startsWith("/_next") ||
-      pathname.startsWith("/static") ||
-      pathname.includes(".")
-    ) {
-      return undefined;
-    }
-
-    // Rewrite root to /projects listing
-    if (pathname === "/") {
-      url.pathname = "/projects";
-      return NextResponse.rewrite(url);
-    }
-
-    // Rewrite other paths to /projects/[path]
-    if (!pathname.startsWith("/projects")) {
-      url.pathname = `/projects${pathname}`;
-      return NextResponse.rewrite(url);
-    }
+    const { pathname, search, protocol } = url;
+    const path = pathname.startsWith("/projects")
+      ? pathname
+      : `/projects${pathname === "/" ? "" : pathname}`;
+    const host = hostname.replace(/^projects\./, "");
+    return NextResponse.redirect(`${protocol}//${host}${path}${search}`, 308);
   }
 
   return undefined;
@@ -65,7 +44,7 @@ export const config = {
     /*
      * Match all request paths except for:
      * - api (API routes)
-     * - ingest (PostHog proxy — on projects.* it'd become /projects/ingest and 404)
+     * - ingest (PostHog proxy)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
