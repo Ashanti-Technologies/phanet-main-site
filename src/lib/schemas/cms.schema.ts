@@ -118,6 +118,17 @@ export const homepageSectionUpsertSchema = richTextSchema.extend({
   status: publishStatusSchema.default("DRAFT"),
 });
 
+export const testimonialUpsertSchema = z.object({
+  id: z.cuid().optional(),
+  name: z.string().trim().min(2).max(100),
+  role: z.string().trim().max(120).optional(),
+  quote: z.string().trim().min(10).max(600),
+  imageUrl: optionalUrlSchema,
+  imagePublicId: z.string().trim().optional(),
+  order: z.coerce.number().int().min(0).default(0),
+  status: publishStatusSchema.default("DRAFT"),
+});
+
 export const sermonFeatureUpsertSchema = z.object({
   id: z.cuid().optional(),
   videoId: z.string().trim().min(3),
@@ -146,6 +157,7 @@ export type ContentPageUpsertInput = z.input<typeof contentPageUpsertSchema>;
 export type HomepageSectionUpsertInput = z.input<
   typeof homepageSectionUpsertSchema
 >;
+export type TestimonialUpsertInput = z.input<typeof testimonialUpsertSchema>;
 export type SermonFeatureUpsertInput = z.input<
   typeof sermonFeatureUpsertSchema
 >;

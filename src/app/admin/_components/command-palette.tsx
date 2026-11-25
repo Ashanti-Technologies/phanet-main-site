@@ -26,6 +26,7 @@ import {
   ClipboardList,
   BarChart3,
   Wallet,
+  Quote,
 } from "lucide-react";
 
 type Item = {
@@ -101,6 +102,12 @@ export function CommandPalette({ allowed }: { allowed: string[] }) {
           icon: <Home className="h-4 w-4" />,
           href: "/admin/content/homepage",
           onSelect: go("/admin/content/homepage"),
+        },
+        {
+          label: "Testimonials",
+          icon: <Quote className="h-4 w-4" />,
+          href: "/admin/content/testimonials",
+          onSelect: go("/admin/content/testimonials"),
         },
         {
           label: "Sermons",

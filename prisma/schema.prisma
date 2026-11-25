@@ -1392,6 +1392,23 @@ model HomepageSection {
   @@map("homepage_section")
 }
 
+/// A short story from a member, shown on the homepage and /new-here once published.
+model Testimonial {
+  id            String        @id @default(cuid())
+  name          String
+  role          String? // e.g. "Campus Coordinator, UCC Chapter"
+  quote         String        @db.Text
+  imageUrl      String?
+  imagePublicId String?
+  order         Int           @default(0)
+  status        PublishStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status, order])
+  @@map("testimonial")
+}
+
 model MediaAsset {
   id        String   @id @default(cuid())
   url       String

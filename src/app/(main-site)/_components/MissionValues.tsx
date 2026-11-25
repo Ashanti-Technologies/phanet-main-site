@@ -193,7 +193,7 @@ export default function MissionValues() {
                 sphere of society.
               </h2>
               <Link
-                href="/join"
+                href="/new-here"
                 className="inline-flex items-center text-white text-lg font-medium group"
               >
                 Become an intercessor

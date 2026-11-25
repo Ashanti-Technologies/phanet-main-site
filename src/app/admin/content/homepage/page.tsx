@@ -9,7 +9,9 @@ export default async function AdminHomepagePage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Homepage</h1>
         <p className="text-sm text-muted-foreground">
-          Manage reusable homepage content blocks.
+          Manage reusable homepage content blocks. A published section with key{" "}
+          <code>new-here-chairman</code> shows as the Chairman&apos;s note on the
+          New Here page.
         </p>
       </div>
       <div className="space-y-4">

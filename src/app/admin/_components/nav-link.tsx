@@ -32,6 +32,7 @@ import {
   Plug,
   Library,
   Images,
+  Quote,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ export type NavIconName =
   | "events"
   | "pages"
   | "homepage"
+  | "testimonials"
   | "sermons"
   | "library"
   | "gallery"
@@ -72,6 +74,7 @@ const icons: Record<NavIconName, LucideIcon> = {
   events: CalendarDays,
   pages: FileText,
   homepage: Home,
+  testimonials: Quote,
   sermons: MessageSquare,
   library: Library,
   gallery: Images,

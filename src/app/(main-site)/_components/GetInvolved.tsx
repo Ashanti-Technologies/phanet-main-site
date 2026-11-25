@@ -67,7 +67,7 @@ export default function GetInvolved() {
                                 className="inline-block"
                             >
                                 <Link
-                                    href="/join"
+                                    href="/new-here"
                                     className="inline-block bg-crayola hover:bg-crayola/90 text-white font-semibold px-8 py-4 rounded-lg transition-colors duration-300"
                                     onClick={() =>
                                         posthog.capture("get_involved_clicked", {

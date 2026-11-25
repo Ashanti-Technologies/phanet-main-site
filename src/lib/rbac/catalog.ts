@@ -44,7 +44,7 @@ export const AREAS = {
 export type AreaKey = keyof typeof AREAS;
 export const AREA_KEYS = Object.keys(AREAS) as AreaKey[];
 
-const CONTENT: Subject[] = ["Event", "ContentPage", "Sermon", "Publication", "GalleryAlbum", "HomepageSection", "MediaAsset"];
+const CONTENT: Subject[] = ["Event", "ContentPage", "Sermon", "Publication", "GalleryAlbum", "HomepageSection", "Testimonial", "MediaAsset"];
 const WRITE: Action[] = ["create", "update", "delete"];
 
 const DEFS: PermissionDef[] = [

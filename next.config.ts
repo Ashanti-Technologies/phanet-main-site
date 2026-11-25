@@ -36,7 +36,13 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/worship",
-        destination: "/join",
+        destination: "/new-here",
+        permanent: true,
+      },
+      // /join merged into the newcomer page.
+      {
+        source: "/join",
+        destination: "/new-here",
         permanent: true,
       },
       // HOE 2026's slug was renamed; keep already-shared links (WhatsApp etc.) working.

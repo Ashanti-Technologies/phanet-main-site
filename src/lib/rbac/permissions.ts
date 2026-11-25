@@ -45,6 +45,7 @@ export const SUBJECTS = [
   "Publication",
   "GalleryAlbum",
   "HomepageSection",
+  "Testimonial",
   "MediaAsset",
   "PrayerRequest",
   "EventRegistration",

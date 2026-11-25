@@ -135,6 +135,16 @@ export default function ChatWidget() {
     }
   }, [isOpen]);
 
+  // Lets page buttons (e.g. "Ask Elim" on /new-here) open the chat.
+  useEffect(() => {
+    const open = () => {
+      setIsOpen(true);
+      posthog.capture("chat_opened", { source: "page_button" });
+    };
+    window.addEventListener("phanet:open-chat", open);
+    return () => window.removeEventListener("phanet:open-chat", open);
+  }, []);
+
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || isLoading) return;

@@ -9,11 +9,13 @@ import {
   homepageSectionUpsertSchema,
   mediaAssetCreateSchema,
   sermonFeatureUpsertSchema,
+  testimonialUpsertSchema,
   type ContentPageUpsertInput,
   type EventUpsertInput,
   type HomepageSectionUpsertInput,
   type MediaAssetCreateInput,
   type SermonFeatureUpsertInput,
+  type TestimonialUpsertInput,
 } from "@/lib/schemas";
 import { sanitizeRichTextHtml } from "@/lib/rich-text";
 import { feeSettingsError } from "@/lib/schemas/cms.schema";
@@ -277,6 +279,7 @@ export async function saveHomepageSection(input: HomepageSectionUpsertInput) {
 
   revalidatePath("/admin/content/homepage");
   revalidatePath("/");
+  revalidatePath("/new-here");
   return { success: true, data: section };
 }
 
@@ -285,7 +288,45 @@ export async function deleteHomepageSection(id: string) {
   const section = await prisma.homepageSection.delete({ where: { id } });
   revalidatePath("/admin/content/homepage");
   revalidatePath("/");
+  revalidatePath("/new-here");
   return { success: true, data: section };
+}
+
+export async function getAdminTestimonials() {
+  await requirePermission("read", "Testimonial");
+  return prisma.testimonial.findMany({ orderBy: [{ order: "asc" }, { createdAt: "asc" }] });
+}
+
+export async function saveTestimonial(input: TestimonialUpsertInput) {
+  const data = testimonialUpsertSchema.parse(input);
+  await requirePermission(data.id ? "update" : "create", "Testimonial");
+  const payload = {
+    name: data.name,
+    role: emptyToNull(data.role),
+    quote: data.quote,
+    imageUrl: emptyToNull(data.imageUrl),
+    imagePublicId: emptyToNull(data.imagePublicId),
+    order: data.order,
+    status: data.status,
+  };
+  const testimonial = data.id
+    ? await prisma.testimonial.update({ where: { id: data.id }, data: payload })
+    : await prisma.testimonial.create({ data: payload });
+  revalidateTestimonials();
+  return { success: true, data: testimonial };
+}
+
+export async function deleteTestimonial(id: string) {
+  await requirePermission("delete", "Testimonial");
+  await prisma.testimonial.delete({ where: { id } });
+  revalidateTestimonials();
+  return { success: true };
+}
+
+function revalidateTestimonials() {
+  revalidatePath("/admin/content/testimonials");
+  revalidatePath("/");
+  revalidatePath("/new-here");
 }
 
 export async function getAdminSermonFeatures() {

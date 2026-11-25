@@ -13,6 +13,7 @@ export const ROUTE_NEEDS: Record<string, [Action, Subject]> = {
   "/admin/content/pages/new": ["create", "ContentPage"],
   "/admin/content/homepage": ["read", "HomepageSection"],
   "/admin/content/sermons": ["read", "Sermon"],
+  "/admin/content/testimonials": ["read", "Testimonial"],
   "/admin/content/library": ["read", "Publication"],
   "/admin/content/library/authors": ["read", "Publication"],
   "/admin/content/library/new": ["create", "Publication"],

@@ -92,7 +92,7 @@ const slides: Slide[] = [
     eyebrow: "From private devotion to kingdom impact",
     headline: "Transform lives through prayer.",
     ctas: {
-      primary: { text: "Become an intercessor", href: "/join" },
+      primary: { text: "Become an intercessor", href: "/new-here" },
       secondary: { text: "Watch a message", href: "/messages" },
     },
   },

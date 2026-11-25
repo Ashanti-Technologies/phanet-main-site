@@ -219,7 +219,7 @@ export default function ValuesPage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
-              href="/join"
+              href="/new-here"
               className="px-6 py-3 rounded-full font-medium bg-crayola text-white hover:bg-crayola/90 transition-colors"
             >
               Become an intercessor
